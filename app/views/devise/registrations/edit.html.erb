@@ -1,0 +1,391 @@
+<% content_for :head do %>
+  <style>
+    .profile-shell {
+      max-width: 1100px;
+      margin: 28px auto 60px;
+      padding: 0 18px 40px;
+      color: var(--text);
+    }
+    .profile-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 22px;
+      display: grid;
+      gap: 12px;
+      box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+    }
+    .profile-header {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      flex-wrap: wrap;
+    }
+    .avatar {
+      width: 84px;
+      height: 84px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(176,74,42,0.5), rgba(110,34,48,0.5));
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 28px;
+      color: #0c0c0f;
+      border: 2px solid rgba(255,255,255,0.08);
+      overflow: hidden;
+    }
+    .profile-meta h1 {
+      margin: 0;
+      font-size: 24px;
+      letter-spacing: 0.01em;
+    }
+    .profile-meta .username {
+      color: var(--muted);
+      font-size: 14px;
+      margin-top: 4px;
+    }
+    .profile-actions {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .settings-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.12s ease;
+    }
+    .settings-btn svg { width: 18px; height: 18px; }
+    .settings-btn:hover { border-color: rgba(255,255,255,0.2); }
+    .profile-stats {
+      display: flex;
+      gap: 24px;
+      color: var(--muted);
+      font-size: 14px;
+      flex-wrap: wrap;
+    }
+    .profile-stats strong { color: var(--text); font-size: 16px; }
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 10px;
+      margin-top: 6px;
+    }
+    .tab-btn {
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      font-weight: 700;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.12s ease;
+    }
+    .tab-btn.active {
+      background: linear-gradient(135deg, rgba(176,74,42,0.4), rgba(110,34,48,0.4));
+      border-color: rgba(255,255,255,0.15);
+    }
+    .tab-panels {
+      margin-top: 14px;
+    }
+    .panel {
+      display: none;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: rgba(255,255,255,0.03);
+      padding: 14px;
+      min-height: 180px;
+    }
+    .panel.active { display: block; }
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 10px;
+    }
+    .mini-card {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      display: grid;
+      gap: 6px;
+      min-height: 120px;
+    }
+    .mini-card .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
+    .mini-card .title { font-weight: 700; }
+    /* Settings modal */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      backdrop-filter: blur(6px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1200;
+      padding: 18px;
+    }
+    .modal-backdrop.open { display: flex; }
+    .settings-drawer {
+      width: min(640px, 100%);
+      max-height: 80vh;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: #111015;
+      padding: 18px;
+      display: grid;
+      gap: 12px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+      position: relative;
+    }
+    .modal-close {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      font-size: 20px;
+      cursor: pointer;
+    }
+    .settings-drawer label { color: var(--muted); font-size: 14px; }
+    .settings-drawer input,
+    .settings-drawer textarea {
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid #2f2f33;
+      background: #0d0d0f;
+      color: #f5f5f7;
+      font-size: 15px;
+    }
+    .settings-drawer textarea { min-height: 90px; resize: vertical; }
+    .settings-drawer .muted-note { color: var(--muted); font-size: 13px; margin-top: -6px; }
+    .settings-drawer > div { margin-bottom: 12px; }
+    .settings-drawer label { margin-bottom: 6px; display: block; }
+    .settings-actions { margin-top: 6px; }
+    .profile-bio { margin-top: 6px; color: var(--muted); max-width: 520px; line-height: 1.5; }
+    .settings-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-start;
+    }
+    .danger-btn {
+      background: transparent;
+      color: #ff8f8f;
+      border: 1px solid rgba(255,143,143,0.4);
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.12s ease;
+    }
+    .danger-btn:hover { background: rgba(255,143,143,0.1); }
+  </style>
+<% end %>
+
+<div class="profile-shell">
+    <div class="profile-card">
+      <div class="profile-header">
+        <div class="avatar">
+          <% if resource.avatar.attached? %>
+            <%= image_tag resource.avatar, style: "width: 100%; height: 100%; object-fit: cover; display: block;" %>
+          <% else %>
+            <%= (resource.username || resource.email).first&.upcase %>
+          <% end %>
+        </div>
+      <div class="profile-meta">
+        <h1><%= resource.name.presence || "Rider Name" %></h1>
+        <div class="username">@<%= resource.username.presence || "username" %></div>
+        <% if resource.bio.present? %>
+          <div class="profile-bio"><%= resource.bio %></div>
+        <% end %>
+      </div>
+        <div class="profile-actions">
+          <button type="button" class="settings-btn" id="toggle-settings" aria-label="Open settings">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6 1.65 1.65 0 0 0 10 3.09V3a2 2 0 1 1 4 0v.09A1.65 1.65 0 0 0 15 4.6a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.71 0 1.32.44 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+    <div class="profile-stats">
+      <div><strong>24</strong> Clips</div>
+      <div><strong>5</strong> Films</div>
+      <div><strong>132</strong> Followers</div>
+      <div><strong>87</strong> Following</div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-btn active" data-panel="clips">Clips</button>
+      <button class="tab-btn" data-panel="films">Films</button>
+      <button class="tab-btn" data-panel="photos">Photos</button>
+      <button class="tab-btn" data-panel="articles">Articles</button>
+    </div>
+
+    <div class="tab-panels">
+      <div class="panel active" id="panel-clips">
+        <div class="card-grid">
+          <div class="mini-card">
+            <div class="label">Clip</div>
+            <div class="title">Manual to barspin</div>
+            <div class="label">0:22 · LA</div>
+          </div>
+          <div class="mini-card">
+            <div class="label">Clip</div>
+            <div class="title">Rail hop line</div>
+            <div class="label">0:18 · Philly</div>
+          </div>
+        </div>
+      </div>
+      <div class="panel" id="panel-films">
+        <div class="card-grid">
+          <div class="mini-card">
+            <div class="label">Film</div>
+            <div class="title">City Lines</div>
+            <div class="label">15:30 · Premier</div>
+          </div>
+        </div>
+      </div>
+      <div class="panel" id="panel-photos">
+        <div class="card-grid">
+          <div class="mini-card">
+            <div class="label">Photo</div>
+            <div class="title">Wallride</div>
+            <div class="label">by Crew</div>
+          </div>
+        </div>
+      </div>
+      <div class="panel" id="panel-articles">
+        <div class="card-grid">
+          <div class="mini-card">
+            <div class="label">Article</div>
+            <div class="title">Spot guide: DTLA</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-backdrop" id="settings-backdrop">
+      <div class="settings-drawer" id="settings-drawer">
+        <button class="modal-close" id="close-settings" aria-label="Close settings">×</button>
+        <%= form_for(resource, as: resource_name, url: registration_path(resource_name), html: { method: :put, multipart: true }) do |f| %>
+          <%= render "devise/shared/error_messages", resource: resource %>
+
+          <div>
+            <%= f.label :avatar, "Profile picture" %>
+            <%= f.file_field :avatar, direct_upload: true %>
+            <div class="muted-note">Optional. Requires Active Storage setup to store uploads.</div>
+          </div>
+
+          <div>
+            <%= f.label :name %>
+            <%= f.text_field :name, autocomplete: "name" %>
+          </div>
+
+          <div>
+            <%= f.label :username %>
+            <%= f.text_field :username, autocomplete: "username" %>
+          </div>
+
+          <div>
+            <%= f.label :bio %>
+            <%= f.text_area :bio, placeholder: "Short rider bio, sponsors, crew..." %>
+          </div>
+
+          <div>
+            <%= f.label :email %>
+            <%= f.email_field :email, autocomplete: "email" %>
+          </div>
+
+          <% if devise_mapping.confirmable? && resource.pending_reconfirmation? %>
+            <div class="muted-note">Waiting confirmation for: <%= resource.unconfirmed_email %></div>
+          <% end %>
+
+          <div>
+            <%= f.label :password %>
+            <%= f.password_field :password, autocomplete: "new-password" %>
+            <% if @minimum_password_length %>
+              <div class="muted-note"><%= @minimum_password_length %> characters minimum</div>
+            <% end %>
+          </div>
+
+          <div>
+            <%= f.label :password_confirmation %>
+            <%= f.password_field :password_confirmation, autocomplete: "new-password" %>
+          </div>
+
+          <div>
+            <%= f.label :current_password %>
+            <%= f.password_field :current_password, autocomplete: "current-password" %>
+            <div class="muted-note">Needed to confirm changes</div>
+          </div>
+
+          <div>
+            <label>Sponsors (pending links)</label>
+            <%= f.text_area :sponsor_requests, placeholder: "Add sponsor usernames/brands. Links appear after they approve.", rows: 2 %>
+            <div class="muted-note">Sponsors will show on your profile once approved by the company.</div>
+            <div class="muted-note">Current sponsors: <strong>(pending approval)</strong></div>
+          </div>
+
+          <div class="settings-actions">
+            <%= f.submit "Save changes", class: "pill-btn primary" %>
+          </div>
+        <% end %>
+
+        <div class="settings-actions">
+          <%= button_to "Cancel my account", registration_path(resource_name), method: :delete,
+                data: { confirm: "Are you sure?", turbo_confirm: "Are you sure?" },
+                class: "danger-btn" %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener("turbo:load", profileInit);
+  document.addEventListener("DOMContentLoaded", profileInit);
+  function profileInit() {
+    const tabs = document.querySelectorAll(".tab-btn");
+    const panels = document.querySelectorAll(".panel");
+    tabs.forEach((tab) => {
+      tab.onclick = () => {
+        tabs.forEach(t => t.classList.remove("active"));
+        panels.forEach(p => p.classList.remove("active"));
+        tab.classList.add("active");
+        const target = document.getElementById(`panel-${tab.dataset.panel}`);
+        if (target) target.classList.add("active");
+      };
+    });
+    const toggle = document.getElementById("toggle-settings");
+    const backdrop = document.getElementById("settings-backdrop");
+    const closeBtn = document.getElementById("close-settings");
+    if (toggle && backdrop) {
+      toggle.onclick = () => backdrop.classList.add("open");
+    }
+    if (closeBtn && backdrop) {
+      closeBtn.onclick = () => backdrop.classList.remove("open");
+    }
+    if (backdrop) {
+      backdrop.addEventListener("click", (e) => {
+        if (e.target === backdrop) backdrop.classList.remove("open");
+      });
+    }
+  }
+</script>

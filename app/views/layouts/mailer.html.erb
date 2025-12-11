@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <style>
+      /* Email styles need to be inline */
+      body {
+        margin: 0;
+        padding: 0;
+        background: #0b0c10;
+        color: #e8ecf1;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      .container {
+        max-width: 640px;
+        margin: 0 auto;
+        padding: 24px 18px 32px;
+        background: #11131a;
+      }
+      .brand {
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        font-size: 18px;
+        color: #f05a28;
+        text-transform: uppercase;
+      }
+      .footer {
+        color: #9ca8b5;
+        font-size: 12px;
+        margin-top: 24px;
+        padding-top: 12px;
+        border-top: 1px solid #1f222d;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <div class="brand">Streetwatch</div>
+      <%= yield %>
+      <div class="footer">
+        You're receiving this email from Streetwatch (BMX film archive + social). Update preferences once account settings are built.
+      </div>
+    </div>
+  </body>
+</html>

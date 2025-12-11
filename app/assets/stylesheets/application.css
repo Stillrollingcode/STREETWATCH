@@ -1,0 +1,163 @@
+/*
+ * This is a manifest file that'll be compiled into application.css.
+ *
+ * With Propshaft, assets are served efficiently without preprocessing steps. You can still include
+ * application-wide styles in this file, but keep in mind that CSS precedence will follow the standard
+ * cascading order, meaning styles declared later in the document or manifest will override earlier ones,
+ * depending on specificity.
+ *
+ * Consider organizing styles into separate files for maintainability.
+ */
+nav {
+  background: #333;
+  padding: 10px;
+  color: white;
+}
+
+nav a {
+  color: white;
+  margin: 0 10px;
+}
+
+.notice {
+  background: #4CAF50;
+  color: white;
+  padding: 10px;
+}
+
+.alert {
+  background: #f44336;
+  color: white;
+  padding: 10px;
+}
+
+/* Auth layout */
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #1f1f21;
+  padding: 32px 16px;
+  color: #eaeaea;
+}
+
+.auth-card {
+  width: min(420px, 95vw);
+  background: #242426;
+  border: 1px solid #33343a;
+  border-radius: 14px;
+  padding: 24px 24px 28px;
+  box-shadow: 0 15px 45px rgba(0, 0, 0, 0.35);
+}
+
+.auth-title {
+  text-align: center;
+  font-size: 20px;
+  margin: 0 0 16px;
+}
+
+.social-buttons {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.social-buttons form {
+  margin: 0;
+}
+
+.social-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-decoration: none;
+  color: #fff;
+  transition: transform 0.12s ease, filter 0.15s ease;
+}
+
+.social-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.03);
+}
+
+.social-btn.google { background: #5a8dee; }
+.social-btn.twitter { background: #0f0f10; border-color: #1f1f1f; }
+.social-btn.stripe { background: #6a5cff; }
+
+.auth-divider {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 10px;
+  color: #9a9aa3;
+  margin: 16px 0 12px;
+  font-size: 13px;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  height: 1px;
+  background: #3a3a3f;
+}
+
+.auth-form label {
+  display: block;
+  margin-bottom: 6px;
+  color: #cfcfd4;
+  font-size: 14px;
+}
+
+.auth-input {
+  width: 100%;
+  padding: 12px 12px;
+  border-radius: 8px;
+  border: 1px solid #2f2f33;
+  background: #0d0d0f;
+  color: #f5f5f7;
+  font-size: 15px;
+  margin-bottom: 12px;
+}
+
+.auth-input:focus {
+  outline: 2px solid #5a8dee;
+  border-color: #5a8dee;
+}
+
+.auth-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.auth-submit {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid #36363b;
+  background: #dcdcdc;
+  color: #111;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.15s ease, transform 0.12s ease;
+}
+
+.auth-submit:hover {
+  filter: brightness(0.97);
+  transform: translateY(-1px);
+}
+
+.auth-link {
+  color: #9cb3ff;
+  text-decoration: underline;
+}

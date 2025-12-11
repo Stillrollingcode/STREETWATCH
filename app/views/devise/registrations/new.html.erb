@@ -1,0 +1,97 @@
+<div class="auth-page">
+  <div class="auth-card">
+    <h2 class="auth-title">Create account</h2>
+
+    <div class="social-buttons">
+      <% if Devise.omniauth_configs[:google_oauth2] %>
+        <%= link_to "Google",
+                    user_google_oauth2_omniauth_authorize_path,
+                    class: "social-btn google" %>
+      <% else %>
+        <a class="social-btn google" href="#" aria-disabled="true">Google (connect env vars)</a>
+      <% end %>
+    </div>
+
+    <div class="auth-divider">or</div>
+
+    <%= form_for(resource, as: resource_name, url: registration_path(resource_name), html: { class: "auth-form" }) do |f| %>
+      <%= render "devise/shared/error_messages", resource: resource %>
+
+      <div class="field">
+        <%= f.label :name %>
+        <%= f.text_field :name, autofocus: true, autocomplete: "name", class: "auth-input" %>
+      </div>
+
+      <div class="field">
+        <div class="auth-actions">
+          <%= f.label :username %>
+          <span id="username-status" style="font-size: 12px; color: #9a9aa3;"></span>
+        </div>
+        <%= f.text_field :username, autocomplete: "username", class: "auth-input", id: "username-input" %>
+      </div>
+
+      <div class="field">
+        <%= f.label :email %>
+        <%= f.email_field :email, autocomplete: "email", class: "auth-input" %>
+      </div>
+
+      <div class="field">
+        <div class="auth-actions">
+          <%= f.label :password %>
+          <% if @minimum_password_length %>
+            <span style="color: #8f8f98;">(<%= @minimum_password_length %> characters minimum)</span>
+          <% end %>
+        </div>
+        <%= f.password_field :password, autocomplete: "new-password", class: "auth-input" %>
+      </div>
+
+      <div class="field">
+        <%= f.label :password_confirmation %>
+        <%= f.password_field :password_confirmation, autocomplete: "new-password", class: "auth-input" %>
+      </div>
+
+      <%= f.submit "Sign up", class: "auth-submit" %>
+    <% end %>
+
+    <div style="margin-top: 12px; text-align: center; font-size: 13px; color: #b0b0b7;">
+      Already have an account?
+      <%= link_to "Log in", new_session_path(resource_name), class: "auth-link" %>
+    </div>
+  </div>
+</div>
+
+<% content_for :head do %>
+  <script>
+    document.addEventListener("turbo:load", attachUsernameChecker);
+    document.addEventListener("DOMContentLoaded", attachUsernameChecker);
+    function attachUsernameChecker() {
+      const input = document.getElementById("username-input");
+      const status = document.getElementById("username-status");
+      if (!input || !status) return;
+      let timer;
+      input.addEventListener("input", () => {
+        const val = input.value.trim();
+        status.textContent = val ? "Checking..." : "";
+        clearTimeout(timer);
+        if (!val) return;
+        timer = setTimeout(() => {
+          fetch(`/username/check?username=${encodeURIComponent(val)}`, { headers: { Accept: "application/json" }})
+            .then((res) => res.json())
+            .then((data) => {
+              if (data.available) {
+                status.textContent = "Available";
+                status.style.color = "#6dd27f";
+              } else {
+                status.textContent = "Taken";
+                status.style.color = "#ff7b7b";
+              }
+            })
+            .catch(() => {
+              status.textContent = "Error checking";
+              status.style.color = "#ff7b7b";
+            });
+        }, 300);
+      });
+    }
+  </script>
+<% end %>
