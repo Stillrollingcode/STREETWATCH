@@ -1,0 +1,87 @@
+<% content_for :head do %>
+  <style>
+    .playlists-shell {
+      max-width: 1200px;
+      margin: 28px auto 60px;
+      padding: 0 18px;
+    }
+    .playlists-header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .playlists-header h1 {
+      margin: 0;
+      font-size: 32px;
+    }
+    .playlists-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+    }
+    .playlist-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      transition: all 0.2s ease;
+      text-decoration: none;
+      color: var(--text);
+      display: block;
+    }
+    .playlist-card:hover {
+      background: rgba(255,255,255,0.08);
+      border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+      transform: translateY(-2px);
+    }
+    .playlist-card h3 {
+      margin: 0 0 8px;
+      font-size: 20px;
+      color: var(--accent);
+    }
+    .playlist-card p {
+      color: var(--muted);
+      font-size: 14px;
+      margin: 0 0 12px;
+      line-height: 1.4;
+    }
+    .playlist-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+  </style>
+<% end %>
+
+<div class="playlists-shell">
+  <div class="playlists-header">
+    <h1>My Playlists</h1>
+    <%= link_to "Create Playlist", new_playlist_path, class: "pill-btn" %>
+  </div>
+
+  <% if @playlists.any? %>
+    <div class="playlists-grid">
+      <% @playlists.each do |playlist| %>
+        <%= link_to playlist, class: "playlist-card" do %>
+          <h3><%= playlist.name %></h3>
+          <% if playlist.description.present? %>
+            <p><%= truncate(playlist.description, length: 100) %></p>
+          <% end %>
+          <div class="playlist-meta">
+            <span><%= pluralize(playlist.films.count, 'film') %></span>
+            <span>Updated <%= time_ago_in_words(playlist.updated_at) %> ago</span>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+  <% else %>
+    <div style="text-align: center; padding: 60px 20px;">
+      <p style="color: var(--muted); margin-bottom: 20px;">You haven't created any playlists yet.</p>
+      <%= link_to "Create Your First Playlist", new_playlist_path, class: "pill-btn" %>
+    </div>
+  <% end %>
+</div>

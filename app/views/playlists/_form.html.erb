@@ -1,0 +1,107 @@
+<% content_for :head do %>
+  <style>
+    .form-shell {
+      max-width: 600px;
+      margin: 28px auto 60px;
+      padding: 0 18px;
+    }
+    .form-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+    }
+    .form-card h1 {
+      margin: 0 0 24px;
+      font-size: 28px;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    .form-group label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 8px;
+      font-size: 14px;
+      color: var(--text);
+    }
+    .form-group input[type="text"],
+    .form-group textarea {
+      width: 100%;
+      padding: 12px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 15px;
+    }
+    .form-group textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+    .form-group input[type="text"]:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+    }
+    .form-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 24px;
+    }
+    .error-messages {
+      background: rgba(220,38,38,0.1);
+      border: 1px solid rgba(220,38,38,0.3);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 20px;
+      color: #fca5a5;
+    }
+    .error-messages h4 {
+      margin: 0 0 8px;
+      font-size: 14px;
+    }
+    .error-messages ul {
+      margin: 0;
+      padding-left: 20px;
+      font-size: 13px;
+    }
+  </style>
+<% end %>
+
+<div class="form-shell">
+  <div class="form-card">
+    <h1><%= playlist.new_record? ? "Create Playlist" : "Edit Playlist" %></h1>
+
+    <% if playlist.errors.any? %>
+      <div class="error-messages">
+        <h4><%= pluralize(playlist.errors.count, "error") %> prevented this playlist from being saved:</h4>
+        <ul>
+          <% playlist.errors.full_messages.each do |message| %>
+            <li><%= message %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
+    <%= form_with model: playlist, local: true do |f| %>
+      <%= hidden_field_tag :film_id, params[:film_id] if params[:film_id].present? %>
+
+      <div class="form-group">
+        <%= f.label :name %>
+        <%= f.text_field :name, placeholder: "e.g., My Favorites, Street Classics", required: true %>
+      </div>
+
+      <div class="form-group">
+        <%= f.label :description %>
+        <%= f.text_area :description, placeholder: "What's this playlist about? (optional)" %>
+      </div>
+
+      <div class="form-actions">
+        <%= f.submit playlist.new_record? ? "Create Playlist" : "Update Playlist", class: "pill-btn" %>
+        <%= link_to "Cancel", playlist.new_record? ? playlists_path : playlist_path(playlist), class: "pill-btn" %>
+      </div>
+    <% end %>
+  </div>
+</div>

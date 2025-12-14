@@ -1,0 +1,148 @@
+<% content_for :head do %>
+  <style>
+    .favorites-shell {
+      max-width: 1200px;
+      margin: 28px auto 60px;
+      padding: 0 18px;
+    }
+    .favorites-header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .favorites-header h1 {
+      margin: 0;
+      font-size: 32px;
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .favorites-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+    }
+    .film-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      transition: all 0.2s ease;
+      text-decoration: none;
+      color: var(--text);
+      display: block;
+    }
+    .film-card:hover {
+      background: rgba(255,255,255,0.08);
+      border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+      transform: translateY(-2px);
+    }
+    .film-thumbnail {
+      width: 100%;
+      background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 30%, transparent), color-mix(in srgb, var(--accent-2) 30%, transparent));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+    .film-thumbnail img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .film-thumbnail .placeholder {
+      font-size: 40px;
+      opacity: 0.3;
+    }
+    .favorite-badge {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: color-mix(in srgb, var(--accent) 90%, transparent);
+      border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .film-info {
+      padding: 16px;
+    }
+    .film-title {
+      font-weight: 700;
+      font-size: 16px;
+      margin-bottom: 8px;
+    }
+    .film-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .empty-state {
+      text-align: center;
+      padding: 80px 20px;
+      color: var(--muted);
+    }
+    .empty-state-icon {
+      font-size: 64px;
+      margin-bottom: 16px;
+      opacity: 0.3;
+    }
+    .empty-state h2 {
+      margin: 0 0 12px;
+      font-size: 24px;
+      color: var(--text);
+    }
+    .empty-state p {
+      margin: 0 0 24px;
+      font-size: 15px;
+    }
+  </style>
+<% end %>
+
+<div class="favorites-shell">
+  <div class="favorites-header">
+    <h1>
+      <span>♥</span>
+      <span>Favorite Films</span>
+    </h1>
+  </div>
+
+  <% if @films.any? %>
+    <div class="favorites-grid">
+      <% @films.each do |film| %>
+        <%= link_to film, class: "film-card" do %>
+          <div class="film-thumbnail" style="aspect-ratio: <%= film.aspect_ratio_css %>;">
+            <% if film.thumbnail.attached? %>
+              <%= image_tag film.thumbnail %>
+            <% elsif film.youtube_thumbnail_url %>
+              <%= image_tag film.youtube_thumbnail_url, alt: film.title %>
+            <% else %>
+              <div class="placeholder">🎬</div>
+            <% end %>
+            <div class="favorite-badge">♥</div>
+          </div>
+          <div class="film-info">
+            <div class="film-title"><%= film.title %></div>
+            <div class="film-meta">
+              <span><%= film.company || 'Independent' %></span>
+              <% if film.runtime.present? %>
+                <span><%= film.formatted_runtime %></span>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+  <% else %>
+    <div class="empty-state">
+      <div class="empty-state-icon">♡</div>
+      <h2>No favorites yet</h2>
+      <p>Start building your collection by favoriting films you love.</p>
+      <%= link_to "Browse Films", films_path, class: "pill-btn primary" %>
+    </div>
+  <% end %>
+</div>

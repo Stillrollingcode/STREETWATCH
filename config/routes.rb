@@ -13,4 +13,20 @@ Rails.application.routes.draw do
   # Defines the root path route ("/")
   root "pages#home"
   get "/username/check", to: "usernames#show"
+  get "/search", to: "search#index"
+  get "/favorites", to: "favorites_films#index"
+  get "/settings", to: "settings#show"
+  patch "/settings", to: "settings#update"
+
+  resources :films do
+    resources :comments, only: [:create, :destroy]
+    resource :favorite, only: [:create, :destroy]
+  end
+
+  resources :playlists do
+    member do
+      post 'add_film/:film_id', to: 'playlists#add_film', as: :add_film
+      delete 'remove_film/:film_id', to: 'playlists#remove_film', as: :remove_film
+    end
+  end
 end

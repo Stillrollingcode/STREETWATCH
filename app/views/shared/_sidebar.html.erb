@@ -1,0 +1,457 @@
+<style>
+  <% theme = user_theme_styles %>
+  .sidebar {
+    position: fixed;
+    top: 60px;
+    left: 0;
+    width: 280px;
+    height: calc(100vh - 60px);
+    background: <%= theme[:sidebar_bg] %>;
+    backdrop-filter: blur(12px);
+    border-right: 1px solid var(--border);
+    transform: translateX(-280px);
+    transition: transform 0.3s ease;
+    z-index: 90;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .sidebar-toggle {
+    position: fixed;
+    top: 70px;
+    left: 12px;
+    width: 44px;
+    height: 44px;
+    background: <%= theme[:sidebar_bg] %>;
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 91;
+    transition: all 0.2s ease;
+    color: var(--text);
+    font-size: 20px;
+  }
+
+  .sidebar-toggle:hover {
+    background: rgba(255,255,255,0.08);
+    border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  }
+
+  .sidebar-toggle.open {
+    left: 292px;
+  }
+
+  .sidebar-content {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .sidebar-search {
+    position: relative;
+  }
+
+  .sidebar-search input {
+    width: 100%;
+    padding: 10px 36px 10px 12px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 14px;
+    font-family: inherit;
+  }
+
+  .sidebar-search input:focus {
+    outline: none;
+    border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  }
+
+  .sidebar-search input::placeholder {
+    color: var(--muted);
+  }
+
+  .sidebar-search-icon {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    pointer-events: none;
+  }
+
+  .sidebar-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .sidebar-section-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .sidebar-menu-item {
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.15s ease;
+    cursor: pointer;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .sidebar-menu-item:hover {
+    background: rgba(255,255,255,0.08);
+    border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  }
+
+  .sidebar-menu-item.active {
+    background: color-mix(in srgb, var(--accent) 20%, transparent);
+    border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+    color: var(--accent);
+  }
+
+  .sidebar-submenu {
+    display: none;
+    padding-left: 12px;
+    margin-top: 4px;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .sidebar-submenu.open {
+    display: flex;
+  }
+
+  .sidebar-submenu-item {
+    padding: 8px 12px;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.06);
+    font-weight: 500;
+    font-size: 13px;
+    transition: all 0.15s ease;
+    color: var(--muted);
+    display: block;
+    text-decoration: none;
+  }
+
+  .sidebar-submenu-item:hover {
+    background: rgba(255,255,255,0.06);
+    border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+    color: var(--text);
+  }
+
+  .sidebar-submenu-item.favorited {
+    color: var(--accent);
+  }
+
+  .chevron {
+    transition: transform 0.2s ease;
+    font-size: 12px;
+  }
+
+  .chevron.open {
+    transform: rotate(180deg);
+  }
+
+  .sidebar-overlay {
+    position: fixed;
+    top: 60px;
+    left: 0;
+    width: 100vw;
+    height: calc(100vh - 60px);
+    background: rgba(0,0,0,0.5);
+    z-index: 89;
+    display: none;
+  }
+
+  .sidebar-overlay.open {
+    display: block;
+  }
+
+  .search-results {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: 4px;
+    background: <%= theme[:sidebar_bg] %>;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    max-height: 400px;
+    overflow-y: auto;
+    display: none;
+    z-index: 100;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  }
+
+  .search-results.show {
+    display: block;
+  }
+
+  .search-result-section {
+    padding: 8px;
+  }
+
+  .search-result-header {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    font-weight: 700;
+    padding: 4px 8px;
+  }
+
+  .search-result-item {
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    font-size: 13px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .search-result-item:hover {
+    background: rgba(255,255,255,0.08);
+  }
+
+  .search-result-title {
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .search-result-meta {
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  @media (max-width: 768px) {
+    .sidebar {
+      width: 100%;
+      transform: translateX(-100%);
+    }
+
+    .sidebar.open {
+      transform: translateX(0);
+    }
+
+    .sidebar-toggle.open {
+      left: auto;
+      right: 12px;
+    }
+  }
+</style>
+
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<div class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()">
+  ☰
+</div>
+
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-content">
+    <div class="sidebar-search">
+      <input
+        type="text"
+        id="globalSearch"
+        placeholder="Search films, profiles, articles..."
+        autocomplete="off">
+      <span class="sidebar-search-icon">🔍</span>
+      <div class="search-results" id="searchResults"></div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Browse</div>
+
+      <div>
+        <div class="sidebar-menu-item" onclick="toggleSubmenu('filmsMenu')">
+          <span>Films</span>
+          <span class="chevron" id="filmsChevron">▼</span>
+        </div>
+        <div class="sidebar-submenu" id="filmsMenu">
+          <%= link_to "All Films", films_path, class: "sidebar-submenu-item" %>
+          <% if user_signed_in? %>
+            <%= link_to "Favorites ♥", favorites_path, class: "sidebar-submenu-item favorited" %>
+            <%= link_to "My Playlists", playlists_path, class: "sidebar-submenu-item" %>
+          <% end %>
+        </div>
+      </div>
+
+      <div>
+        <div class="sidebar-menu-item" onclick="toggleSubmenu('photosMenu')">
+          <span>Photos</span>
+          <span class="chevron" id="photosChevron">▼</span>
+        </div>
+        <div class="sidebar-submenu" id="photosMenu">
+          <a href="#" class="sidebar-submenu-item">All Photos</a>
+          <a href="#" class="sidebar-submenu-item">Recent Uploads</a>
+        </div>
+      </div>
+
+      <div>
+        <div class="sidebar-menu-item" onclick="toggleSubmenu('articlesMenu')">
+          <span>Articles</span>
+          <span class="chevron" id="articlesChevron">▼</span>
+        </div>
+        <div class="sidebar-submenu" id="articlesMenu">
+          <a href="#" class="sidebar-submenu-item">All Articles</a>
+          <a href="#" class="sidebar-submenu-item">Latest Posts</a>
+        </div>
+      </div>
+    </div>
+
+    <% if user_signed_in? %>
+      <div class="sidebar-section" style="margin-top: auto; padding-top: 20px; border-top: 1px solid var(--border);">
+        <%= link_to settings_path, class: "sidebar-menu-item", style: "text-decoration: none; color: inherit; display: flex; align-items: center; gap: 8px;" do %>
+          <span>⚙</span>
+          <span>Settings</span>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<script>
+  function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const toggle = document.getElementById('sidebarToggle');
+    const overlay = document.getElementById('sidebarOverlay');
+
+    sidebar.classList.toggle('open');
+    toggle.classList.toggle('open');
+    overlay.classList.toggle('open');
+  }
+
+  function toggleSubmenu(menuId) {
+    const menu = document.getElementById(menuId);
+    const chevronId = menuId.replace('Menu', 'Chevron');
+    const chevron = document.getElementById(chevronId);
+
+    menu.classList.toggle('open');
+    chevron.classList.toggle('open');
+  }
+
+  // Global search functionality
+  const searchInput = document.getElementById('globalSearch');
+  const searchResults = document.getElementById('searchResults');
+  let searchTimeout;
+
+  searchInput.addEventListener('input', function(e) {
+    clearTimeout(searchTimeout);
+    const query = e.target.value.trim();
+
+    if (query.length < 2) {
+      searchResults.classList.remove('show');
+      return;
+    }
+
+    searchTimeout = setTimeout(() => {
+      performSearch(query);
+    }, 300);
+  });
+
+  async function performSearch(query) {
+    try {
+      const response = await fetch(`/search?q=${encodeURIComponent(query)}`, {
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+
+      if (!response.ok) throw new Error('Search failed');
+
+      const data = await response.json();
+      displaySearchResults(data);
+    } catch (error) {
+      console.error('Search error:', error);
+      searchResults.innerHTML = '<div style="padding: 12px; color: var(--muted);">Search temporarily unavailable</div>';
+      searchResults.classList.add('show');
+    }
+  }
+
+  function displaySearchResults(data) {
+    if (!data.films?.length && !data.users?.length) {
+      searchResults.innerHTML = '<div style="padding: 12px; color: var(--muted);">No results found</div>';
+      searchResults.classList.add('show');
+      return;
+    }
+
+    let html = '';
+
+    if (data.films?.length > 0) {
+      html += '<div class="search-result-section">';
+      html += '<div class="search-result-header">Films</div>';
+      data.films.forEach(film => {
+        html += `
+          <a href="/films/${film.id}" class="search-result-item" style="text-decoration: none; color: inherit;">
+            <div class="search-result-title">${film.title}</div>
+            <div class="search-result-meta">${film.company || 'Independent'} • ${film.film_type}</div>
+          </a>
+        `;
+      });
+      html += '</div>';
+    }
+
+    if (data.users?.length > 0) {
+      html += '<div class="search-result-section">';
+      html += '<div class="search-result-header">Profiles</div>';
+      data.users.forEach(user => {
+        html += `
+          <a href="/users/${user.id}/edit" class="search-result-item" style="text-decoration: none; color: inherit;">
+            <div class="search-result-title">${user.username || user.email}</div>
+            <div class="search-result-meta">Profile</div>
+          </a>
+        `;
+      });
+      html += '</div>';
+    }
+
+    searchResults.innerHTML = html;
+    searchResults.classList.add('show');
+  }
+
+  // Close search results when clicking outside
+  document.addEventListener('click', function(event) {
+    if (!searchInput.contains(event.target) && !searchResults.contains(event.target)) {
+      searchResults.classList.remove('show');
+    }
+  });
+
+  // Close sidebar on escape key
+  document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+      const sidebar = document.getElementById('sidebar');
+      const toggle = document.getElementById('sidebarToggle');
+      const overlay = document.getElementById('sidebarOverlay');
+
+      if (sidebar.classList.contains('open')) {
+        sidebar.classList.remove('open');
+        toggle.classList.remove('open');
+        overlay.classList.remove('open');
+      }
+    }
+  });
+</script>

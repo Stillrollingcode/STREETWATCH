@@ -1,0 +1,140 @@
+<% content_for :head do %>
+  <style>
+    .playlist-shell {
+      max-width: 1200px;
+      margin: 28px auto 60px;
+      padding: 0 18px;
+    }
+    .playlist-header {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    .playlist-header h1 {
+      margin: 0 0 8px;
+      font-size: 32px;
+    }
+    .playlist-header p {
+      color: var(--muted);
+      margin: 0 0 16px;
+      line-height: 1.5;
+    }
+    .playlist-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .films-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+    }
+    .film-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      transition: all 0.2s ease;
+      text-decoration: none;
+      color: var(--text);
+      display: block;
+    }
+    .film-card:hover {
+      background: rgba(255,255,255,0.08);
+      border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+      transform: translateY(-2px);
+    }
+    .film-thumbnail {
+      width: 100%;
+      background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 30%, transparent), color-mix(in srgb, var(--accent-2) 30%, transparent));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .film-thumbnail img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .film-thumbnail .placeholder {
+      font-size: 40px;
+      opacity: 0.3;
+    }
+    .film-info {
+      padding: 16px;
+    }
+    .film-title {
+      font-weight: 700;
+      font-size: 16px;
+      margin-bottom: 8px;
+    }
+    .film-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .remove-btn {
+      margin-top: 8px;
+      font-size: 12px;
+      padding: 4px 10px;
+    }
+  </style>
+<% end %>
+
+<div class="playlist-shell">
+  <div class="playlist-header">
+    <h1><%= @playlist.name %></h1>
+    <% if @playlist.description.present? %>
+      <p><%= @playlist.description %></p>
+    <% end %>
+    <div class="playlist-actions">
+      <%= link_to "Edit Playlist", edit_playlist_path(@playlist), class: "pill-btn" %>
+      <%= button_to "Delete Playlist", playlist_path(@playlist), method: :delete,
+            data: { confirm: "Are you sure? This will delete the playlist but not the films.", turbo_confirm: "Are you sure?" },
+            class: "pill-btn" %>
+      <%= link_to "← Back to Playlists", playlists_path, class: "pill-btn" %>
+    </div>
+  </div>
+
+  <% if @films.any? %>
+    <div class="films-grid">
+      <% @films.each do |film| %>
+        <div class="film-card">
+          <%= link_to film, style: "text-decoration: none; color: inherit;" do %>
+            <div class="film-thumbnail" style="aspect-ratio: <%= film.aspect_ratio_css %>;">
+              <% if film.thumbnail.attached? %>
+                <%= image_tag film.thumbnail %>
+              <% elsif film.youtube_thumbnail_url %>
+                <%= image_tag film.youtube_thumbnail_url, alt: film.title %>
+              <% else %>
+                <div class="placeholder">🎬</div>
+              <% end %>
+            </div>
+            <div class="film-info">
+              <div class="film-title"><%= film.title %></div>
+              <div class="film-meta">
+                <span><%= film.company || 'Independent' %></span>
+                <% if film.runtime.present? %>
+                  <span><%= film.formatted_runtime %></span>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+          <%= button_to "Remove", remove_film_playlist_path(@playlist, film_id: film.id), method: :delete,
+                data: { confirm: "Remove from playlist?", turbo_confirm: "Remove from playlist?" },
+                class: "pill-btn remove-btn", style: "margin: 0 16px 16px;" %>
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <div style="text-align: center; padding: 60px 20px;">
+      <p style="color: var(--muted); margin-bottom: 20px;">This playlist is empty.</p>
+      <%= link_to "Browse Films", films_path, class: "pill-btn" %>
+    </div>
+  <% end %>
+</div>

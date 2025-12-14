@@ -1,0 +1,911 @@
+<% content_for :head do %>
+  <style>
+    .film-shell {
+      max-width: 900px;
+      margin: 28px auto 60px;
+      padding: 0 18px 40px;
+      color: var(--text);
+    }
+    .film-detail-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 0;
+      overflow: hidden;
+      box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+    }
+    .film-hero {
+      width: 100%;
+      height: 400px;
+      background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 30%, transparent), color-mix(in srgb, var(--accent-2) 30%, transparent));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .film-hero img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .film-hero .placeholder {
+      font-size: 80px;
+      opacity: 0.3;
+    }
+    .video-player-wrapper {
+      width: 100%;
+      background: #000;
+      aspect-ratio: <%= @film.aspect_ratio_css %>;
+    }
+    .video-js {
+      width: 100%;
+      height: 100%;
+    }
+    .video-js .vjs-big-play-button {
+      border-color: var(--accent);
+      background-color: color-mix(in srgb, var(--accent) 80%, transparent);
+    }
+    .video-js .vjs-big-play-button:hover {
+      background-color: var(--accent);
+    }
+    .vjs-quality-button .vjs-menu-content {
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .vjs-quality-button .vjs-menu-item.vjs-selected {
+      background-color: color-mix(in srgb, var(--accent) 20%, transparent);
+      color: var(--accent);
+    }
+    .vjs-quality-button .vjs-menu-item:hover {
+      background-color: color-mix(in srgb, var(--accent) 10%, transparent);
+    }
+    .film-content {
+      padding: 24px;
+      display: grid;
+      gap: 20px;
+    }
+    .film-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .film-title-section h1 {
+      margin: 0 0 8px;
+      font-size: 32px;
+      letter-spacing: 0.01em;
+    }
+    .film-company-tag {
+      color: var(--accent);
+      font-weight: 800;
+      font-size: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .film-runtime {
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 16px;
+      letter-spacing: 0.02em;
+    }
+    .film-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .film-meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      padding: 16px;
+      background: rgba(255,255,255,0.02);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+    .meta-item {
+      display: grid;
+      gap: 4px;
+    }
+    .meta-label {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .meta-value {
+      font-weight: 600;
+      font-size: 15px;
+    }
+    .film-description {
+      line-height: 1.6;
+      color: var(--muted);
+    }
+    .section-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin: 0 0 12px;
+      color: var(--text);
+    }
+    .riders-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 10px;
+    }
+    .rider-card {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px;
+      text-align: center;
+      transition: all 0.15s ease;
+    }
+    .rider-card:hover {
+      border-color: rgba(255,255,255,0.2);
+    }
+    .rider-avatar {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 40%, transparent), color-mix(in srgb, var(--accent-2) 40%, transparent));
+      margin: 0 auto 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      overflow: hidden;
+    }
+    .rider-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .rider-name {
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .music-list {
+      background: rgba(255,255,255,0.02);
+      border-radius: 10px;
+      padding: 12px;
+      color: var(--muted);
+      white-space: pre-line;
+      line-height: 1.5;
+    }
+    .social-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      padding: 16px;
+      background: rgba(255,255,255,0.02);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+    .favorite-btn, .playlist-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 14px;
+      transition: all 0.15s ease;
+      cursor: pointer;
+    }
+    .favorite-btn:hover, .playlist-btn:hover {
+      background: rgba(255,255,255,0.08);
+      border-color: rgba(255,255,255,0.3);
+    }
+    .favorite-btn.favorited {
+      background: color-mix(in srgb, var(--accent) 20%, transparent);
+      border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+      color: var(--accent);
+    }
+    .comments-section {
+      padding: 20px;
+      background: rgba(255,255,255,0.02);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+    .comment-form {
+      margin-bottom: 20px;
+    }
+    .comment-form textarea {
+      width: 100%;
+      min-height: 80px;
+      padding: 12px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 14px;
+      resize: vertical;
+      margin-bottom: 8px;
+    }
+    .comment-form textarea:focus {
+      outline: none;
+      border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+    }
+    .comments-list {
+      display: grid;
+      gap: 12px;
+    }
+    .comment {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+    }
+    .comment-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .comment-author {
+      font-weight: 700;
+      color: var(--accent);
+      font-size: 14px;
+    }
+    .comment-date {
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .comment-body {
+      color: var(--text);
+      line-height: 1.5;
+      font-size: 14px;
+    }
+    .comment-actions {
+      margin-top: 8px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .reply-btn {
+      background: none;
+      border: none;
+      color: var(--accent);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 8px;
+      border-radius: 6px;
+      transition: background 0.15s ease;
+    }
+    .reply-btn:hover {
+      background: color-mix(in srgb, var(--accent) 10%, transparent);
+    }
+    .reply-form {
+      margin-top: 12px;
+      padding-left: 12px;
+      border-left: 2px solid var(--border);
+      display: none;
+    }
+    .reply-form.show {
+      display: block;
+    }
+    .reply-form textarea {
+      width: 100%;
+      min-height: 60px;
+      padding: 10px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 13px;
+      resize: vertical;
+      margin-bottom: 6px;
+    }
+    .reply-form textarea:focus {
+      outline: none;
+      border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+    }
+    .replies-section {
+      margin-top: 12px;
+      padding-left: 20px;
+      border-left: 2px solid var(--border);
+    }
+    .reply-comment {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 8px;
+    }
+    .reply-comment:last-child {
+      margin-bottom: 0;
+    }
+    .playlist-selector {
+      position: relative;
+      display: inline-block;
+    }
+    .playlist-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      margin-top: 4px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px;
+      min-width: 200px;
+      max-height: 300px;
+      overflow-y: auto;
+      display: none;
+      z-index: 100;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    .playlist-dropdown.show {
+      display: block;
+    }
+    .playlist-item {
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.15s ease;
+      font-size: 14px;
+    }
+    .playlist-item:hover {
+      background: rgba(255,255,255,0.08);
+    }
+    .create-playlist-link {
+      display: block;
+      padding: 8px 12px;
+      text-align: center;
+      color: var(--accent);
+      text-decoration: none;
+      border-top: 1px solid var(--border);
+      margin-top: 4px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .create-playlist-link:hover {
+      background: color-mix(in srgb, var(--accent) 10%, transparent);
+    }
+    .delete-btn {
+      background: transparent !important;
+      border: 2px solid color-mix(in srgb, var(--accent) 80%, transparent) !important;
+      color: #5ba876 !important;
+      transition: all 0.2s ease;
+    }
+    .delete-btn:hover {
+      border-color: var(--accent) !important;
+      background: color-mix(in srgb, var(--accent) 10%, transparent) !important;
+    }
+  </style>
+<% end %>
+
+<div class="film-shell">
+  <div class="film-detail-card">
+    <% if @film.youtube_url.present? %>
+      <div class="video-player-wrapper">
+        <iframe
+          src="https://www.youtube-nocookie.com/embed/<%= @film.youtube_video_id %>?origin=<%= request.base_url %>&enablejsapi=1"
+          frameborder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          referrerpolicy="strict-origin-when-cross-origin"
+          allowfullscreen
+          style="width: 100%; height: 100%;">
+        </iframe>
+        <div style="text-align: center; padding: 12px; background: rgba(255,255,255,0.04); border-top: 1px solid var(--border);">
+          <a href="<%= @film.youtube_url %>" target="_blank" rel="noopener" class="pill-btn" style="display: inline-flex; align-items: center; gap: 6px;">
+            <span>Watch on YouTube</span>
+            <span>↗</span>
+          </a>
+          <p style="color: var(--muted); font-size: 12px; margin: 8px 0 0;">
+            Note: YouTube embeds may not work on localhost but will work on production domains
+          </p>
+        </div>
+      </div>
+    <% elsif @film.video.attached? %>
+      <div class="video-player-wrapper">
+        <video
+          id="film-video-player"
+          class="video-js vjs-big-play-centered"
+          controls
+          preload="auto"
+          <% if @film.thumbnail.attached? %>
+            poster="<%= url_for(@film.thumbnail) %>"
+          <% end %>>
+          <% # Add sources for all available qualities in order of preference (highest to lowest) %>
+          <% if @film.video_4k.attached? %>
+            <source src="<%= url_for(@film.video_4k) %>" type="video/mp4" label="4K" data-quality="4k">
+          <% end %>
+          <% if @film.video_2k.attached? %>
+            <source src="<%= url_for(@film.video_2k) %>" type="video/mp4" label="2K" data-quality="2k">
+          <% end %>
+          <% if @film.video_1080p.attached? %>
+            <source src="<%= url_for(@film.video_1080p) %>" type="video/mp4" label="1080p" data-quality="1080p">
+          <% end %>
+          <% if @film.video_720p.attached? %>
+            <source src="<%= url_for(@film.video_720p) %>" type="video/mp4" label="720p" data-quality="720p">
+          <% end %>
+          <% if @film.video_480p.attached? %>
+            <source src="<%= url_for(@film.video_480p) %>" type="video/mp4" label="480p" data-quality="480p">
+          <% end %>
+          <% if @film.video_360p.attached? %>
+            <source src="<%= url_for(@film.video_360p) %>" type="video/mp4" label="360p" data-quality="360p">
+          <% end %>
+          <% # Fallback to original video %>
+          <source src="<%= url_for(@film.video) %>" type="<%= @film.video.content_type %>" label="Original" data-quality="original">
+          <p class="vjs-no-js">
+            To view this video please enable JavaScript, and consider upgrading to a web browser that
+            <a href="https://videojs.com/html5-video-support/" target="_blank">supports HTML5 video</a>
+          </p>
+        </video>
+      </div>
+
+      <script>
+        document.addEventListener('DOMContentLoaded', function() {
+          var player = videojs('film-video-player', {
+            fluid: true,
+            playbackRates: [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2],
+            controlBar: {
+              playbackRateMenuButton: true
+            }
+          });
+
+          // Add quality selector manually
+          var qualities = [];
+          var videoElement = document.getElementById('film-video-player');
+          var sources = videoElement.querySelectorAll('source');
+
+          console.log('Found ' + sources.length + ' source elements');
+
+          sources.forEach(function(source) {
+            var quality = source.getAttribute('data-quality');
+            var label = source.getAttribute('label');
+            console.log('Source:', label, quality, source.getAttribute('src'));
+            if (quality && label) {
+              qualities.push({
+                src: source.getAttribute('src'),
+                type: source.getAttribute('type'),
+                label: label,
+                quality: quality
+              });
+            }
+          });
+
+          console.log('Total qualities found:', qualities.length);
+
+          // Only add quality menu if multiple qualities exist
+          if (qualities.length > 1) {
+            console.log('Adding quality selector with', qualities.length, 'options');
+            var MenuButton = videojs.getComponent('MenuButton');
+            var MenuItem = videojs.getComponent('MenuItem');
+
+            // ES6 class syntax for Video.js 7.x+
+            class QualityMenuItem extends MenuItem {
+              constructor(player, options) {
+                super(player, options);
+                this.src = options.src;
+                this.quality = options.quality;
+                this.label = options.label;
+                this.selected(player.currentSrc() === this.src);
+              }
+
+              handleClick() {
+                var currentTime = player.currentTime();
+                var isPaused = player.paused();
+
+                player.src({ src: this.src, type: 'video/mp4' });
+                player.one('loadedmetadata', function() {
+                  player.currentTime(currentTime);
+                  if (!isPaused) {
+                    player.play();
+                  }
+                });
+
+                // Update selected state
+                var items = this.parentComponent.items;
+                items.forEach(function(item) {
+                  item.selected(false);
+                });
+                this.selected(true);
+              }
+            }
+
+            class QualityMenuButton extends MenuButton {
+              constructor(player, options) {
+                super(player, options);
+                this.el().setAttribute('aria-label', 'Quality');
+                this.controlText('Quality');
+                this.addClass('vjs-quality-button');
+              }
+
+              createItems() {
+                return qualities.map(function(quality) {
+                  return new QualityMenuItem(player, quality);
+                });
+              }
+
+              buildCSSClass() {
+                return 'vjs-quality-button ' + super.buildCSSClass();
+              }
+            }
+
+            videojs.registerComponent('QualityMenuButton', QualityMenuButton);
+            player.getChild('controlBar').addChild('QualityMenuButton', {},
+              player.getChild('controlBar').children().length - 1);
+            console.log('Quality selector button added to control bar');
+          } else {
+            console.log('Skipping quality selector - only', qualities.length, 'quality available');
+          }
+
+          // Add custom slow-mo button
+          var Button = videojs.getComponent('Button');
+
+          class SlowMoButton extends Button {
+            constructor(player, options) {
+              super(player, options);
+              this.controlText('Slow Motion (0.25x)');
+              this.addClass('vjs-slow-mo-button');
+            }
+
+            handleClick() {
+              var currentRate = player.playbackRate();
+              if (currentRate === 0.25) {
+                player.playbackRate(1);
+                this.controlText('Slow Motion (0.25x)');
+              } else {
+                player.playbackRate(0.25);
+                this.controlText('Normal Speed');
+              }
+            }
+          }
+
+          videojs.registerComponent('SlowMoButton', SlowMoButton);
+          player.getChild('controlBar').addChild('SlowMoButton', {}, 12);
+        });
+      </script>
+
+      <style>
+        .vjs-slow-mo-button .vjs-icon-placeholder:before {
+          content: "🐌";
+          font-size: 1.5em;
+          line-height: 1.9;
+        }
+        .vjs-quality-button .vjs-icon-placeholder:before {
+          content: "HD";
+          font-size: 1em;
+          line-height: 2;
+          font-weight: bold;
+        }
+        .vjs-quality-button .vjs-menu {
+          background-color: rgba(17, 16, 21, 0.95);
+          border: 1px solid var(--border);
+        }
+        .vjs-quality-button .vjs-menu-item {
+          color: var(--text);
+        }
+        .vjs-quality-button .vjs-menu-item:hover,
+        .vjs-quality-button .vjs-menu-item:focus {
+          background-color: color-mix(in srgb, var(--accent) 30%, transparent);
+        }
+        .vjs-quality-button .vjs-menu-item.vjs-selected {
+          background-color: color-mix(in srgb, var(--accent) 50%, transparent);
+          color: var(--text);
+        }
+        .vjs-playback-rate .vjs-menu {
+          background-color: rgba(17, 16, 21, 0.95);
+          border: 1px solid var(--border);
+        }
+        .vjs-playback-rate .vjs-menu-item {
+          color: var(--text);
+        }
+        .vjs-playback-rate .vjs-menu-item:hover,
+        .vjs-playback-rate .vjs-menu-item:focus {
+          background-color: rgba(176, 74, 42, 0.3);
+        }
+        .vjs-playback-rate .vjs-menu-item.vjs-selected {
+          background-color: rgba(176, 74, 42, 0.5);
+          color: var(--text);
+        }
+      </style>
+    <% else %>
+      <div class="film-hero">
+        <% if @film.thumbnail.attached? %>
+          <%= image_tag @film.thumbnail %>
+        <% elsif @film.youtube_thumbnail_url %>
+          <%= image_tag @film.youtube_thumbnail_url, alt: @film.title %>
+        <% else %>
+          <div class="placeholder">🎬</div>
+        <% end %>
+      </div>
+    <% end %>
+
+    <div class="film-content">
+      <div class="film-header-row">
+        <div class="film-title-section">
+          <h1><%= @film.title %></h1>
+          <div class="film-company-tag">
+            <% if @film.company.present? %>
+              <span><%= @film.company %></span>
+            <% end %>
+            <% if @film.runtime.present? %>
+              <span class="film-runtime"><%= @film.formatted_runtime %></span>
+            <% end %>
+            <span class="film-runtime">♥ <%= @film.favorites.count %> <%= @film.favorites.count == 1 ? 'favorite' : 'favorites' %></span>
+          </div>
+        </div>
+        <% if user_signed_in? %>
+          <div class="film-actions">
+            <%= link_to "Edit", edit_film_path(@film), class: "pill-btn" %>
+          </div>
+        <% end %>
+      </div>
+
+      <% if user_signed_in? %>
+        <div class="social-actions">
+          <% favorite = current_user.favorites.find_by(film: @film) %>
+          <% if favorite %>
+            <%= button_to film_favorite_path(@film), method: :delete, class: "favorite-btn favorited" do %>
+              ♥ Favorited
+            <% end %>
+          <% else %>
+            <%= button_to film_favorite_path(@film), method: :post, class: "favorite-btn" do %>
+              ♡ Add to Favorites
+            <% end %>
+          <% end %>
+
+          <div class="playlist-selector">
+            <button type="button" class="playlist-btn" onclick="togglePlaylistDropdown()">
+              ➕ Add to Playlist
+            </button>
+            <div class="playlist-dropdown" id="playlistDropdown">
+              <% if current_user.playlists.any? %>
+                <% current_user.playlists.recent.each do |playlist| %>
+                  <% if playlist.films.include?(@film) %>
+                    <div class="playlist-item" style="opacity: 0.5; cursor: default;">
+                      ✓ <%= playlist.name %>
+                    </div>
+                  <% else %>
+                    <%= button_to add_film_playlist_path(playlist, film_id: @film.id), method: :post, class: "playlist-item", style: "text-decoration: none; color: inherit; display: block; background: none; border: none; cursor: pointer; width: 100%; text-align: left; padding: 12px 16px; font-family: inherit; font-size: inherit;" do %>
+                      <%= playlist.name %>
+                    <% end %>
+                  <% end %>
+                <% end %>
+              <% else %>
+                <div class="playlist-item" style="opacity: 0.5; text-align: center;">
+                  No playlists yet
+                </div>
+              <% end %>
+              <%= link_to "+ Create New Playlist", new_playlist_path(film_id: @film.id), class: "create-playlist-link" %>
+            </div>
+          </div>
+        </div>
+      <% end %>
+
+      <div class="film-meta-grid">
+        <% if @film.film_type.present? %>
+          <div class="meta-item">
+            <div class="meta-label">Type</div>
+            <div class="meta-value"><%= @film.formatted_film_type %></div>
+          </div>
+        <% end %>
+        <% if @film.parent_film_title.present? %>
+          <div class="meta-item">
+            <div class="meta-label">From</div>
+            <div class="meta-value"><%= @film.parent_film_title %></div>
+          </div>
+        <% end %>
+        <% if @film.release_date.present? %>
+          <div class="meta-item">
+            <div class="meta-label">Release Date</div>
+            <div class="meta-value"><%= @film.release_date.strftime("%B %d, %Y") %></div>
+          </div>
+        <% end %>
+        <% if @film.runtime.present? %>
+          <div class="meta-item">
+            <div class="meta-label">Runtime</div>
+            <div class="meta-value"><%= @film.formatted_runtime %></div>
+          </div>
+        <% end %>
+        <% if @film.filmer_display_name.present? %>
+          <div class="meta-item">
+            <div class="meta-label">Filmer</div>
+            <div class="meta-value">
+              <% if @film.filmer_user %>
+                <%= link_to @film.filmer_display_name, edit_user_registration_path, style: "color: var(--accent); text-decoration: none;" %>
+              <% else %>
+                <%= @film.filmer_display_name %>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+        <% if @film.editor_display_name.present? %>
+          <div class="meta-item">
+            <div class="meta-label">Editor</div>
+            <div class="meta-value">
+              <% if @film.editor_user %>
+                <%= link_to @film.editor_display_name, edit_user_registration_path, style: "color: var(--accent); text-decoration: none;" %>
+              <% else %>
+                <%= @film.editor_display_name %>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+
+      <% if @film.description.present? %>
+        <div>
+          <h2 class="section-title">About</h2>
+          <div class="film-description"><%= @film.description %></div>
+        </div>
+      <% end %>
+
+      <% if @film.all_riders_display.any? %>
+        <div>
+          <h2 class="section-title">Featured Riders</h2>
+          <div class="riders-grid">
+            <% @film.riders.each do |rider| %>
+              <%= link_to edit_user_registration_path, style: "text-decoration: none; color: inherit;" do %>
+                <div class="rider-card">
+                  <div class="rider-avatar">
+                    <% if rider.avatar.attached? %>
+                      <%= image_tag rider.avatar %>
+                    <% else %>
+                      <%= (rider.username || rider.email).first&.upcase %>
+                    <% end %>
+                  </div>
+                  <div class="rider-name"><%= rider.username || rider.name %></div>
+                </div>
+              <% end %>
+            <% end %>
+            <% if @film.custom_riders.present? %>
+              <% @film.custom_riders.split("\n").map(&:strip).reject(&:blank?).each do |custom_rider| %>
+                <div class="rider-card" style="cursor: default;">
+                  <div class="rider-avatar">
+                    <%= custom_rider.first&.upcase %>
+                  </div>
+                  <div class="rider-name"><%= custom_rider %></div>
+                </div>
+              <% end %>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+
+      <% if @film.music_featured.present? %>
+        <div>
+          <h2 class="section-title">Music Featured</h2>
+          <div class="music-list"><%= @film.music_featured %></div>
+        </div>
+      <% end %>
+
+      <% if user_signed_in? %>
+        <div class="comments-section" id="comments">
+          <h2 class="section-title">Comments (<%= @film.comments.count %>)</h2>
+
+          <div class="comment-form">
+            <%= form_with model: [@film, Comment.new], url: film_comments_path(@film), data: { turbo: false } do |f| %>
+              <%= f.text_area :body, placeholder: "Share your thoughts...", required: true %>
+              <%= f.submit "Post Comment", class: "pill-btn" %>
+            <% end %>
+          </div>
+
+          <div class="comments-list">
+            <% @film.comments.top_level.recent.each do |comment| %>
+              <div class="comment" id="comment-<%= comment.id %>">
+                <div class="comment-header">
+                  <div>
+                    <div class="comment-author"><%= comment.user.username || comment.user.email %></div>
+                    <div class="comment-date"><%= time_ago_in_words(comment.created_at) %> ago</div>
+                  </div>
+                </div>
+                <div class="comment-body"><%= comment.body %></div>
+                <div class="comment-actions">
+                  <button class="reply-btn" onclick="toggleReplyForm(<%= comment.id %>)">Reply</button>
+                  <% if comment.user == current_user || can_delete_comment?(current_user, @film, comment) %>
+                    <%= button_to "Delete", film_comment_path(@film, comment), method: :delete,
+                          data: { confirm: "Are you sure?", turbo_confirm: "Are you sure?" },
+                          class: "pill-btn", style: "font-size: 12px; padding: 4px 10px;" %>
+                  <% end %>
+                </div>
+
+                <!-- Reply form -->
+                <div class="reply-form" id="reply-form-<%= comment.id %>">
+                  <%= form_with model: [@film, Comment.new], url: film_comments_path(@film), data: { turbo: false } do |f| %>
+                    <%= f.hidden_field :parent_id, value: comment.id %>
+                    <%= f.text_area :body, placeholder: "Write a reply...", required: true %>
+                    <div style="display: flex; gap: 8px;">
+                      <%= f.submit "Post Reply", class: "pill-btn", style: "font-size: 12px; padding: 6px 12px;" %>
+                      <button type="button" class="pill-btn" style="font-size: 12px; padding: 6px 12px;" onclick="toggleReplyForm(<%= comment.id %>)">Cancel</button>
+                    </div>
+                  <% end %>
+                </div>
+
+                <!-- Replies -->
+                <% if comment.replies.any? %>
+                  <div class="replies-section">
+                    <% comment.replies.recent.each do |reply| %>
+                      <div class="reply-comment">
+                        <div class="comment-header">
+                          <div>
+                            <div class="comment-author"><%= reply.user.username || reply.user.email %></div>
+                            <div class="comment-date"><%= time_ago_in_words(reply.created_at) %> ago</div>
+                          </div>
+                        </div>
+                        <div class="comment-body"><%= reply.body %></div>
+                        <% if reply.user == current_user || can_delete_comment?(current_user, @film, reply) %>
+                          <div class="comment-actions">
+                            <%= button_to "Delete", film_comment_path(@film, reply), method: :delete,
+                                  data: { confirm: "Are you sure?", turbo_confirm: "Are you sure?" },
+                                  class: "pill-btn", style: "font-size: 12px; padding: 4px 10px;" %>
+                          </div>
+                        <% end %>
+                      </div>
+                    <% end %>
+                  </div>
+                <% end %>
+              </div>
+            <% end %>
+
+            <% if @film.comments.none? %>
+              <div style="text-align: center; color: var(--muted); padding: 20px;">
+                No comments yet. Be the first to share your thoughts!
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <div style="margin-top: 20px; display: flex; gap: 10px; align-items: center;">
+    <%= link_to "← Back to Films", films_path, class: "pill-btn" %>
+    <% if user_signed_in? %>
+      <%= button_to "Delete Film", film_path(@film), method: :delete,
+            data: { confirm: "Are you sure you want to delete this film?", turbo_confirm: "Are you sure?" },
+            class: "pill-btn delete-btn",
+            style: "margin-left: auto;" %>
+    <% end %>
+  </div>
+</div>
+
+<script>
+  function togglePlaylistDropdown() {
+    const dropdown = document.getElementById('playlistDropdown');
+    dropdown.classList.toggle('show');
+  }
+
+  function toggleReplyForm(commentId) {
+    const replyForm = document.getElementById('reply-form-' + commentId);
+    if (replyForm) {
+      replyForm.classList.toggle('show');
+      if (replyForm.classList.contains('show')) {
+        const textarea = replyForm.querySelector('textarea');
+        if (textarea) textarea.focus();
+      }
+    }
+  }
+
+  // Close dropdown when clicking outside
+  document.addEventListener('click', function(event) {
+    const selector = document.querySelector('.playlist-selector');
+    const dropdown = document.getElementById('playlistDropdown');
+    if (dropdown && selector && !selector.contains(event.target)) {
+      dropdown.classList.remove('show');
+    }
+  });
+</script>
+
+<%
+  # Helper method for checking delete permissions
+  def can_delete_comment?(user, film, comment)
+    return false unless user
+    film.filmer_user == user || film.editor_user == user
+  end
+%>

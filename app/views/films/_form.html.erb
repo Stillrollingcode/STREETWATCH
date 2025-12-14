@@ -1,0 +1,884 @@
+<% content_for :head do %>
+  <style>
+    .form-shell {
+      max-width: 700px;
+      margin: 28px auto 60px;
+      padding: 0 18px 40px;
+      color: var(--text);
+    }
+    .form-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+    }
+    .form-card h1 {
+      margin: 0 0 24px;
+      font-size: 28px;
+    }
+    .form-group {
+      margin-bottom: 18px;
+    }
+    .form-card label {
+      display: block;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    .form-card input[type="text"],
+    .form-card input[type="date"],
+    .form-card input[type="number"],
+    .form-card input[type="file"],
+    .form-card textarea,
+    .form-card select {
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.02);
+      color: var(--text);
+      font-size: 15px;
+      font-family: inherit;
+    }
+    .form-card textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+    .form-card select[multiple] {
+      min-height: 150px;
+    }
+    .form-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 24px;
+    }
+    .error-messages {
+      background: rgba(255,100,100,0.1);
+      border: 1px solid rgba(255,100,100,0.3);
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 20px;
+      color: #ffaaaa;
+    }
+    .error-messages h2 {
+      margin: 0 0 8px;
+      font-size: 16px;
+    }
+    .error-messages ul {
+      margin: 0;
+      padding-left: 20px;
+    }
+    .help-text {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+    .field-group {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+    .field-group-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--accent);
+      margin: 0 0 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .field-group .form-group {
+      margin-bottom: 14px;
+    }
+    .field-group .form-group:last-child {
+      margin-bottom: 0;
+    }
+    .searchable-select-wrapper {
+      position: relative;
+    }
+    .searchable-select {
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.02);
+      color: var(--text);
+      font-size: 15px;
+      font-family: inherit;
+      appearance: none;
+    }
+    .searchable-select:focus {
+      outline: none;
+      border-color: var(--accent);
+      background: rgba(255,255,255,0.04);
+    }
+    .select-search-input:focus {
+      outline: none;
+      border-color: var(--accent);
+      background: rgba(255,255,255,0.06);
+    }
+    .autocomplete-wrapper {
+      position: relative;
+    }
+    .autocomplete-input {
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.02);
+      color: var(--text);
+      font-size: 15px;
+      font-family: inherit;
+    }
+    .autocomplete-input:focus {
+      outline: none;
+      border-color: var(--accent);
+      background: rgba(255,255,255,0.04);
+    }
+    .autocomplete-results {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: #111015;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-top: 4px;
+      max-height: 250px;
+      overflow-y: auto;
+      z-index: 1000;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.4);
+      display: none;
+    }
+    .autocomplete-results.show {
+      display: block;
+    }
+    .autocomplete-item {
+      padding: 10px 12px;
+      cursor: pointer;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      transition: background 0.1s ease;
+    }
+    .autocomplete-item:last-child {
+      border-bottom: none;
+    }
+    .autocomplete-item:hover,
+    .autocomplete-item.selected {
+      background: color-mix(in srgb, var(--accent) 20%, transparent);
+    }
+    .autocomplete-item.no-results {
+      color: var(--muted);
+      cursor: default;
+      text-align: center;
+    }
+    .autocomplete-item.no-results:hover {
+      background: transparent;
+    }
+    .hidden-field {
+      display: none;
+    }
+    .upload-progress-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 95%, transparent), color-mix(in srgb, var(--accent-2) 95%, transparent));
+      backdrop-filter: blur(10px);
+      padding: 20px;
+      z-index: 10000;
+      transform: translateY(-100%);
+      transition: transform 0.3s ease;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+    .upload-progress-overlay.active {
+      transform: translateY(0);
+    }
+    .progress-content {
+      max-width: 700px;
+      margin: 0 auto;
+    }
+    .progress-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+      color: white;
+      font-weight: 600;
+      font-size: 15px;
+    }
+    .progress-spinner {
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .progress-bar-container {
+      width: 100%;
+      height: 10px;
+      background: rgba(0,0,0,0.3);
+      border-radius: 5px;
+      overflow: hidden;
+      margin-bottom: 10px;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+    }
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #ffffff, #f0f0f0);
+      width: 0%;
+      transition: width 0.3s ease;
+      box-shadow: 0 0 10px rgba(255,255,255,0.5);
+    }
+    .progress-info {
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+      color: rgba(255,255,255,0.9);
+    }
+    .progress-percentage {
+      font-weight: 700;
+      color: white;
+    }
+    .progress-filename {
+      font-size: 13px;
+      color: rgba(255,255,255,0.8);
+      margin-top: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .existing-video-info {
+      padding: 12px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .existing-video-info .video-icon {
+      font-size: 24px;
+    }
+    .toggle-upload-link {
+      color: var(--accent);
+      cursor: pointer;
+      text-decoration: underline;
+      font-size: 13px;
+    }
+    .toggle-upload-link:hover {
+      color: #5ba876;
+    }
+  </style>
+<% end %>
+
+<!-- Upload Progress Overlay -->
+<div id="upload-progress-overlay" class="upload-progress-overlay">
+  <div class="progress-content">
+    <div class="progress-header">
+      <div class="progress-spinner"></div>
+      <span>Uploading video...</span>
+    </div>
+    <div class="progress-bar-container">
+      <div class="progress-bar" id="overlay-progress-bar"></div>
+    </div>
+    <div class="progress-info">
+      <span class="progress-percentage" id="overlay-progress-percentage">0%</span>
+      <span id="overlay-progress-size">0 MB / 0 MB</span>
+    </div>
+    <div class="progress-filename" id="overlay-progress-filename"></div>
+  </div>
+</div>
+
+<div class="form-shell">
+  <div class="form-card">
+    <h1><%= film.new_record? ? "Add Film" : "Edit Film" %></h1>
+
+    <%= form_with(model: film) do |f| %>
+      <% if film.errors.any? %>
+        <div class="error-messages">
+          <h2><%= pluralize(film.errors.count, "error") %> prevented this film from being saved:</h2>
+          <ul>
+            <% film.errors.full_messages.each do |message| %>
+              <li><%= message %></li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+
+      <div class="form-group">
+        <%= f.label :title %>
+        <%= f.text_field :title, required: true %>
+      </div>
+
+      <div class="form-group">
+        <%= f.label :description %>
+        <%= f.text_area :description, placeholder: "Brief description of the film..." %>
+      </div>
+
+      <div class="form-group" id="video-upload-group">
+        <%= f.label :video, "Video File" %>
+
+        <% if film.video.attached? %>
+          <div class="existing-video-info">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <span class="video-icon">🎬</span>
+              <div>
+                <div style="font-weight: 600;"><%= film.video.filename %></div>
+                <div style="font-size: 13px; color: var(--muted);"><%= number_to_human_size(film.video.byte_size) %></div>
+              </div>
+            </div>
+            <a class="toggle-upload-link" onclick="toggleVideoUpload()">Replace video</a>
+          </div>
+          <div id="video-field-wrapper" style="display: none;">
+            <%= f.file_field :video, direct_upload: true, accept: "video/*", id: "film_video_input" %>
+            <div class="help-text">Upload a new video file (MP4, MOV, etc.)</div>
+          </div>
+        <% else %>
+          <%= f.file_field :video, direct_upload: true, accept: "video/*", id: "film_video_input" %>
+          <div class="help-text">Upload the full film video (MP4, MOV, etc.)</div>
+        <% end %>
+      </div>
+
+      <div class="form-group" id="youtube-url-group">
+        <%= f.label :youtube_url, "YouTube URL (Alternative to upload)" %>
+        <%= f.text_field :youtube_url, placeholder: "https://www.youtube.com/watch?v=...", id: "youtube_url_input" %>
+        <div class="help-text">Instead of uploading, you can link to a YouTube video. Leave blank if uploading a file above.</div>
+      </div>
+
+      <div class="form-group">
+        <%= f.label :thumbnail %>
+        <%= f.file_field :thumbnail, direct_upload: true %>
+        <div class="help-text">Optional: Auto-generated from video or fetched from YouTube if not provided.</div>
+      </div>
+
+      <div class="form-group">
+        <%= f.label :aspect_ratio, "Aspect Ratio" %>
+        <%= f.select :aspect_ratio,
+          [
+            ['16:9 (Standard Widescreen)', '16:9'],
+            ['4:3 (Standard)', '4:3'],
+            ['9:16 (Vertical/Portrait)', '9:16'],
+            ['4:5 (Portrait)', '4:5'],
+            ['21:9 (Ultrawide)', '21:9']
+          ],
+          { include_blank: 'Auto-detect from video' },
+          { class: 'searchable-select' }
+        %>
+        <div class="help-text">Auto-detected from video if left blank</div>
+      </div>
+
+      <div class="form-group">
+        <%= f.label :film_type, "Film Type" %>
+        <div style="display: grid; gap: 10px; margin-top: 8px;">
+          <% Film::FILM_TYPES.each do |type| %>
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+              <%= f.radio_button :film_type, type, checked: film.film_type == type || (film.new_record? && type == 'full_length'), class: "film-type-radio" %>
+              <span><%= type.titleize.gsub('_', ' ') %></span>
+            </label>
+          <% end %>
+        </div>
+      </div>
+
+      <div class="form-group" id="parent-film-field" style="display: none;">
+        <%= f.label :parent_film_title, "Part of Full Length (Optional)" %>
+        <%= f.text_field :parent_film_title, placeholder: "e.g., Deadline" %>
+        <div class="help-text">If this video part is from a full length, enter the title here</div>
+      </div>
+
+      <div class="form-group">
+        <%= f.label :company %>
+        <%= f.text_field :company, placeholder: "e.g., Fit Bike Co, etnies, etc." %>
+      </div>
+
+      <div class="form-group">
+        <%= f.label :release_date %>
+        <%= f.date_field :release_date %>
+      </div>
+
+      <div class="field-group">
+        <h3 class="field-group-title">Filmer</h3>
+        <div class="form-group">
+          <%= f.label :filmer_user_id, "Search for profile or enter custom name" %>
+          <div class="autocomplete-wrapper" data-autocomplete-for="filmer">
+            <input type="text"
+                   class="autocomplete-input"
+                   placeholder="Type to search profiles or enter custom name..."
+                   data-field="filmer"
+                   value="<%= @film.filmer_display_name %>">
+            <div class="autocomplete-results"></div>
+          </div>
+          <%= f.hidden_field :filmer_user_id, class: "hidden-field" %>
+          <%= f.hidden_field :custom_filmer_name, class: "hidden-field" %>
+          <div class="help-text">Search for a user profile or enter a custom name</div>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <h3 class="field-group-title">Editor</h3>
+        <div class="form-group">
+          <%= f.label :editor_user_id, "Search for profile or enter custom name" %>
+          <div class="autocomplete-wrapper" data-autocomplete-for="editor">
+            <input type="text"
+                   class="autocomplete-input"
+                   placeholder="Type to search profiles or enter custom name..."
+                   data-field="editor"
+                   value="<%= @film.editor_display_name %>">
+            <div class="autocomplete-results"></div>
+          </div>
+          <%= f.hidden_field :editor_user_id, class: "hidden-field" %>
+          <%= f.hidden_field :custom_editor_name, class: "hidden-field" %>
+          <div class="help-text">Search for a user profile or enter a custom name</div>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <h3 class="field-group-title">Featured Riders</h3>
+        <div class="form-group">
+          <%= f.label :rider_ids, "Select from user profiles" %>
+          <div class="searchable-select-wrapper">
+            <%= f.collection_select :rider_ids, User.order(:username), :id, :username,
+                  { prompt: "— Search or select riders —" },
+                  { multiple: true,
+                    class: "searchable-select riders-select",
+                    data: { searchable: true },
+                    size: 8 } %>
+          </div>
+          <div class="help-text">Type to search, hold Cmd/Ctrl to select multiple</div>
+        </div>
+
+        <div class="form-group">
+          <%= f.label :custom_riders, "Or enter custom names" %>
+          <%= f.text_area :custom_riders, placeholder: "Enter rider names (one per line) for riders without profiles..." %>
+          <div class="help-text">One name per line for riders who don't have user profiles</div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <%= f.label :music_featured %>
+        <%= f.text_area :music_featured, placeholder: "List songs and artists (one per line)..." %>
+      </div>
+
+      <div class="form-actions">
+        <%= f.submit film.new_record? ? "Create Film" : "Update Film", class: "pill-btn primary" %>
+        <%= link_to "Cancel", film.new_record? ? films_path : film_path(film), class: "pill-btn" %>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<script>
+  // Get user data for autocomplete
+  const users = <%= User.order(:username).select(:id, :username).map { |u| { id: u.id, username: u.username } }.to_json.html_safe %>;
+
+  function initForm() {
+    // Film type toggle
+    const radioButtons = document.querySelectorAll('.film-type-radio');
+    const parentFilmField = document.getElementById('parent-film-field');
+
+    function toggleParentFilmField() {
+      const selectedType = document.querySelector('.film-type-radio:checked')?.value;
+      if (selectedType === 'video_part') {
+        parentFilmField.style.display = 'block';
+      } else {
+        parentFilmField.style.display = 'none';
+      }
+    }
+
+    radioButtons.forEach(radio => {
+      radio.addEventListener('change', toggleParentFilmField);
+    });
+    toggleParentFilmField();
+
+    // Initialize autocomplete for filmer and editor
+    initAutocomplete();
+
+    // Initialize searchable riders select
+    initSearchableSelects();
+
+    // Initialize mutual exclusivity for video upload and YouTube URL
+    initVideoSourceExclusivity();
+  }
+
+  // Make video upload and YouTube URL mutually exclusive
+  function initVideoSourceExclusivity() {
+    const videoInput = document.getElementById('film_video_input');
+    const youtubeInput = document.getElementById('youtube_url_input');
+    const videoUploadGroup = document.getElementById('video-upload-group');
+    const youtubeUrlGroup = document.getElementById('youtube-url-group');
+
+    if (!videoInput || !youtubeInput) return;
+
+    // Disable YouTube URL when video is selected
+    videoInput.addEventListener('change', function() {
+      if (this.files && this.files.length > 0) {
+        youtubeInput.disabled = true;
+        youtubeInput.style.opacity = '0.5';
+        youtubeInput.style.cursor = 'not-allowed';
+        youtubeUrlGroup.querySelector('.help-text').innerHTML = '<strong style="color: var(--accent);">Video upload selected. YouTube URL is disabled.</strong>';
+      } else {
+        youtubeInput.disabled = false;
+        youtubeInput.style.opacity = '1';
+        youtubeInput.style.cursor = '';
+        youtubeUrlGroup.querySelector('.help-text').innerHTML = 'Instead of uploading, you can link to a YouTube video. Leave blank if uploading a file above.';
+      }
+    });
+
+    // Disable video upload when YouTube URL is entered
+    youtubeInput.addEventListener('input', function() {
+      if (this.value.trim().length > 0) {
+        videoInput.disabled = true;
+        videoInput.style.opacity = '0.5';
+        videoInput.style.cursor = 'not-allowed';
+        const helpText = videoUploadGroup.querySelector('.help-text');
+        if (helpText) {
+          helpText.innerHTML = '<strong style="color: var(--accent);">YouTube URL entered. Video upload is disabled.</strong>';
+        }
+      } else {
+        videoInput.disabled = false;
+        videoInput.style.opacity = '1';
+        videoInput.style.cursor = '';
+        const helpText = videoUploadGroup.querySelector('.help-text');
+        if (helpText) {
+          helpText.innerHTML = 'Upload the full film video (MP4, MOV, etc.)';
+        }
+      }
+    });
+
+    // Check initial state
+    if (youtubeInput.value.trim().length > 0) {
+      youtubeInput.dispatchEvent(new Event('input'));
+    }
+  }
+
+  function initAutocomplete() {
+    const autocompleteInputs = document.querySelectorAll('.autocomplete-input');
+
+    autocompleteInputs.forEach(input => {
+      if (input.hasAttribute('data-initialized')) return;
+      input.setAttribute('data-initialized', 'true');
+
+      const field = input.getAttribute('data-field');
+      const wrapper = input.closest('.autocomplete-wrapper');
+      const resultsDiv = wrapper.querySelector('.autocomplete-results');
+      const userIdField = wrapper.parentElement.querySelector(`#film_${field}_user_id`);
+      const customNameField = wrapper.parentElement.querySelector(`#film_custom_${field}_name`);
+
+      let selectedUserId = userIdField.value;
+      let currentFocus = -1;
+
+      // Show results on focus
+      input.addEventListener('focus', function() {
+        if (this.value.trim().length > 0) {
+          showResults(this.value);
+        }
+      });
+
+      // Filter as user types
+      input.addEventListener('input', function() {
+        const value = this.value;
+        selectedUserId = null;
+        userIdField.value = '';
+
+        if (value.trim().length === 0) {
+          hideResults();
+          customNameField.value = '';
+          return;
+        }
+
+        showResults(value);
+        customNameField.value = value;
+      });
+
+      // Keyboard navigation
+      input.addEventListener('keydown', function(e) {
+        const items = resultsDiv.querySelectorAll('.autocomplete-item:not(.no-results)');
+
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          currentFocus++;
+          addActive(items);
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          currentFocus--;
+          addActive(items);
+        } else if (e.key === 'Enter') {
+          e.preventDefault();
+          if (currentFocus > -1 && items[currentFocus]) {
+            items[currentFocus].click();
+          } else {
+            hideResults();
+          }
+        } else if (e.key === 'Escape') {
+          hideResults();
+        }
+      });
+
+      function showResults(searchTerm) {
+        const filtered = users.filter(u =>
+          u.username.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+
+        resultsDiv.innerHTML = '';
+        currentFocus = -1;
+
+        if (filtered.length === 0) {
+          resultsDiv.innerHTML = '<div class="autocomplete-item no-results">No profiles found</div>';
+        } else {
+          filtered.forEach(user => {
+            const div = document.createElement('div');
+            div.className = 'autocomplete-item';
+            div.textContent = user.username;
+            div.addEventListener('click', function() {
+              selectUser(user);
+            });
+            resultsDiv.appendChild(div);
+          });
+        }
+
+        resultsDiv.classList.add('show');
+      }
+
+      function hideResults() {
+        resultsDiv.classList.remove('show');
+        currentFocus = -1;
+      }
+
+      function selectUser(user) {
+        input.value = user.username;
+        userIdField.value = user.id;
+        customNameField.value = '';
+        selectedUserId = user.id;
+        hideResults();
+      }
+
+      function addActive(items) {
+        if (!items || items.length === 0) return;
+        removeActive(items);
+        if (currentFocus >= items.length) currentFocus = 0;
+        if (currentFocus < 0) currentFocus = items.length - 1;
+        items[currentFocus].classList.add('selected');
+      }
+
+      function removeActive(items) {
+        items.forEach(item => item.classList.remove('selected'));
+      }
+
+      // Close results when clicking outside
+      document.addEventListener('click', function(e) {
+        if (!wrapper.contains(e.target)) {
+          hideResults();
+        }
+      });
+    });
+  }
+
+  // Initialize searchable selects for riders
+  function initSearchableSelects() {
+    const searchableSelects = document.querySelectorAll('[data-searchable="true"]');
+
+    searchableSelects.forEach(select => {
+      if (select.hasAttribute('data-initialized')) return;
+      select.setAttribute('data-initialized', 'true');
+
+      const originalOptions = Array.from(select.options).map(opt => ({
+        value: opt.value,
+        text: opt.text,
+        selected: opt.selected
+      }));
+
+      const wrapper = select.closest('.searchable-select-wrapper');
+      if (!wrapper.querySelector('.select-search-input')) {
+        const searchInput = document.createElement('input');
+        searchInput.type = 'text';
+        searchInput.className = 'select-search-input';
+        searchInput.placeholder = 'Type to search riders...';
+        searchInput.style.cssText = `
+          width: 100%;
+          padding: 10px 12px;
+          border-radius: 10px;
+          border: 1px solid var(--border);
+          background: rgba(255,255,255,0.04);
+          color: var(--text);
+          font-size: 14px;
+          font-family: inherit;
+          margin-bottom: 8px;
+        `;
+
+        wrapper.insertBefore(searchInput, select);
+
+        function filterOptions() {
+          const searchTerm = searchInput.value.toLowerCase();
+          const selectedValues = Array.from(select.selectedOptions).map(opt => opt.value);
+
+          select.innerHTML = '';
+
+          originalOptions.forEach(optData => {
+            if (optData.value === '') return;
+            if (searchTerm === '' || optData.text.toLowerCase().includes(searchTerm)) {
+              const option = document.createElement('option');
+              option.value = optData.value;
+              option.text = optData.text;
+              option.selected = selectedValues.includes(optData.value);
+              select.appendChild(option);
+            }
+          });
+        }
+
+        searchInput.addEventListener('input', filterOptions);
+        filterOptions();
+      }
+    });
+  }
+
+  // Toggle video upload field when replacing
+  function toggleVideoUpload() {
+    const wrapper = document.getElementById('video-field-wrapper');
+    if (wrapper) {
+      wrapper.style.display = wrapper.style.display === 'none' ? 'block' : 'none';
+    }
+  }
+
+  // Upload progress tracking
+  function initUploadProgress() {
+    const videoInput = document.getElementById('film_video_input');
+    if (!videoInput) return;
+
+    const overlay = document.getElementById('upload-progress-overlay');
+    const progressBar = document.getElementById('overlay-progress-bar');
+    const progressPercentage = document.getElementById('overlay-progress-percentage');
+    const progressSize = document.getElementById('overlay-progress-size');
+    const progressFilename = document.getElementById('overlay-progress-filename');
+    const form = videoInput.closest('form');
+
+    let progressInterval = null;
+    let hasDirectUpload = false;
+
+    // Listen for Active Storage direct upload events
+    videoInput.addEventListener('direct-upload:initialize', event => {
+      hasDirectUpload = true;
+      console.log('Direct upload initialized');
+    });
+
+    videoInput.addEventListener('direct-upload:start', event => {
+      console.log('Direct upload started');
+    });
+
+    videoInput.addEventListener('direct-upload:progress', event => {
+      const { progress } = event.detail;
+      const file = videoInput.files[0];
+
+      if (progressBar && progressPercentage && file) {
+        const percentage = Math.round(progress);
+        const totalSize = file.size;
+        const uploadedSize = (totalSize * progress) / 100;
+
+        progressBar.style.width = percentage + '%';
+        progressPercentage.textContent = percentage + '%';
+        progressSize.textContent = formatBytes(uploadedSize) + ' / ' + formatBytes(totalSize);
+
+        console.log('Progress:', percentage + '%');
+      }
+    });
+
+    videoInput.addEventListener('direct-upload:error', event => {
+      event.preventDefault();
+      const { error } = event.detail;
+      console.error('Upload error:', error);
+      alert(`Upload failed: ${error}`);
+
+      if (overlay) {
+        overlay.classList.remove('active');
+      }
+      if (progressInterval) clearInterval(progressInterval);
+    });
+
+    videoInput.addEventListener('direct-upload:end', event => {
+      console.log('Direct upload completed');
+      if (progressInterval) clearInterval(progressInterval);
+
+      // Set to 100%
+      progressBar.style.width = '100%';
+      progressPercentage.textContent = '100%';
+
+      // Keep overlay visible for a moment
+      setTimeout(() => {
+        if (overlay) {
+          overlay.classList.remove('active');
+        }
+      }, 1500);
+    });
+
+    // Form submit - start upload process
+    if (form) {
+      form.addEventListener('submit', event => {
+        const file = videoInput.files[0];
+        if (!file) return;
+
+        console.log('Form submitting with file:', file.name);
+
+        // Show overlay
+        if (overlay && progressFilename) {
+          overlay.classList.add('active');
+          progressFilename.textContent = file.name;
+          progressSize.textContent = '0 MB / ' + formatBytes(file.size);
+        }
+
+        // Start simulated progress (will be overridden by real progress if direct upload works)
+        let progress = 0;
+        const fileSize = file.size;
+        const estimatedTimeMs = Math.min(fileSize / 100000, 60000); // Rough estimate: 1MB = 1 second, max 60s
+        const incrementInterval = 300; // Update every 300ms
+        const totalSteps = estimatedTimeMs / incrementInterval;
+        const progressPerStep = 90 / totalSteps; // Only go to 90%, then wait for completion
+
+        if (progressInterval) clearInterval(progressInterval);
+
+        progressInterval = setInterval(() => {
+          if (hasDirectUpload) {
+            // Direct upload is handling it, stop simulated progress
+            clearInterval(progressInterval);
+            return;
+          }
+
+          progress += progressPerStep;
+          if (progress >= 90) {
+            progress = 90;
+            clearInterval(progressInterval);
+          }
+
+          const uploadedSize = (fileSize * progress) / 100;
+          progressBar.style.width = progress + '%';
+          progressPercentage.textContent = Math.round(progress) + '%';
+          progressSize.textContent = formatBytes(uploadedSize) + ' / ' + formatBytes(fileSize);
+        }, incrementInterval);
+      });
+    }
+  }
+
+  function formatBytes(bytes, decimals = 1) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const dm = decimals < 0 ? 0 : decimals;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    initForm();
+    initUploadProgress();
+  });
+
+  document.addEventListener('turbo:load', () => {
+    initForm();
+    initUploadProgress();
+  });
+</script>
