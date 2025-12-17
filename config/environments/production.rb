@@ -76,9 +76,11 @@ Rails.application.configure do
       user_name: ENV['SMTP_USERNAME'] || 'streetwatchmov@gmail.com',
       password: ENV['SMTP_PASSWORD'],
       address: 'smtp.gmail.com',
-      port: 587,
+      port: 465,
       authentication: :plain,
-      enable_starttls_auto: true,
+      ssl: true,
+      tls: true,
+      enable_starttls_auto: false,
       openssl_verify_mode: 'none'  # For debugging only
     }
 
