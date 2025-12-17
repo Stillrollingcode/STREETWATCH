@@ -59,24 +59,35 @@ Rails.application.configure do
   # Set host to be used by links generated in mailer templates.
   config.action_mailer.default_url_options = { host: "streetwatch-production.up.railway.app", protocol: "https" }
 
-  # Enable delivery method but don't raise errors (log them instead)
-  config.action_mailer.delivery_method = :smtp
-  config.action_mailer.perform_deliveries = true
-  config.action_mailer.raise_delivery_errors = false
-
   # Log email delivery attempts
   config.action_mailer.logger = Logger.new(STDOUT)
   config.action_mailer.perform_caching = false
 
   # Specify outgoing SMTP server for Gmail
-  config.action_mailer.smtp_settings = {
-    user_name: ENV['SMTP_USERNAME'] || 'streetwatchmov@gmail.com',
-    password: ENV['SMTP_PASSWORD'],
-    address: 'smtp.gmail.com',
-    port: 587,
-    authentication: :plain,
-    enable_starttls_auto: true
-  }
+  if ENV['SMTP_PASSWORD'].present?
+    puts "✅ SMTP_PASSWORD is present, configuring Gmail SMTP..."
+
+    # Force SMTP delivery method
+    config.action_mailer.delivery_method = :smtp
+    config.action_mailer.perform_deliveries = true
+    config.action_mailer.raise_delivery_errors = true  # Temporarily enable to see errors
+
+    config.action_mailer.smtp_settings = {
+      user_name: ENV['SMTP_USERNAME'] || 'streetwatchmov@gmail.com',
+      password: ENV['SMTP_PASSWORD'],
+      address: 'smtp.gmail.com',
+      port: 587,
+      authentication: :plain,
+      enable_starttls_auto: true,
+      openssl_verify_mode: 'none'  # For debugging only
+    }
+
+    puts "📧 SMTP configured for: #{ENV['SMTP_USERNAME'] || 'streetwatchmov@gmail.com'}"
+  else
+    puts "⚠️  SMTP_PASSWORD environment variable is not set! Emails will not be delivered."
+    config.action_mailer.delivery_method = :test
+    config.action_mailer.perform_deliveries = false
+  end
 
   # Enable locale fallbacks for I18n (makes lookups for any locale fall back to
   # the I18n.default_locale when a translation cannot be found).
