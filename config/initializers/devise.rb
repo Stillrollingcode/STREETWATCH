@@ -24,7 +24,7 @@ Devise.setup do |config|
   # Configure the e-mail address which will be shown in Devise::Mailer,
   # note that it will be overwritten if you use your own mailer class
   # with default "from" parameter.
-  config.mailer_sender = 'please-change-me-at-config-initializers-devise@example.com'
+  config.mailer_sender = 'streetwatchmov@gmail.com'
 
   # Configure the class responsible to send e-mails.
   # config.mailer = 'Devise::Mailer'
@@ -33,14 +33,9 @@ Devise.setup do |config|
   # config.parent_mailer = 'ActionMailer::Base'
 
   # OmniAuth providers (set env vars GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET to enable)
-  # Allow GET in development; keep POST-only in other environments for safety.
-  if Rails.env.development?
-    OmniAuth.config.allowed_request_methods = %i[get post]
-    OmniAuth.config.silence_get_warning = true
-  else
-    OmniAuth.config.allowed_request_methods = [:post]
-    OmniAuth.config.silence_get_warning = true
-  end
+  # Allow GET and POST in all environments to match Devise's default OmniAuth routes.
+  OmniAuth.config.allowed_request_methods = %i[get post]
+  OmniAuth.config.silence_get_warning = true
   if ENV["GOOGLE_CLIENT_ID"].present? && ENV["GOOGLE_CLIENT_SECRET"].present?
     config.omniauth :google_oauth2,
                     ENV["GOOGLE_CLIENT_ID"],

@@ -1,0 +1,5 @@
+class AddUserToFilms < ActiveRecord::Migration[8.0]
+  def change
+    add_reference :films, :user, foreign_key: true
+  end
+end

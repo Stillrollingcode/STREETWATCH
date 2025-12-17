@@ -4,6 +4,8 @@ source "https://rubygems.org"
 gem "rails", "~> 8.0.0"
 # The modern asset pipeline for Rails [https://github.com/rails/propshaft]
 gem "propshaft"
+# Sprockets (required for ActiveAdmin)
+gem "sprockets-rails"
 
 group :development, :test do
   gem "sqlite3"
@@ -80,6 +82,15 @@ gem "aws-sdk-s3", require: false        # Cloud storage for films/clips via Acti
 # gem "google-cloud-storage" # Alternative storage backend
 # gem "stripe"            # Payments for memberships, film unlocks, shop
 # gem "paypal-checkout-sdk" # Payments alternative
-# gem "dotenv-rails", groups: %i[development test] # Manage local ENV placeholders
+gem "dotenv-rails", groups: %i[development test] # Manage local ENV placeholders
 gem "devise" # Auth for users/profiles/uploads
 gem "omniauth-google-oauth2" # Google sign-in (set GOOGLE_CLIENT_ID/SECRET env vars)
+
+# Admin interface
+gem "activeadmin" # Admin dashboard for managing content
+gem "sassc-rails" # Required by ActiveAdmin for stylesheets
+gem "arctic_admin" # Modern theme for ActiveAdmin (optional but recommended)
+
+# Excel/CSV import
+gem "roo" # Read Excel and CSV files
+gem "roo-xls" # Support for .xls files

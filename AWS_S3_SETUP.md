@@ -156,7 +156,6 @@ If you have existing files in local storage that you want to keep:
 ```ruby
 # In Rails console on production
 Film.find_each do |film|
-  # For videos
   if film.video.attached? && film.video.service_name == :local
     film.video.open do |file|
       film.video.attach(io: file, filename: film.video.filename)

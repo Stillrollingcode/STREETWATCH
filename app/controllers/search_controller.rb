@@ -1,10 +1,14 @@
 class SearchController < ApplicationController
+  respond_to :json
+
   def index
     query = params[:q].to_s.strip
 
     if query.blank?
-      render json: { films: [], users: [] }
-      return
+      return respond_to do |format|
+        format.json { render json: { films: [], users: [] } }
+        format.html { redirect_to root_path }
+      end
     end
 
     # Search films by title, company, description (PostgreSQL & SQLite compatible)
@@ -32,7 +36,7 @@ class SearchController < ApplicationController
       ).limit(5).select(:id, :username, :email)
     end
 
-    render json: {
+    payload = {
       films: films.map { |f| {
         id: f.id,
         title: f.title,
@@ -45,5 +49,10 @@ class SearchController < ApplicationController
         email: u.email
       }}
     }
+
+    respond_to do |format|
+      format.json { render json: payload }
+      format.html { redirect_to root_path }
+    end
   end
 end

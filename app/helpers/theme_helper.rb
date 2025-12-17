@@ -17,16 +17,16 @@ module ThemeHelper
     light_rgb = hsl_to_rgb(h, s, l_light)
 
     if pref.theme == "light"
-      light_theme_styles(hue, primary_rgb, secondary_rgb, light_rgb)
+      light_theme_styles(hue, primary_rgb, secondary_rgb, light_rgb).merge(theme_name: 'light')
     else
-      dark_theme_styles(hue, primary_rgb, secondary_rgb, light_rgb)
+      dark_theme_styles(hue, primary_rgb, secondary_rgb, light_rgb).merge(theme_name: 'dark')
     end
   end
 
   private
 
   def default_theme_styles
-    dark_theme_styles(145, [74, 140, 94], [45, 90, 61], [91, 168, 118])
+    dark_theme_styles(145, [74, 140, 94], [45, 90, 61], [91, 168, 118]).merge(theme_name: 'dark')
   end
 
   def dark_theme_styles(hue, primary_rgb, secondary_rgb, light_rgb)
@@ -37,6 +37,7 @@ module ThemeHelper
       muted: "#a8a3a0",
       accent: "hsl(#{hue}, 45%, 45%)",
       accent_2: "hsl(#{hue}, 45%, 35%)",
+      accent_hue: hue,
       border: "rgba(255,255,255,0.12)",
       body_bg_1: "rgba(#{primary_rgb.join(',')}, 0.12)",
       body_bg_2: "rgba(#{secondary_rgb.join(',')}, 0.16)",
@@ -59,6 +60,7 @@ module ThemeHelper
       muted: "#6e6e73",
       accent: "hsl(#{hue}, 50%, 40%)",
       accent_2: "hsl(#{hue}, 50%, 30%)",
+      accent_hue: hue,
       border: "rgba(0,0,0,0.12)",
       body_bg_1: "rgba(#{primary_rgb.join(',')}, 0.08)",
       body_bg_2: "rgba(#{secondary_rgb.join(',')}, 0.12)",

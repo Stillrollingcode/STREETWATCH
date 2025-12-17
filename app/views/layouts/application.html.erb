@@ -20,7 +20,7 @@
     <link rel="apple-touch-icon" href="/icon.png">
 
     <%# Includes all stylesheet files in app/assets/stylesheets %>
-    <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
+    <%#= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
 
     <%# Video.js for video playback %>
     <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
@@ -70,6 +70,31 @@
         margin: 0 auto;
         padding: 0 18px;
       }
+      .breadcrumbs {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 16px 18px 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        color: var(--muted);
+      }
+      .breadcrumbs a {
+        color: var(--muted);
+        text-decoration: none;
+        transition: color 0.15s ease;
+      }
+      .breadcrumbs a:hover {
+        color: var(--accent);
+      }
+      .breadcrumbs .separator {
+        color: var(--border);
+      }
+      .breadcrumbs .current {
+        color: var(--text);
+        font-weight: 600;
+      }
       .nav {
         position: sticky;
         top: 0;
@@ -86,9 +111,23 @@
         gap: 20px;
       }
       .brand {
+        display: flex;
+        align-items: center;
         font-weight: 800;
         letter-spacing: 0.08em;
         font-size: 15px;
+        margin-left: 6px;
+      }
+      .brand-logo {
+        height: 28px;
+        width: auto;
+        filter: drop-shadow(0 0 8px hsla(<%= theme[:accent_hue] || 145 %>, 70%, 60%, 0.4))
+                drop-shadow(0 0 12px hsla(<%= theme[:accent_hue] || 145 %>, 70%, 60%, 0.2));
+        transition: filter 0.3s ease;
+      }
+      .brand-logo:hover {
+        filter: drop-shadow(0 0 12px hsla(<%= theme[:accent_hue] || 145 %>, 70%, 60%, 0.6))
+                drop-shadow(0 0 16px hsla(<%= theme[:accent_hue] || 145 %>, 70%, 60%, 0.3));
       }
       .nav-links {
         display: flex;
@@ -113,6 +152,7 @@
         display: flex;
         align-items: center;
         gap: 10px;
+        flex-shrink: 0;
       }
       .pill-btn {
         padding: 8px 14px;
@@ -139,6 +179,21 @@
         margin: 0;
         font-size: clamp(32px, 5vw, 44px);
         letter-spacing: 0.01em;
+      }
+      .hero-logo {
+        width: 100%;
+        max-width: 450px;
+        height: auto;
+        margin: 0 auto;
+        filter: drop-shadow(0 0 8px hsla(<%= theme[:accent_hue] || 145 %>, 70%, 60%, 0.5))
+                drop-shadow(0 0 12px hsla(<%= theme[:accent_hue] || 145 %>, 70%, 60%, 0.3))
+                drop-shadow(0 0 18px hsla(<%= theme[:accent_hue] || 145 %>, 70%, 60%, 0.2));
+        transition: filter 0.4s ease;
+      }
+      .hero-logo:hover {
+        filter: drop-shadow(0 0 16px hsla(<%= theme[:accent_hue] || 145 %>, 70%, 60%, 0.7))
+                drop-shadow(0 0 24px hsla(<%= theme[:accent_hue] || 145 %>, 70%, 60%, 0.4))
+                drop-shadow(0 0 36px hsla(<%= theme[:accent_hue] || 145 %>, 70%, 60%, 0.25));
       }
       .hero .sub {
         color: var(--muted);
@@ -225,6 +280,128 @@
         border-color: rgba(255,255,255,0.2);
       }
 
+      .activity-dropdown {
+        position: relative;
+      }
+      .activity-btn {
+        padding: 8px 14px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        font-weight: 600;
+        font-size: 14px;
+        transition: all 0.15s ease;
+        background: rgba(255,255,255,0.04);
+        color: var(--muted);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        position: relative;
+      }
+      .activity-btn:hover {
+        color: var(--text);
+        background: rgba(255,255,255,0.08);
+        transform: translateY(-1px);
+      }
+      .activity-badge {
+        position: absolute;
+        top: -4px;
+        right: -4px;
+        background: var(--accent);
+        color: #0b0b0d;
+        border-radius: 999px;
+        padding: 2px 6px;
+        font-size: 10px;
+        font-weight: 700;
+        min-width: 18px;
+        text-align: center;
+      }
+      .activity-menu {
+        position: absolute;
+        right: 0;
+        top: calc(100% + 8px);
+        min-width: 350px;
+        max-width: 400px;
+        background: #111015;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        box-shadow: 0 12px 30px rgba(0,0,0,0.4);
+        padding: 12px;
+        display: none;
+        z-index: 200;
+        max-height: 500px;
+        overflow-y: auto;
+      }
+      .activity-menu.open {
+        display: block;
+      }
+      .activity-header {
+        font-weight: 700;
+        font-size: 14px;
+        color: var(--text);
+        padding: 8px 12px;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 8px;
+      }
+      .activity-item {
+        padding: 12px;
+        border-radius: 10px;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid var(--border);
+        margin-bottom: 8px;
+        transition: all 0.12s ease;
+        display: block;
+      }
+      .activity-item:last-child {
+        margin-bottom: 0;
+      }
+      .activity-item:hover {
+        border-color: rgba(255,255,255,0.2);
+        background: rgba(255,255,255,0.06);
+      }
+      .activity-item-title {
+        font-weight: 600;
+        font-size: 14px;
+        color: var(--text);
+        margin-bottom: 4px;
+      }
+      .activity-item-desc {
+        font-size: 13px;
+        color: var(--muted);
+        line-height: 1.4;
+      }
+      .activity-item-time {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 6px;
+      }
+      .activity-empty {
+        text-align: center;
+        padding: 40px 20px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .activity-type-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 6px;
+      }
+      .activity-type-badge.approval {
+        background: rgba(255, 165, 0, 0.2);
+        border: 1px solid rgba(255, 165, 0, 0.3);
+        color: hsl(39, 100%, 60%);
+      }
+      .activity-type-badge.notification {
+        background: rgba(33, 150, 243, 0.2);
+        border: 1px solid rgba(33, 150, 243, 0.3);
+        color: hsl(210, 70%, 60%);
+      }
+
       .flash-banner {
         background: rgba(120, 120, 125, 0.75);
         color: #f6f6f6;
@@ -241,8 +418,52 @@
       }
 
       @media (max-width: 640px) {
-        .nav-inner { height: 56px; }
+        .nav-inner {
+          height: 60px;
+          padding: 0;
+          flex-wrap: nowrap;
+          align-items: center;
+          justify-content: center;
+        }
+        .brand {
+          order: 1;
+          margin-left: 0;
+          align-self: center;
+        }
+        .brand-logo {
+          height: 24px;
+        }
+        .nav-links {
+          display: none;
+        }
+        .nav-actions {
+          display: flex;
+          gap: 8px;
+        }
+        .nav-actions .activity-dropdown {
+          display: flex;
+        }
+        .nav-actions > *:not(.activity-dropdown) {
+          display: none;
+        }
+        .activity-btn span:not(.activity-badge) {
+          display: none;
+        }
+        .activity-btn {
+          padding: 10px;
+          min-width: auto;
+        }
+        .activity-menu {
+          right: auto;
+          left: 50%;
+          transform: translateX(-50%);
+          min-width: calc(100vw - 32px);
+          max-width: calc(100vw - 32px);
+        }
         .hero { padding: 56px 0 40px; }
+        .hero-logo {
+          max-width: 320px;
+        }
       }
     </style>
   </head>
@@ -281,15 +502,65 @@
 
     <div class="nav">
       <div class="shell nav-inner">
-        <a href="/" class="brand">STREETWATCH</a>
+        <a href="/" class="brand">
+          <% logo_file = theme[:theme_name] == 'light' ? '/SW-LOGO-2025-BLACK.svg' : '/SW-LOGO-2025-WHITE.svg' %>
+          <img src="<%= logo_file %>" alt="STREETWATCH" class="brand-logo">
+        </a>
         <div class="nav-links">
           <%= link_to "Films", films_path, class: "nav-link" %>
           <%= link_to "Photos", "#photos", class: "nav-link" %>
           <%= link_to "Articles", "#articles", class: "nav-link" %>
-          <%= link_to "Profiles", "#profiles", class: "nav-link" %>
+          <%= link_to "Profiles", users_path, class: "nav-link" %>
         </div>
         <div class="nav-actions">
           <% if user_signed_in? %>
+            <%
+              pending_approvals_count = current_user.film_approvals.pending.count
+              unread_notifications_count = current_user.notifications.where(read_at: nil).count
+              total_activity_count = pending_approvals_count + unread_notifications_count
+            %>
+            <div class="activity-dropdown">
+              <button type="button" class="activity-btn" id="activity-btn">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0;">
+                  <path d="M8 2C6.34 2 5 3.34 5 5V7.17L3.83 10H12.17L11 7.17V5C11 3.34 9.66 2 8 2Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M9.5 10C9.5 10.83 8.83 11.5 8 11.5C7.17 11.5 6.5 10.83 6.5 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>Activity</span>
+                <% if total_activity_count > 0 %>
+                  <span class="activity-badge"><%= total_activity_count %></span>
+                <% end %>
+              </button>
+              <div class="activity-menu" id="activity-menu">
+                <div class="activity-header">Recent Activity</div>
+                <% if total_activity_count > 0 %>
+                  <% if pending_approvals_count > 0 %>
+                    <% current_user.film_approvals.pending.includes(:film).limit(5).each do |approval| %>
+                      <%= link_to film_path(approval.film), class: "activity-item" do %>
+                        <div class="activity-type-badge approval">Approval Needed</div>
+                        <div class="activity-item-title"><%= approval.film.title %></div>
+                        <div class="activity-item-desc">You've been tagged as <%= approval.approval_type.titleize %></div>
+                        <div class="activity-item-time"><%= time_ago_in_words(approval.created_at) %> ago</div>
+                      <% end %>
+                    <% end %>
+                  <% end %>
+                  <% if unread_notifications_count > 0 %>
+                    <% current_user.notifications.where(read_at: nil).order(created_at: :desc).limit(5).each do |notification| %>
+                      <%= link_to notification.target_path, class: "activity-item" do %>
+                        <div class="activity-type-badge notification">Notification</div>
+                        <div class="activity-item-title"><%= notification.title %></div>
+                        <div class="activity-item-desc"><%= notification.message %></div>
+                        <div class="activity-item-time"><%= time_ago_in_words(notification.created_at) %> ago</div>
+                      <% end %>
+                    <% end %>
+                  <% end %>
+                <% else %>
+                  <div class="activity-empty">
+                    <div style="font-size: 32px; margin-bottom: 8px; opacity: 0.3;">✓</div>
+                    <div>No new activity</div>
+                  </div>
+                <% end %>
+              </div>
+            </div>
             <span style="color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em;"><%= current_user.username.presence || current_user.email %></span>
             <%= link_to "Profile", edit_user_registration_path, class: "pill-btn" %>
             <%= button_to "Logout", destroy_user_session_path, method: :delete, class: "pill-btn primary", form: { data: { turbo: false } } %>
@@ -303,16 +574,32 @@
 
     <%= render 'shared/sidebar' %>
 
+    <% unless controller_name == "pages" && action_name == "home" %>
+      <div class="breadcrumbs">
+        <% breadcrumbs.each_with_index do |crumb, index| %>
+          <% if crumb[:path] %>
+            <%= link_to crumb[:name], crumb[:path] %>
+          <% else %>
+            <span class="current"><%= crumb[:name] %></span>
+          <% end %>
+          <% unless index == breadcrumbs.length - 1 %>
+            <span class="separator">/</span>
+          <% end %>
+        <% end %>
+      </div>
+    <% end %>
+
     <main class="shell">
       <% if controller_name == "pages" && action_name == "home" %>
         <section class="hero">
-          <h1>Streetwatch</h1>
-          <p class="sub">Build a better street BMX culture.</p>
+          <% logo_file = theme[:theme_name] == 'light' ? '/SW-LOGO-2025-BLACK.svg' : '/SW-LOGO-2025-WHITE.svg' %>
+          <img src="<%= logo_file %>" alt="STREETWATCH" class="hero-logo">
+          <p class="sub">Document. Create. Share. Support.</p>
           <div class="cta-row">
             <%= link_to "Films", films_path, class: "cta-tile" %>
             <%= link_to "Photos", "#photos", class: "cta-tile" %>
             <%= link_to "Articles", "#articles", class: "cta-tile" %>
-            <%= link_to "Profiles", "#profiles", class: "cta-tile" %>
+            <%= link_to "Profiles", users_path, class: "cta-tile" %>
           </div>
           <details class="dropdown">
             <summary>Create account</summary>
@@ -326,5 +613,68 @@
         <%= yield %>
       <% end %>
     </main>
+
+    <script>
+      function initActivityDropdown() {
+        const activityBtn = document.getElementById('activity-btn');
+        const activityMenu = document.getElementById('activity-menu');
+
+        if (!activityBtn || !activityMenu) return;
+
+        activityBtn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          const wasOpen = activityMenu.classList.contains('open');
+          activityMenu.classList.toggle('open');
+
+          // Mark notifications as read when opening the dropdown
+          if (!wasOpen && activityMenu.classList.contains('open')) {
+            markNotificationsAsRead();
+          }
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+          if (!activityMenu.contains(e.target) && e.target !== activityBtn) {
+            activityMenu.classList.remove('open');
+          }
+        });
+
+        // Prevent closing when clicking inside the menu
+        activityMenu.addEventListener('click', function(e) {
+          e.stopPropagation();
+        });
+      }
+
+      function markNotificationsAsRead() {
+        fetch('/notifications/mark_as_read', {
+          method: 'POST',
+          headers: {
+            'X-CSRF-Token': document.querySelector('[name="csrf-token"]').content,
+            'Content-Type': 'application/json'
+          }
+        }).then(response => {
+          if (response.ok) {
+            // Update the badge count (only remove notification count, keep approval count)
+            const badge = document.querySelector('.activity-badge');
+            if (badge) {
+              const currentCount = parseInt(badge.textContent);
+              const notificationCount = document.querySelectorAll('.activity-type-badge.notification').length;
+              const newCount = currentCount - notificationCount;
+
+              if (newCount > 0) {
+                badge.textContent = newCount;
+              } else {
+                badge.remove();
+              }
+            }
+          }
+        }).catch(error => {
+          console.error('Error marking notifications as read:', error);
+        });
+      }
+
+      document.addEventListener('DOMContentLoaded', initActivityDropdown);
+      document.addEventListener('turbo:load', initActivityDropdown);
+    </script>
   </body>
 </html>

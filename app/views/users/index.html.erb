@@ -1,0 +1,242 @@
+<% theme = user_theme_styles %>
+<style>
+  .profiles-hero {
+    padding: 32px 0 12px;
+    display: grid;
+    gap: 8px;
+  }
+  .profiles-hero h1 {
+    margin: 0;
+    font-size: clamp(26px, 5vw, 36px);
+    letter-spacing: 0.01em;
+  }
+  .profiles-hero p {
+    margin: 0;
+    color: var(--muted);
+  }
+  .profiles-toolbar {
+    display: grid;
+    gap: 12px;
+    align-items: center;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    margin: 12px 0 20px;
+  }
+  .profiles-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.04);
+  }
+  .profiles-search input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-size: 15px;
+    outline: none;
+  }
+  .profiles-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+  .profile-card {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+    background: rgba(255,255,255,0.02);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: all 0.15s ease;
+    text-decoration: none;
+    color: inherit;
+  }
+  .profile-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255,255,255,0.15);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+  }
+  .profile-card-header {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .profile-avatar {
+    width: 60px;
+    height: 60px;
+    min-width: 60px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: color-mix(in srgb, var(--accent) 30%, transparent);
+    color: #050505;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .profile-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .profile-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .profile-name {
+    font-weight: 700;
+    font-size: 15px;
+    margin-bottom: 2px;
+    color: var(--text);
+  }
+  .profile-username {
+    color: var(--muted);
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+  .profile-bio {
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+  .support-btn {
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.04);
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+  }
+  .support-btn:hover {
+    background: rgba(255,255,255,0.08);
+    border-color: var(--accent);
+  }
+  .support-btn.active {
+    background: linear-gradient(120deg, var(--accent), var(--accent-2));
+    color: #0b0b0d;
+    border-color: transparent;
+  }
+</style>
+
+<div class="profiles-hero">
+  <% if @user.present? %>
+    <h1><%= @user.username.presence || @user.email %>'s Following</h1>
+    <p><%= @user.username.presence || @user.email %> supports these profiles.</p>
+  <% else %>
+    <h1>Rider Profiles</h1>
+    <p>Discover riders, editors, and filmers across the archive.</p>
+  <% end %>
+</div>
+
+<div class="profiles-toolbar">
+  <div class="profiles-search">
+    <span style="opacity: 0.7;">🔍</span>
+    <input type="text" id="profiles-search-input" placeholder="Search riders by username or email" value="<%= @query %>">
+  </div>
+</div>
+
+<div class="profiles-grid">
+  <% @users.each do |user| %>
+    <div class="profile-card">
+      <%= link_to user_path(user), style: "text-decoration: none; color: inherit; flex: 1; display: flex; flex-direction: column; gap: 12px;" do %>
+        <div class="profile-card-header">
+          <div class="profile-avatar">
+            <% if user.avatar.attached? %>
+              <%= image_tag user.avatar, alt: user.username.presence || user.email %>
+            <% else %>
+              <%= (user.username.presence || user.email).first&.upcase %>
+            <% end %>
+          </div>
+          <div class="profile-info">
+            <div class="profile-name"><%= user.name.presence || user.username.presence || user.email %></div>
+            <div class="profile-username">@<%= user.username.presence || user.email %></div>
+            <% if user.bio.present? %>
+              <div class="profile-bio"><%= user.bio %></div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+      <% if user_signed_in? %>
+        <% if current_user.id != user.id %>
+          <% if current_user.following?(user) %>
+            <%= button_to unfollow_user_path(user), method: :delete, class: "support-btn active", form: { style: "display: inline; width: 100%;" } do %>
+              ✓ Supported
+            <% end %>
+          <% else %>
+            <%= button_to follow_user_path(user), method: :post, class: "support-btn", form: { style: "display: inline; width: 100%;" } do %>
+              + Support
+            <% end %>
+          <% end %>
+        <% end %>
+      <% end %>
+    </div>
+  <% end %>
+
+  <% if @users.none? %>
+    <div style="grid-column: 1 / -1; text-align: center; color: var(--muted); padding: 20px;">
+      No profiles match that search.
+    </div>
+  <% end %>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const input = document.getElementById('profiles-search-input');
+    if (!input) return;
+
+    let timeout;
+
+    // Refocus after page reload if we just searched
+    if (sessionStorage.getItem('profilesSearchFocus') === 'true') {
+      sessionStorage.removeItem('profilesSearchFocus');
+      setTimeout(() => {
+        input.focus();
+        const len = input.value.length;
+        input.setSelectionRange(len, len);
+      }, 60);
+    }
+
+    function navigateWithQuery() {
+      const params = new URLSearchParams(window.location.search);
+      const value = input.value.trim();
+      if (value) {
+        params.set('q', value);
+      } else {
+        params.delete('q');
+      }
+      sessionStorage.setItem('profilesSearchFocus', 'true');
+      window.location = window.location.pathname + (params.toString() ? `?${params.toString()}` : '');
+    }
+
+    input.addEventListener('input', () => {
+      clearTimeout(timeout);
+      timeout = setTimeout(navigateWithQuery, 2000); // match films page behavior
+    });
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        clearTimeout(timeout);
+        navigateWithQuery();
+      }
+    });
+  });
+</script>

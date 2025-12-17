@@ -147,6 +147,21 @@
       position: relative;
       overflow: hidden;
     }
+    .pending-approval-badge {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: linear-gradient(120deg, rgba(255, 165, 0, 0.9), rgba(255, 140, 0, 0.9));
+      color: #0b0b0d;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      z-index: 2;
+    }
     .film-thumbnail img {
       width: 100%;
       height: 100%;
@@ -264,6 +279,9 @@
               <%= link_to film, style: "text-decoration: none; color: inherit;" do %>
                 <div class="film-card">
                   <div class="film-thumbnail" style="aspect-ratio: <%= film.aspect_ratio_css %>;">
+                    <% if user_signed_in? && !film.published? %>
+                      <div class="pending-approval-badge">⏳ Pending</div>
+                    <% end %>
                     <% if film.thumbnail.attached? %>
                       <%= image_tag film.thumbnail %>
                     <% elsif film.youtube_thumbnail_url %>
@@ -275,9 +293,9 @@
                   <div class="film-info">
                     <h3 class="film-title"><%= film.title %></h3>
                     <div class="film-meta">
-                      <% if film.company.present? %>
+                      <% if film.company_user.present? || film.company.present? %>
                         <div class="film-meta-row">
-                          <span class="film-company"><%= film.company %></span>
+                          <span class="film-company"><%= film.company_user&.username || film.company %></span>
                         </div>
                       <% end %>
                       <div class="film-meta-row">
@@ -303,6 +321,9 @@
         <%= link_to film, style: "text-decoration: none; color: inherit;" do %>
           <div class="film-card">
             <div class="film-thumbnail" style="aspect-ratio: <%= film.aspect_ratio_css %>;">
+              <% if user_signed_in? && !film.published? %>
+                <div class="pending-approval-badge">⏳ Pending</div>
+              <% end %>
               <% if film.thumbnail.attached? %>
                 <%= image_tag film.thumbnail %>
               <% elsif film.youtube_thumbnail_url %>
@@ -314,9 +335,9 @@
             <div class="film-info">
               <h3 class="film-title"><%= film.title %></h3>
               <div class="film-meta">
-                <% if film.company.present? %>
+                <% if film.company_user.present? || film.company.present? %>
                   <div class="film-meta-row">
-                    <span class="film-company"><%= film.company %></span>
+                    <span class="film-company"><%= film.company_user&.username || film.company %></span>
                   </div>
                 <% end %>
                 <div class="film-meta-row">

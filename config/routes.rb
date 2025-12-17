@@ -1,4 +1,6 @@
 Rails.application.routes.draw do
+  devise_for :admin_users, ActiveAdmin::Devise.config
+  ActiveAdmin.routes(self)
   devise_for :users, controllers: { omniauth_callbacks: "users/omniauth_callbacks", registrations: "users/registrations" }
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
@@ -13,14 +15,32 @@ Rails.application.routes.draw do
   # Defines the root path route ("/")
   root "pages#home"
   get "/username/check", to: "usernames#show"
-  get "/search", to: "search#index"
+  get "/search", to: "search#index", defaults: { format: :json }
   get "/favorites", to: "favorites_films#index"
   get "/settings", to: "settings#show"
   patch "/settings", to: "settings#update"
+  post "/notifications/mark_as_read", to: "notifications#mark_as_read"
 
+  resources :users, only: [:index, :show] do
+    member do
+      post 'follow', to: 'follows#create'
+      delete 'unfollow', to: 'follows#destroy'
+      get 'following', to: 'users#following'
+      get 'followers', to: 'users#followers'
+      post 'claim', to: 'profile_claims#create'
+    end
+    resource :notification_setting, only: [:show, :update, :destroy], controller: 'profile_notification_settings'
+  end
   resources :films do
     resources :comments, only: [:create, :destroy]
     resource :favorite, only: [:create, :destroy]
+  end
+
+  resources :film_approvals, only: [:index] do
+    member do
+      post 'approve'
+      post 'reject'
+    end
   end
 
   resources :playlists do

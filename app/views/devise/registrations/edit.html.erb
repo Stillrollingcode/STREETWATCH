@@ -1,8 +1,33 @@
 <% content_for :head do %>
   <style>
+    .breadcrumbs {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 16px 18px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+    .breadcrumbs a {
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.15s ease;
+    }
+    .breadcrumbs a:hover {
+      color: var(--accent);
+    }
+    .breadcrumbs .separator {
+      color: var(--border);
+    }
+    .breadcrumbs .current {
+      color: var(--text);
+      font-weight: 600;
+    }
     .profile-shell {
       max-width: 1100px;
-      margin: 28px auto 60px;
+      margin: 12px auto 60px;
       padding: 0 18px 40px;
       color: var(--text);
     }
@@ -51,7 +76,7 @@
       align-items: center;
       gap: 10px;
     }
-    .settings-btn {
+    .activity-tab-btn, .settings-btn {
       width: 40px;
       height: 40px;
       border-radius: 12px;
@@ -64,8 +89,13 @@
       cursor: pointer;
       transition: all 0.12s ease;
     }
+    .activity-tab-btn svg { width: 16px; height: 16px; }
     .settings-btn svg { width: 18px; height: 18px; }
-    .settings-btn:hover { border-color: rgba(255,255,255,0.2); }
+    .activity-tab-btn:hover, .settings-btn:hover { border-color: rgba(255,255,255,0.2); }
+    .activity-tab-btn.active {
+      background: color-mix(in srgb, var(--accent) 15%, transparent);
+      border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+    }
     .profile-stats {
       display: flex;
       gap: 24px;
@@ -73,7 +103,60 @@
       font-size: 14px;
       flex-wrap: wrap;
     }
+    .approval-notification-banner {
+      background: linear-gradient(120deg, rgba(255, 165, 0, 0.2), rgba(255, 140, 0, 0.2));
+      border: 1px solid rgba(255, 165, 0, 0.3);
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin: 16px 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .approval-notification-text {
+      flex: 1;
+    }
+    .approval-notification-text h3 {
+      margin: 0 0 4px;
+      font-size: 16px;
+      color: hsl(39, 100%, 60%);
+    }
+    .approval-notification-text p {
+      margin: 0;
+      color: var(--text);
+      font-size: 14px;
+    }
+    .approval-notification-btn {
+      padding: 10px 20px;
+      background: linear-gradient(120deg, hsl(39, 100%, 50%), hsl(39, 100%, 40%));
+      border: none;
+      border-radius: 10px;
+      color: #0b0b0d;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+    .approval-notification-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 20px rgba(255, 165, 0, 0.4);
+    }
     .profile-stats strong { color: var(--text); font-size: 16px; }
+    .profile-stats a {
+      transition: color 0.15s ease;
+    }
+    .profile-stats a:hover {
+      color: var(--accent) !important;
+    }
+    .profile-stats a:hover strong {
+      color: var(--accent);
+    }
     .tabs {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -198,6 +281,74 @@
       text-align: center;
       padding: 40px 20px;
       color: var(--muted);
+    }
+    /* Activity List */
+    .activity-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .activity-list-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 14px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      text-decoration: none;
+      color: inherit;
+      transition: all 0.15s ease;
+    }
+    .activity-list-item:hover {
+      background: rgba(255,255,255,0.05);
+      border-color: rgba(255,255,255,0.15);
+    }
+    .activity-list-item.unread {
+      background: rgba(255,255,255,0.06);
+      border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+    }
+    .activity-list-icon {
+      font-size: 24px;
+      flex-shrink: 0;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255,255,255,0.05);
+      border-radius: 8px;
+    }
+    .activity-list-content {
+      flex: 1;
+      min-width: 0;
+    }
+    .activity-list-title {
+      font-weight: 700;
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+    .activity-list-message {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 6px;
+    }
+    .activity-list-time {
+      font-size: 12px;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .activity-list-badge {
+      display: inline-block;
+      padding: 2px 6px;
+      background: var(--accent);
+      color: #0c0c0f;
+      font-size: 10px;
+      font-weight: 700;
+      border-radius: 4px;
+      letter-spacing: 0.05em;
     }
     /* Settings modal */
     .modal-backdrop {
@@ -427,6 +578,12 @@
         <% end %>
       </div>
         <div class="profile-actions">
+          <button type="button" class="activity-tab-btn" id="toggle-activity" aria-label="View activity">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M8 2C6.34 2 5 3.34 5 5V7.17L3.83 10H12.17L11 7.17V5C11 3.34 9.66 2 8 2Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M9.5 10C9.5 10.83 8.83 11.5 8 11.5C7.17 11.5 6.5 10.83 6.5 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
           <button type="button" class="settings-btn" id="toggle-settings" aria-label="Open settings">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="3"></circle>
@@ -438,9 +595,25 @@
 
     <div class="profile-stats">
       <div><strong><%= resource.all_films.count %></strong> Films</div>
-      <div><strong>132</strong> Followers</div>
-      <div><strong>87</strong> Following</div>
+      <%= link_to followers_user_path(resource), style: "text-decoration: none; color: inherit;" do %>
+        <div>Supporters <strong><%= resource.followers.count %></strong></div>
+      <% end %>
+      <%= link_to following_user_path(resource), style: "text-decoration: none; color: inherit;" do %>
+        <div>Supporter of <strong><%= resource.following.count %></strong></div>
+      <% end %>
     </div>
+
+    <% if current_user && current_user.film_approvals.pending.any? %>
+      <div class="approval-notification-banner">
+        <div class="approval-notification-text">
+          <h3>⏳ Content Awaiting Your Approval</h3>
+          <p>You have <%= pluralize(current_user.film_approvals.pending.count, 'film') %> waiting for your approval.</p>
+        </div>
+        <%= link_to film_approvals_path, class: "approval-notification-btn" do %>
+          <span>Review Now</span>
+        <% end %>
+      </div>
+    <% end %>
 
     <div class="tabs">
       <button class="tab-btn active" data-panel="films">Films</button>
@@ -496,6 +669,46 @@
             <div class="title">Spot guide: DTLA</div>
           </div>
         </div>
+      </div>
+      <div class="panel" id="panel-activity">
+        <% recent_notifications = current_user.notifications.where('created_at >= ?', 3.weeks.ago).order(created_at: :desc) %>
+        <% if recent_notifications.any? %>
+          <div class="activity-list">
+            <% recent_notifications.each do |notification| %>
+              <%= link_to notification.target_path, class: "activity-list-item #{'unread' unless notification.read?}" do %>
+                <div class="activity-list-icon">
+                  <% case notification.action %>
+                  <% when 'followed' %>
+                    👤
+                  <% when 'commented', 'mentioned' %>
+                    💬
+                  <% when 'favorited' %>
+                    ♥
+                  <% when 'posted_film' %>
+                    🎬
+                  <% else %>
+                    📢
+                  <% end %>
+                </div>
+                <div class="activity-list-content">
+                  <div class="activity-list-title"><%= notification.title %></div>
+                  <div class="activity-list-message"><%= notification.message %></div>
+                  <div class="activity-list-time">
+                    <%= time_ago_in_words(notification.created_at) %> ago
+                    <% unless notification.read? %>
+                      <span class="activity-list-badge">NEW</span>
+                    <% end %>
+                  </div>
+                </div>
+              <% end %>
+            <% end %>
+          </div>
+        <% else %>
+          <div class="empty-state">
+            <div style="font-size: 32px; margin-bottom: 8px; opacity: 0.3;">📭</div>
+            <div>No recent activity</div>
+          </div>
+        <% end %>
       </div>
     </div>
 
@@ -566,8 +779,28 @@
           </div>
 
           <div>
+            <%= f.label :profile_type, "Account Type" %>
+            <div style="display: flex; gap: 16px; margin-top: 8px;">
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                <%= f.radio_button :profile_type, 'individual', style: "width: auto;" %>
+                <span>Individual</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                <%= f.radio_button :profile_type, 'company', style: "width: auto;" %>
+                <span>Company</span>
+              </label>
+            </div>
+          </div>
+
+          <div>
             <%= f.label :email %>
             <%= f.email_field :email, autocomplete: "email" %>
+            <div style="margin-top: 8px;">
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                <%= f.check_box :email_visible, style: "width: auto; margin: 0;" %>
+                <span style="color: var(--muted); font-size: 14px;">Show email address on my profile</span>
+              </label>
+            </div>
           </div>
 
           <% if devise_mapping.confirmable? && resource.pending_reconfirmation? %>
@@ -630,19 +863,80 @@
         if (target) target.classList.add("active");
       };
     });
+    // Activity tab button handler
+    const activityBtn = document.getElementById("toggle-activity");
+    const activityPanel = document.getElementById("panel-activity");
+    if (activityBtn && activityPanel) {
+      activityBtn.onclick = () => {
+        // Toggle active state on activity button
+        const isActive = activityBtn.classList.contains("active");
+        activityBtn.classList.toggle("active");
+
+        // Toggle tabs and panels
+        if (!isActive) {
+          tabs.forEach(t => t.classList.remove("active"));
+          panels.forEach(p => p.classList.remove("active"));
+          activityPanel.classList.add("active");
+        } else {
+          // If closing activity, show films panel by default
+          activityPanel.classList.remove("active");
+          const filmsTab = document.querySelector('.tab-btn[data-panel="films"]');
+          const filmsPanel = document.getElementById("panel-films");
+          if (filmsTab) filmsTab.classList.add("active");
+          if (filmsPanel) filmsPanel.classList.add("active");
+        }
+      };
+    }
+
+    // Regular tab buttons should deactivate activity button
+    tabs.forEach((tab) => {
+      const originalClick = tab.onclick;
+      tab.onclick = () => {
+        if (activityBtn) activityBtn.classList.remove("active");
+        if (originalClick) originalClick();
+      };
+    });
+
     const toggle = document.getElementById("toggle-settings");
     const backdrop = document.getElementById("settings-backdrop");
     const closeBtn = document.getElementById("close-settings");
+
     if (toggle && backdrop) {
-      toggle.onclick = () => backdrop.classList.add("open");
+      // Remove existing data attribute to prevent double binding
+      if (!toggle.hasAttribute('data-initialized')) {
+        toggle.setAttribute('data-initialized', 'true');
+
+        toggle.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          backdrop.classList.add("open");
+        }, { capture: true });
+      }
     }
+
     if (closeBtn && backdrop) {
-      closeBtn.onclick = () => backdrop.classList.remove("open");
+      if (!closeBtn.hasAttribute('data-initialized')) {
+        closeBtn.setAttribute('data-initialized', 'true');
+
+        closeBtn.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          backdrop.classList.remove("open");
+        });
+      }
     }
+
     if (backdrop) {
-      backdrop.addEventListener("click", (e) => {
-        if (e.target === backdrop) backdrop.classList.remove("open");
-      });
+      if (!backdrop.hasAttribute('data-initialized')) {
+        backdrop.setAttribute('data-initialized', 'true');
+
+        backdrop.addEventListener("click", (e) => {
+          if (e.target === backdrop) {
+            e.preventDefault();
+            backdrop.classList.remove("open");
+          }
+        });
+      }
     }
 
     // Avatar upload preview and zoom controls

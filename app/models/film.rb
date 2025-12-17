@@ -1,4 +1,6 @@
 class Film < ApplicationRecord
+  include FriendlyIdentifiable
+
   has_one_attached :thumbnail
   has_one_attached :video
 
@@ -14,9 +16,13 @@ class Film < ApplicationRecord
   has_many :film_riders, dependent: :destroy
   has_many :riders, through: :film_riders, source: :user
 
+  # User who uploaded the film
+  belongs_to :user, optional: true
+
   # Filmer and editor associations (profile users)
   belongs_to :filmer_user, class_name: 'User', optional: true
   belongs_to :editor_user, class_name: 'User', optional: true
+  belongs_to :company_user, class_name: 'User', optional: true
 
   # Favorites, comments, and playlists
   has_many :favorites, dependent: :destroy
@@ -25,18 +31,25 @@ class Film < ApplicationRecord
   has_many :playlist_films, dependent: :destroy
   has_many :playlists, through: :playlist_films
 
+  # Approvals for tagged profiles
+  has_many :film_approvals, dependent: :destroy
+  has_many :pending_approvals, -> { pending }, class_name: 'FilmApproval'
+
   FILM_TYPES = %w[full_length video_part mixtape series].freeze
 
   validates :title, presence: true
   validates :film_type, inclusion: { in: FILM_TYPES }
   validate :video_source_exclusivity
+  validate :video_source_required
 
   # Process video in background after commit
   after_commit :enqueue_video_processing, on: [:create, :update], if: :video_attached?
+  after_commit :create_approval_requests, on: [:create, :update]
 
   scope :recent, -> { order(release_date: :desc, created_at: :desc) }
   scope :by_company, ->(company) { where(company: company) if company.present? }
   scope :by_type, ->(type) { where(film_type: type) if type.present? }
+  scope :published, -> { where(id: Film.select(:id).left_joins(:film_approvals).group(:id).having('COUNT(CASE WHEN film_approvals.status = ? THEN 1 END) = 0', 'pending')) }
 
   def formatted_runtime
     return nil unless runtime.present?
@@ -61,6 +74,10 @@ class Film < ApplicationRecord
 
   def editor_display_name
     editor_user&.username || custom_editor_name
+  end
+
+  def company_display_name
+    company_user&.username || company
   end
 
   def all_riders_display
@@ -110,11 +127,64 @@ class Film < ApplicationRecord
     end
   end
 
+  def published?
+    pending_approvals.empty?
+  end
+
+  def requires_approvals?
+    filmer_user.present? || editor_user.present? || company_user.present? || riders.any?
+  end
+
+  def tagged_users
+    users = []
+    users << filmer_user if filmer_user.present?
+    users << editor_user if editor_user.present?
+    users << company_user if company_user.present?
+    users += riders.to_a
+    users.uniq
+  end
+
   private
+
+  def create_approval_requests
+    # Get all currently tagged users
+    current_tagged_users = []
+    current_tagged_users << { user: filmer_user, type: 'filmer' } if filmer_user.present?
+    current_tagged_users << { user: editor_user, type: 'editor' } if editor_user.present?
+    current_tagged_users << { user: company_user, type: 'company' } if company_user.present?
+    riders.each { |rider| current_tagged_users << { user: rider, type: 'rider' } }
+
+    # Remove approvals for users no longer tagged
+    existing_approvals = film_approvals.to_a
+    existing_approvals.each do |approval|
+      tagged_match = current_tagged_users.find { |t| t[:user].id == approval.approver_id && t[:type] == approval.approval_type }
+      approval.destroy unless tagged_match
+    end
+
+    # Create new approval requests for newly tagged users
+    current_tagged_users.each do |tag|
+      next if film_approvals.exists?(approver: tag[:user], approval_type: tag[:type])
+
+      film_approvals.create!(
+        approver: tag[:user],
+        approval_type: tag[:type],
+        status: 'pending'
+      )
+    end
+  rescue => e
+    Rails.logger.error "Failed to create approval requests for film #{id}: #{e.message}"
+    Rails.logger.error e.backtrace.join("\n")
+  end
 
   def video_source_exclusivity
     if video.attached? && youtube_url.present?
       errors.add(:base, "Cannot have both a video upload and a YouTube URL. Please choose one.")
+    end
+  end
+
+  def video_source_required
+    unless video.attached? || youtube_url.present?
+      errors.add(:base, "You must provide either a video upload or a YouTube URL.")
     end
   end
 
@@ -235,5 +305,21 @@ class Film < ApplicationRecord
   rescue => e
     Rails.logger.error "Failed to extract video metadata for film #{id}: #{e.message}"
     Rails.logger.error e.backtrace.join("\n")
+  end
+
+  # Friendly ID prefix for films: F####
+  def self.friendly_id_prefix
+    "F"
+  end
+
+  # Ransack configuration for ActiveAdmin filtering
+  def self.ransackable_attributes(auth_object = nil)
+    ["aspect_ratio", "company", "company_user_id", "created_at", "custom_editor_name", "custom_filmer_name",
+     "custom_riders", "description", "editor_user_id", "film_type", "filmer_user_id", "id",
+     "music_featured", "parent_film_title", "release_date", "runtime", "title", "updated_at", "user_id", "youtube_url", "friendly_id"]
+  end
+
+  def self.ransackable_associations(auth_object = nil)
+    ["riders", "filmer_user", "editor_user", "company_user", "favorites", "comments", "playlists"]
   end
 end

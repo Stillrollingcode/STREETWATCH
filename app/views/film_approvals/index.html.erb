@@ -1,0 +1,310 @@
+<% content_for :head do %>
+<style>
+  .approvals-page {
+    max-width: 1200px;
+    margin: 20px auto 60px;
+    padding: 0 18px;
+    color: var(--text);
+  }
+  .approvals-header {
+    margin-bottom: 32px;
+  }
+  .approvals-header h1 {
+    font-size: 32px;
+    font-weight: 800;
+    margin: 0 0 8px;
+  }
+  .approvals-subtitle {
+    color: var(--muted);
+    font-size: 16px;
+  }
+  .approvals-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+    border-bottom: 2px solid var(--border);
+  }
+  .approval-tab {
+    padding: 12px 20px;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--muted);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    margin-bottom: -2px;
+  }
+  .approval-tab:hover {
+    color: var(--text);
+  }
+  .approval-tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+  .approval-section {
+    display: none;
+  }
+  .approval-section.active {
+    display: block;
+  }
+  .approval-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+  }
+  .approval-thumbnail {
+    width: 160px;
+    min-width: 160px;
+    aspect-ratio: 16 / 9;
+    border-radius: 8px;
+    overflow: hidden;
+    background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 20%, transparent), color-mix(in srgb, var(--accent-2) 20%, transparent));
+  }
+  .approval-thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .approval-info {
+    flex: 1;
+  }
+  .approval-film-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0 0 8px;
+  }
+  .approval-film-title a {
+    color: var(--text);
+    text-decoration: none;
+  }
+  .approval-film-title a:hover {
+    color: var(--accent);
+  }
+  .approval-role {
+    display: inline-block;
+    padding: 4px 10px;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+  .approval-meta {
+    color: var(--muted);
+    font-size: 14px;
+    margin-bottom: 16px;
+  }
+  .approval-actions {
+    display: flex;
+    gap: 12px;
+  }
+  .approve-btn, .reject-btn {
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: none;
+  }
+  .approve-btn {
+    background: linear-gradient(120deg, var(--accent), var(--accent-2));
+    color: #0b0b0d;
+  }
+  .approve-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+  }
+  .reject-btn {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+  .reject-btn:hover {
+    background: rgba(255,100,100,0.2);
+    border-color: rgba(255,100,100,0.5);
+    color: rgba(255,100,100,1);
+  }
+  .rejection-reason {
+    background: rgba(255,100,100,0.1);
+    border: 1px solid rgba(255,100,100,0.3);
+    border-radius: 8px;
+    padding: 12px;
+    margin-top: 12px;
+    color: var(--text);
+    font-size: 13px;
+  }
+  .rejection-reason strong {
+    color: rgba(255,100,100,1);
+  }
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--muted);
+  }
+  .empty-state-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.3;
+  }
+</style>
+<% end %>
+
+<div class="approvals-page">
+  <div class="approvals-header">
+    <h1>Content Approvals</h1>
+    <p class="approvals-subtitle">Manage films where you've been tagged as filmer, editor, rider, or company</p>
+  </div>
+
+  <div class="approvals-tabs">
+    <button class="approval-tab active" data-tab="pending">Pending (<%= @pending_approvals.count %>)</button>
+    <button class="approval-tab" data-tab="approved">Approved (<%= @approved_approvals.count %>)</button>
+    <button class="approval-tab" data-tab="rejected">Rejected (<%= @rejected_approvals.count %>)</button>
+  </div>
+
+  <!-- Pending Approvals -->
+  <div class="approval-section active" data-section="pending">
+    <% if @pending_approvals.any? %>
+      <% @pending_approvals.each do |approval| %>
+        <div class="approval-card">
+          <div class="approval-thumbnail">
+            <% if approval.film.display_thumbnail %>
+              <%= image_tag approval.film.display_thumbnail, alt: approval.film.title %>
+            <% end %>
+          </div>
+          <div class="approval-info">
+            <div class="approval-film-title">
+              <%= link_to approval.film.title, film_path(approval.film) %>
+            </div>
+            <div class="approval-role">Tagged as <%= approval.approval_type.titleize %></div>
+            <div class="approval-meta">
+              Submitted <%= time_ago_in_words(approval.created_at) %> ago
+            </div>
+            <div class="approval-actions">
+              <%= button_to approve_film_approval_path(approval), method: :post, class: "approve-btn" do %>
+                <span>✓</span>
+                <span>Approve</span>
+              <% end %>
+              <%= button_to reject_film_approval_path(approval), method: :post, class: "reject-btn", form: { onsubmit: "return confirm('Are you sure you want to reject this tag?');" } do %>
+                <span>✗</span>
+                <span>Reject</span>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    <% else %>
+      <div class="empty-state">
+        <div class="empty-state-icon">✓</div>
+        <p>No pending approvals</p>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- Approved -->
+  <div class="approval-section" data-section="approved">
+    <% if @approved_approvals.any? %>
+      <% @approved_approvals.each do |approval| %>
+        <div class="approval-card">
+          <div class="approval-thumbnail">
+            <% if approval.film.display_thumbnail %>
+              <%= image_tag approval.film.display_thumbnail, alt: approval.film.title %>
+            <% end %>
+          </div>
+          <div class="approval-info">
+            <div class="approval-film-title">
+              <%= link_to approval.film.title, film_path(approval.film) %>
+            </div>
+            <div class="approval-role">Tagged as <%= approval.approval_type.titleize %></div>
+            <div class="approval-meta">
+              Approved <%= time_ago_in_words(approval.updated_at) %> ago
+            </div>
+          </div>
+        </div>
+      <% end %>
+    <% else %>
+      <div class="empty-state">
+        <div class="empty-state-icon">📋</div>
+        <p>No approved content yet</p>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- Rejected -->
+  <div class="approval-section" data-section="rejected">
+    <% if @rejected_approvals.any? %>
+      <% @rejected_approvals.each do |approval| %>
+        <div class="approval-card">
+          <div class="approval-thumbnail">
+            <% if approval.film.display_thumbnail %>
+              <%= image_tag approval.film.display_thumbnail, alt: approval.film.title %>
+            <% end %>
+          </div>
+          <div class="approval-info">
+            <div class="approval-film-title">
+              <%= link_to approval.film.title, film_path(approval.film) %>
+            </div>
+            <div class="approval-role">Tagged as <%= approval.approval_type.titleize %></div>
+            <div class="approval-meta">
+              Rejected <%= time_ago_in_words(approval.updated_at) %> ago
+            </div>
+            <% if approval.rejection_reason.present? %>
+              <div class="rejection-reason">
+                <strong>Reason:</strong> <%= approval.rejection_reason %>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    <% else %>
+      <div class="empty-state">
+        <div class="empty-state-icon">✗</div>
+        <p>No rejected content</p>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', initApprovalTabs);
+  document.addEventListener('turbo:load', initApprovalTabs);
+
+  function initApprovalTabs() {
+    const tabs = document.querySelectorAll('.approval-tab');
+    const sections = document.querySelectorAll('.approval-section');
+
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        const targetTab = tab.dataset.tab;
+
+        // Update active tab
+        tabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+
+        // Update active section
+        sections.forEach(section => {
+          if (section.dataset.section === targetTab) {
+            section.classList.add('active');
+          } else {
+            section.classList.remove('active');
+          }
+        });
+      });
+    });
+  }
+</script>

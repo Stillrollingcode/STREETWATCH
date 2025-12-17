@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta content='text/html; charset=UTF-8' http-equiv='Content-Type' />
+</head>
+<body>
+  <h2>Profile Claim Request</h2>
+
+  <p>Someone has requested to claim the profile: <strong><%= @user.username %></strong></p>
+
+  <p><strong>Profile URL:</strong> <%= @profile_url %></p>
+
+  <% if @message.present? %>
+    <h3>Message from claimant:</h3>
+    <p><%= simple_format(@message) %></p>
+  <% end %>
+
+  <hr>
+
+  <p>
+    To approve this claim, log into the admin panel and convert this profile to a regular account.
+  </p>
+</body>
+</html>

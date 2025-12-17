@@ -248,6 +248,26 @@
     color: var(--muted);
   }
 
+  .mobile-nav-actions {
+    display: none;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .mobile-nav-actions .pill-btn {
+    width: 100%;
+    text-align: center;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    font-weight: 700;
+  }
+
+  .mobile-nav-actions .pill-btn.primary {
+    background: linear-gradient(120deg, var(--accent), var(--accent-2));
+    color: #0b0b0d;
+  }
+
   @media (max-width: 768px) {
     .sidebar {
       width: 100%;
@@ -261,6 +281,11 @@
     .sidebar-toggle.open {
       left: auto;
       right: 12px;
+    }
+
+    .mobile-nav-actions {
+      display: flex;
+      flex-direction: column;
     }
   }
 </style>
@@ -321,14 +346,37 @@
           <a href="#" class="sidebar-submenu-item">Latest Posts</a>
         </div>
       </div>
+
+      <div>
+        <div class="sidebar-menu-item" onclick="toggleSubmenu('profilesMenu')">
+          <span>Profiles</span>
+          <span class="chevron" id="profilesChevron">▼</span>
+        </div>
+        <div class="sidebar-submenu" id="profilesMenu">
+          <%= link_to "All Profiles", users_path, class: "sidebar-submenu-item" %>
+        </div>
+      </div>
     </div>
 
     <% if user_signed_in? %>
-      <div class="sidebar-section" style="margin-top: auto; padding-top: 20px; border-top: 1px solid var(--border);">
+      <div class="sidebar-section" style="margin-top: auto; padding-top: 20px; border-top: 1px solid var(--border); display: grid; gap: 10px;">
         <%= link_to settings_path, class: "sidebar-menu-item", style: "text-decoration: none; color: inherit; display: flex; align-items: center; gap: 8px;" do %>
           <span>⚙</span>
           <span>Settings</span>
         <% end %>
+
+        <div class="mobile-nav-actions">
+          <span style="color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em;">
+            <%= current_user.username.presence || current_user.email %>
+          </span>
+          <%= link_to "Profile", edit_user_registration_path, class: "pill-btn" %>
+          <%= button_to "Logout", destroy_user_session_path, method: :delete, class: "pill-btn primary", form: { data: { turbo: false } } %>
+        </div>
+      </div>
+    <% else %>
+      <div class="mobile-nav-actions" style="margin-top: 16px;">
+        <%= link_to "Login", new_user_session_path, class: "pill-btn" %>
+        <%= link_to "Sign up", new_user_registration_path, class: "pill-btn primary" %>
       </div>
     <% end %>
   </div>
@@ -375,7 +423,7 @@
 
   async function performSearch(query) {
     try {
-      const response = await fetch(`/search?q=${encodeURIComponent(query)}`, {
+      const response = await fetch(`/search.json?q=${encodeURIComponent(query)}`, {
         headers: {
           'Accept': 'application/json'
         }
@@ -419,8 +467,9 @@
       html += '<div class="search-result-section">';
       html += '<div class="search-result-header">Profiles</div>';
       data.users.forEach(user => {
+        const profileLink = `/users/${user.id}`;
         html += `
-          <a href="/users/${user.id}/edit" class="search-result-item" style="text-decoration: none; color: inherit;">
+          <a href="${profileLink}" class="search-result-item" style="text-decoration: none; color: inherit;">
             <div class="search-result-title">${user.username || user.email}</div>
             <div class="search-result-meta">Profile</div>
           </a>

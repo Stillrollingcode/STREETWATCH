@@ -65,6 +65,61 @@
       display: grid;
       gap: 20px;
     }
+    .approval-banner {
+      background: linear-gradient(120deg, rgba(255, 165, 0, 0.2), rgba(255, 140, 0, 0.2));
+      border: 1px solid rgba(255, 165, 0, 0.3);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .approval-banner h3 {
+      margin: 0 0 12px;
+      font-size: 18px;
+      color: hsl(39, 100%, 60%);
+    }
+    .approval-banner-text {
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+    .approval-list {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .approval-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px;
+      background: rgba(0,0,0,0.2);
+      border-radius: 8px;
+    }
+    .approval-status {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+    .approval-status.pending {
+      background: rgba(255, 165, 0, 0.3);
+      color: hsl(39, 100%, 60%);
+    }
+    .approval-status.approved {
+      background: rgba(76, 175, 80, 0.3);
+      color: hsl(122, 39%, 60%);
+    }
+    .approval-item-text {
+      flex: 1;
+      font-size: 14px;
+    }
+    .approval-item-text strong {
+      color: var(--text);
+    }
     .film-header-row {
       display: flex;
       justify-content: space-between;
@@ -377,7 +432,7 @@
     .delete-btn {
       background: transparent !important;
       border: 2px solid color-mix(in srgb, var(--accent) 80%, transparent) !important;
-      color: #5ba876 !important;
+      color: color-mix(in srgb, var(--accent) 85%, var(--text) 15%) !important;
       transition: all 0.2s ease;
     }
     .delete-btn:hover {
@@ -405,7 +460,7 @@
             <span>↗</span>
           </a>
           <p style="color: var(--muted); font-size: 12px; margin: 8px 0 0;">
-            Note: YouTube embeds may not work on localhost but will work on production domains
+            Note: YouTube embedded videos may not load depending on channel settings
           </p>
         </div>
       </div>
@@ -627,12 +682,46 @@
     <% end %>
 
     <div class="film-content">
+      <% if user_signed_in? && @film.pending_approvals.any? %>
+        <div class="approval-banner">
+          <h3>⏳ Pending Approval</h3>
+          <p class="approval-banner-text">
+            This film is waiting for approval from the following tagged profiles before it can be published:
+          </p>
+          <div class="approval-list">
+            <% @film.film_approvals.each do |approval| %>
+              <div class="approval-item">
+                <div class="approval-status <%= approval.status %>">
+                  <%= approval.status == 'approved' ? '✓' : '⏳' %>
+                </div>
+                <div class="approval-item-text">
+                  <strong><%= link_to approval.approver.username, user_path(approval.approver), style: "color: var(--accent); text-decoration: none;" %></strong>
+                  (tagged as <%= approval.approval_type.titleize %>)
+                  <% if approval.status == 'pending' && approval.approver_id == current_user.id %>
+                    - <%= button_to "Approve now", approve_film_approval_path(approval), method: :post, style: "color: var(--accent); background: none; border: none; padding: 0; font: inherit; cursor: pointer; text-decoration: underline;" %>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+          </div>
+          <% if @film.pending_approvals.any? { |a| a.approver_id == current_user.id } %>
+            <p class="approval-banner-text" style="margin-bottom: 0; font-style: italic;">
+              You can approve your tag from your <%= link_to "Content Approvals", film_approvals_path, style: "color: var(--accent);" %> page.
+            </p>
+          <% end %>
+        </div>
+      <% end %>
+
       <div class="film-header-row">
         <div class="film-title-section">
           <h1><%= @film.title %></h1>
           <div class="film-company-tag">
-            <% if @film.company.present? %>
-              <span><%= @film.company %></span>
+            <% if @film.company_display_name.present? %>
+              <% if @film.company_user %>
+                <%= link_to @film.company_display_name, user_path(@film.company_user), style: "text-decoration: none; color: inherit;" %>
+              <% else %>
+                <span><%= @film.company_display_name %></span>
+              <% end %>
             <% end %>
             <% if @film.runtime.present? %>
               <span class="film-runtime"><%= @film.formatted_runtime %></span>
@@ -640,7 +729,7 @@
             <span class="film-runtime">♥ <%= @film.favorites.count %> <%= @film.favorites.count == 1 ? 'favorite' : 'favorites' %></span>
           </div>
         </div>
-        <% if user_signed_in? %>
+        <% if user_signed_in? && @film.user_id == current_user.id %>
           <div class="film-actions">
             <%= link_to "Edit", edit_film_path(@film), class: "pill-btn" %>
           </div>
@@ -866,7 +955,7 @@
 
   <div style="margin-top: 20px; display: flex; gap: 10px; align-items: center;">
     <%= link_to "← Back to Films", films_path, class: "pill-btn" %>
-    <% if user_signed_in? %>
+    <% if user_signed_in? && @film.user_id == current_user.id %>
       <%= button_to "Delete Film", film_path(@film), method: :delete,
             data: { confirm: "Are you sure you want to delete this film?", turbo_confirm: "Are you sure?" },
             class: "pill-btn delete-btn",

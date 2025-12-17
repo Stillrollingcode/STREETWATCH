@@ -1,0 +1,210 @@
+<% content_for :head do %>
+<style>
+  .notification-settings-shell {
+    max-width: 600px;
+    margin: 28px auto 60px;
+    padding: 0 18px 40px;
+    color: var(--text);
+  }
+  .notification-settings-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+  }
+  .notification-settings-card h1 {
+    margin: 0 0 8px;
+    font-size: 24px;
+  }
+  .notification-settings-card .subtitle {
+    color: var(--muted);
+    font-size: 14px;
+    margin-bottom: 24px;
+  }
+  .notification-section {
+    margin-bottom: 24px;
+  }
+  .notification-section:last-child {
+    margin-bottom: 0;
+  }
+  .section-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0 0 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .notification-toggle {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 12px;
+    transition: all 0.15s ease;
+  }
+  .notification-toggle:hover {
+    background: rgba(255,255,255,0.04);
+    border-color: rgba(255,255,255,0.15);
+  }
+  .notification-toggle input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    accent-color: var(--accent);
+  }
+  .notification-toggle label {
+    flex: 1;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    margin: 0;
+  }
+  .notification-toggle .description {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+  .notification-buttons {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+  }
+  .save-btn {
+    flex: 1;
+    padding: 14px;
+    background: linear-gradient(120deg, var(--accent), var(--accent-2));
+    color: #0b0b0d;
+    border: none;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .save-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+  }
+  .cancel-btn {
+    padding: 14px 24px;
+    background: rgba(255,255,255,0.04);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .cancel-btn:hover {
+    background: rgba(255,255,255,0.08);
+    border-color: rgba(255,255,255,0.2);
+  }
+  .mute-section {
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+  .notification-toggle.mute {
+    border-color: rgba(255,100,100,0.3);
+  }
+  .notification-toggle.mute:hover {
+    background: rgba(255,100,100,0.05);
+    border-color: rgba(255,100,100,0.5);
+  }
+</style>
+<% end %>
+
+<div class="notification-settings-shell">
+  <div class="notification-settings-card">
+    <h1>Notification Settings</h1>
+    <div class="subtitle">for <%= @target_user.username || @target_user.email %></div>
+
+    <%= form_with(model: @setting, url: user_notification_setting_path(@target_user), method: :patch) do |f| %>
+      <!-- Content Upload Notifications -->
+      <div class="notification-section">
+        <div class="section-title">Notify me when they post:</div>
+
+        <div class="notification-toggle">
+          <div style="flex: 1;">
+            <%= f.check_box :notify_on_films, id: "notify_films" %>
+            <%= f.label :notify_on_films, "Films", for: "notify_films" %>
+            <div class="description">Get notified when they upload new film content</div>
+          </div>
+        </div>
+
+        <div class="notification-toggle">
+          <div style="flex: 1;">
+            <%= f.check_box :notify_on_photos, id: "notify_photos" %>
+            <%= f.label :notify_on_photos, "Photos", for: "notify_photos" %>
+            <div class="description">Get notified when they upload new photos</div>
+          </div>
+        </div>
+
+        <div class="notification-toggle">
+          <div style="flex: 1;">
+            <%= f.check_box :notify_on_articles, id: "notify_articles" %>
+            <%= f.label :notify_on_articles, "Articles", for: "notify_articles" %>
+            <div class="description">Get notified when they publish new articles</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Featured In Notifications -->
+      <div class="notification-section">
+        <div class="section-title">Notify me when they are featured in:</div>
+
+        <div class="notification-toggle">
+          <div style="flex: 1;">
+            <%= f.check_box :notify_on_featured_in_films, id: "notify_featured_films" %>
+            <%= f.label :notify_on_featured_in_films, "Films", for: "notify_featured_films" %>
+            <div class="description">Get notified when they appear in a film (as rider, filmer, or editor)</div>
+          </div>
+        </div>
+
+        <div class="notification-toggle">
+          <div style="flex: 1;">
+            <%= f.check_box :notify_on_featured_in_photos, id: "notify_featured_photos" %>
+            <%= f.label :notify_on_featured_in_photos, "Photos", for: "notify_featured_photos" %>
+            <div class="description">Get notified when they are featured in a photo</div>
+          </div>
+        </div>
+
+        <div class="notification-toggle">
+          <div style="flex: 1;">
+            <%= f.check_box :notify_on_featured_in_articles, id: "notify_featured_articles" %>
+            <%= f.label :notify_on_featured_in_articles, "Articles", for: "notify_featured_articles" %>
+            <div class="description">Get notified when they are featured in an article</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mute Option -->
+      <div class="notification-section mute-section">
+        <div class="section-title">Mute User</div>
+
+        <div class="notification-toggle mute">
+          <div style="flex: 1;">
+            <%= f.check_box :muted, id: "muted" %>
+            <%= f.label :muted, "Mute all notifications from this user", for: "muted" %>
+            <div class="description">You won't receive any notifications from this user</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="notification-buttons">
+        <%= link_to "Cancel", user_path(@target_user), class: "cancel-btn" %>
+        <button type="submit" class="save-btn">Save Settings</button>
+      </div>
+    <% end %>
+  </div>
+</div>

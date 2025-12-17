@@ -20,7 +20,7 @@ class PlaylistsController < ApplicationController
     if @playlist.save
       # Auto-add film if film_id is provided
       if params[:film_id].present?
-        film = Film.find(params[:film_id])
+        film = Film.find_by_friendly_or_id(params[:film_id])
         @playlist.playlist_films.create(film: film, position: 1)
         redirect_to film, notice: "Playlist created and film added!"
       else
@@ -48,7 +48,7 @@ class PlaylistsController < ApplicationController
   end
 
   def add_film
-    film = Film.find(params[:film_id])
+    film = Film.find_by_friendly_or_id(params[:film_id])
     position = @playlist.playlist_films.maximum(:position).to_i + 1
 
     @playlist_film = @playlist.playlist_films.build(film: film, position: position)
@@ -70,7 +70,9 @@ class PlaylistsController < ApplicationController
   private
 
   def set_playlist
-    @playlist = current_user.playlists.find(params[:id])
+    @playlist = Playlist.find_by_friendly_or_id(params[:id])
+    # Ensure it belongs to current user
+    redirect_to playlists_path, alert: "Playlist not found" unless @playlist&.user == current_user
   end
 
   def playlist_params

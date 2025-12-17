@@ -18,6 +18,14 @@ class SettingsController < ApplicationController
   private
 
   def preference_params
-    params.require(:user_preference).permit(:theme, :accent_hue)
+    params.require(:user_preference).permit(
+      :theme,
+      :accent_hue,
+      :email_notifications_enabled,
+      :notify_on_new_follower,
+      :notify_on_comment,
+      :notify_on_mention,
+      :notify_on_favorite
+    )
   end
 end

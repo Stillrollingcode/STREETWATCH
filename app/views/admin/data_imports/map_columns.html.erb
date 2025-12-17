@@ -1,0 +1,78 @@
+<div id="title_bar">
+  <div id="titlebar_left">
+    <span class="breadcrumb">
+      <%= link_to "Admin", admin_root_path %>
+      <span class="breadcrumb_sep">/</span>
+      <%= link_to "Data Imports", admin_data_imports_path %>
+      <span class="breadcrumb_sep">/</span>
+      <%= link_to @data_import.id, admin_data_import_path(@data_import) %>
+      <span class="breadcrumb_sep">/</span>
+      Map Columns
+    </span>
+  </div>
+</div>
+
+<div id="active_admin_content">
+  <div class="panel">
+    <h3>Map Columns for <%= @data_import.import_type.titleize %> Import</h3>
+
+    <div class="panel_contents">
+      <p>Match the columns from your uploaded file to the corresponding fields in the database.</p>
+
+      <%= form_tag save_mapping_admin_data_import_path(@data_import), method: :post do %>
+        <table class="index_table">
+          <thead>
+            <tr>
+              <th>Excel Column</th>
+              <th>Preview Data</th>
+              <th>Map to Field</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @headers.each_with_index do |header, index| %>
+              <tr class="<%= cycle('odd', 'even') %>">
+                <td><strong><%= header %></strong></td>
+                <td>
+                  <% if @preview_data.present? %>
+                    <ul style="list-style: none; padding: 0; margin: 0;">
+                      <% @preview_data.first(3).each do |row| %>
+                        <li style="font-size: 0.9em; color: #666;"><%= row[index] %></li>
+                      <% end %>
+                    </ul>
+                  <% end %>
+                </td>
+                <td>
+                  <%= select_tag "mapping[#{header}]",
+                      options_for_select([["-- Don't Import --", ""]] + @available_fields.map { |f| [f.titleize, f] }),
+                      class: "select" %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+
+        <div style="margin-top: 20px;">
+          <%= submit_tag "Save Column Mapping", class: "button" %>
+          <%= link_to "Cancel", admin_data_import_path(@data_import), class: "button" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top: 20px;">
+    <h3>Available Fields for <%= @data_import.import_type.titleize %></h3>
+    <div class="panel_contents">
+      <ul>
+        <% @available_fields.each do |field| %>
+          <li><strong><%= field.titleize %></strong></li>
+        <% end %>
+      </ul>
+
+      <% if @data_import.import_type == 'users' %>
+        <p><em>Note: If email is not provided, a temporary placeholder email will be generated. All imported users will be marked as admin-created profiles.</em></p>
+      <% elsif @data_import.import_type == 'films' %>
+        <p><em>Note: For rider_usernames, use comma-separated values (e.g., "rider1, rider2, rider3")</em></p>
+      <% end %>
+    </div>
+  </div>
+</div>

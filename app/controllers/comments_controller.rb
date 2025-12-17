@@ -19,7 +19,7 @@ class CommentsController < ApplicationController
   end
 
   def destroy
-    @comment = @film.comments.find(params[:id])
+    @comment = Comment.find_by_friendly_or_id(params[:id])
 
     # Allow deletion if user is comment author OR film uploader
     if @comment.user == current_user || can_delete_comment?(current_user, @film, @comment)
@@ -33,7 +33,7 @@ class CommentsController < ApplicationController
   private
 
   def set_film
-    @film = Film.find(params[:film_id])
+    @film = Film.find_by_friendly_or_id(params[:film_id])
   end
 
   def comment_params
