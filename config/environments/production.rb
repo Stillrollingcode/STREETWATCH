@@ -59,37 +59,20 @@ Rails.application.configure do
   # Set host to be used by links generated in mailer templates.
   config.action_mailer.default_url_options = { host: "streetwatch-production.up.railway.app", protocol: "https" }
 
-  # Log email delivery attempts
-  config.action_mailer.logger = Logger.new(STDOUT)
-  config.action_mailer.perform_caching = false
+  # Email delivery configuration
+  config.action_mailer.delivery_method = :smtp
+  config.action_mailer.perform_deliveries = true
+  config.action_mailer.raise_delivery_errors = false  # Don't crash signup if email fails
 
-  # Specify outgoing SMTP server for Gmail
-  if ENV['SMTP_PASSWORD'].present?
-    puts "✅ SMTP_PASSWORD is present, configuring Gmail SMTP..."
-
-    # Force SMTP delivery method
-    config.action_mailer.delivery_method = :smtp
-    config.action_mailer.perform_deliveries = true
-    config.action_mailer.raise_delivery_errors = true  # Temporarily enable to see errors
-
-    config.action_mailer.smtp_settings = {
-      user_name: ENV['SMTP_USERNAME'] || 'streetwatchmov@gmail.com',
-      password: ENV['SMTP_PASSWORD'],
-      address: 'smtp.gmail.com',
-      port: 465,
-      authentication: :plain,
-      ssl: true,
-      tls: true,
-      enable_starttls_auto: false,
-      openssl_verify_mode: 'none'  # For debugging only
-    }
-
-    puts "📧 SMTP configured for: #{ENV['SMTP_USERNAME'] || 'streetwatchmov@gmail.com'}"
-  else
-    puts "⚠️  SMTP_PASSWORD environment variable is not set! Emails will not be delivered."
-    config.action_mailer.delivery_method = :test
-    config.action_mailer.perform_deliveries = false
-  end
+  # Gmail SMTP settings (may be blocked on some Railway plans)
+  config.action_mailer.smtp_settings = {
+    user_name: ENV['SMTP_USERNAME'] || 'streetwatchmov@gmail.com',
+    password: ENV['SMTP_PASSWORD'],
+    address: 'smtp.gmail.com',
+    port: 587,
+    authentication: :plain,
+    enable_starttls_auto: true
+  }
 
   # Enable locale fallbacks for I18n (makes lookups for any locale fall back to
   # the I18n.default_locale when a translation cannot be found).
