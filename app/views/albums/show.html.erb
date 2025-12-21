@@ -1,0 +1,195 @@
+<% content_for :head do %>
+  <style>
+    .album-shell {
+      max-width: 1400px;
+      margin: 28px auto 60px;
+      padding: 0 18px 40px;
+      color: var(--text);
+    }
+    .album-header {
+      margin-bottom: 32px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+    }
+    .album-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .album-title-section h1 {
+      margin: 0 0 8px;
+      font-size: 36px;
+      letter-spacing: 0.01em;
+    }
+    .album-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 15px;
+      color: var(--muted);
+    }
+    .album-meta a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    .album-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .action-btn {
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .action-btn:hover {
+      background: rgba(255,255,255,0.08);
+      border-color: var(--accent);
+    }
+    .action-btn.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+    }
+    .action-btn.delete {
+      border-color: rgba(220, 53, 69, 0.3);
+      color: rgba(220, 53, 69, 1);
+    }
+    .album-description {
+      font-size: 16px;
+      line-height: 1.7;
+      color: var(--text-secondary);
+    }
+    .photos-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+    }
+    .photo-card {
+      position: relative;
+      border-radius: 12px;
+      overflow: hidden;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      transition: all 0.2s ease;
+      text-decoration: none;
+      color: inherit;
+      display: block;
+    }
+    .photo-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+    }
+    .photo-thumbnail {
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: cover;
+      display: block;
+    }
+    .photo-info {
+      padding: 12px;
+    }
+    .photo-title {
+      font-size: 15px;
+      font-weight: 600;
+      margin: 0 0 4px;
+      color: var(--text);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .photo-photographer {
+      font-size: 13px;
+      color: var(--muted);
+      margin: 0;
+    }
+    .empty-state {
+      text-align: center;
+      padding: 80px 20px;
+      color: var(--muted);
+    }
+    .empty-state-icon {
+      font-size: 64px;
+      margin-bottom: 16px;
+      opacity: 0.3;
+    }
+    .empty-state p {
+      font-size: 16px;
+      margin-bottom: 20px;
+    }
+  </style>
+<% end %>
+
+<div class="album-shell">
+  <div class="album-header">
+    <div class="album-header-row">
+      <div class="album-title-section">
+        <h1><%= @album.title %></h1>
+        <div class="album-meta">
+          <%= link_to @album.user.name, user_path(@album.user) %>
+          <% if @album.date %>
+            <span>•</span>
+            <span><%= @album.date.strftime("%B %d, %Y") %></span>
+          <% end %>
+          <span>•</span>
+          <span><%= pluralize(@album.photos.count, 'photo') %></span>
+        </div>
+      </div>
+
+      <% if user_signed_in? && @album.user == current_user %>
+        <div class="album-actions">
+          <%= link_to 'Add Photos', batch_upload_photos_path(album_id: @album.to_param), class: 'action-btn primary' %>
+          <%= link_to 'Edit Album', edit_album_path(@album), class: 'action-btn' %>
+          <%= button_to 'Delete Album', album_path(@album), method: :delete, data: { confirm: 'Are you sure? This will delete all photos in this album.' }, class: 'action-btn delete' %>
+        </div>
+      <% end %>
+    </div>
+
+    <% if @album.description.present? %>
+      <div class="album-description">
+        <%= simple_format(@album.description) %>
+      </div>
+    <% end %>
+  </div>
+
+  <% if @photos.any? %>
+    <div class="photos-grid">
+      <% @photos.each do |photo| %>
+        <%= link_to photo, class: 'photo-card' do %>
+          <% if photo.image.attached? %>
+            <%= image_tag photo.image.variant(resize_to_limit: [400, 400]),
+              class: 'photo-thumbnail',
+              alt: photo.title,
+              loading: 'lazy' %>
+          <% else %>
+            <div class="photo-thumbnail" style="background: var(--border); display: flex; align-items: center; justify-content: center; color: var(--muted);">
+              No Image
+            </div>
+          <% end %>
+          <div class="photo-info">
+            <h3 class="photo-title"><%= photo.title %></h3>
+            <p class="photo-photographer"><%= photo.photographer_name %></p>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+  <% else %>
+    <div class="empty-state">
+      <div class="empty-state-icon">📷</div>
+      <p>No photos in this album yet</p>
+      <% if user_signed_in? && @album.user == current_user %>
+        <%= link_to 'Add Photos', batch_upload_photos_path(album_id: @album.to_param), class: 'action-btn primary' %>
+      <% end %>
+    </div>
+  <% end %>
+</div>

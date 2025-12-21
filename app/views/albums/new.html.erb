@@ -1,0 +1,108 @@
+<% content_for :head do %>
+  <style>
+    .form-shell {
+      max-width: 700px;
+      margin: 28px auto 60px;
+      padding: 0 18px 40px;
+      color: var(--text);
+    }
+    .form-header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    .form-header h1 {
+      margin: 0 0 8px;
+      font-size: 32px;
+    }
+    .form-header p {
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .album-form {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+    }
+    .form-group {
+      margin-bottom: 24px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+    .form-group input,
+    .form-group textarea {
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      font-size: 14px;
+      font-family: inherit;
+    }
+    .form-group input:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .form-group textarea {
+      resize: vertical;
+    }
+    .error-message {
+      color: rgba(220, 53, 69, 1);
+      font-size: 13px;
+      margin-top: 4px;
+      display: block;
+    }
+    .form-actions {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 32px;
+    }
+    .submit-btn {
+      padding: 12px 32px;
+      border-radius: 10px;
+      border: none;
+      background: var(--accent);
+      color: white;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .submit-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    .cancel-btn {
+      padding: 12px 24px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+      display: inline-block;
+    }
+    .cancel-btn:hover {
+      background: rgba(255,255,255,0.08);
+    }
+  </style>
+<% end %>
+
+<div class="form-shell">
+  <div class="form-header">
+    <h1>Create New Album</h1>
+    <p>Organize your photos into an album</p>
+  </div>
+
+  <%= render 'form', album: @album %>
+</div>

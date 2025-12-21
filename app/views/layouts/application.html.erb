@@ -164,8 +164,8 @@
       }
       .pill-btn.primary {
         background: linear-gradient(120deg, var(--accent), var(--accent-2));
-        color: #0b0b0d;
-        border-color: rgba(255,255,255,0.1);
+        color: <%= user_theme_styles[:theme_name] == 'light' ? 'white' : '#0b0b0d' %>;
+        border-color: <%= user_theme_styles[:theme_name] == 'light' ? 'transparent' : 'rgba(255,255,255,0.1)' %>;
       }
       .pill-btn:hover { transform: translateY(-1px); }
 
@@ -508,7 +508,7 @@
         </a>
         <div class="nav-links">
           <%= link_to "Films", films_path, class: "nav-link" %>
-          <%= link_to "Photos", "#photos", class: "nav-link" %>
+          <%= link_to "Photos", photos_path, class: "nav-link" %>
           <%= link_to "Articles", "#articles", class: "nav-link" %>
           <%= link_to "Profiles", users_path, class: "nav-link" %>
         </div>
@@ -562,7 +562,7 @@
               </div>
             </div>
             <span style="color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em;"><%= current_user.username.presence || current_user.email %></span>
-            <%= link_to "Profile", edit_user_registration_path, class: "pill-btn" %>
+            <%= link_to "Profile", user_path(current_user), class: "pill-btn" %>
             <%= button_to "Logout", destroy_user_session_path, method: :delete, class: "pill-btn primary", form: { data: { turbo: false } } %>
           <% else %>
             <%= link_to "Login", new_user_session_path, class: "pill-btn" %>
@@ -597,7 +597,7 @@
           <p class="sub">Document. Create. Share. Support.</p>
           <div class="cta-row">
             <%= link_to "Films", films_path, class: "cta-tile" %>
-            <%= link_to "Photos", "#photos", class: "cta-tile" %>
+            <%= link_to "Photos", photos_path, class: "cta-tile" %>
             <%= link_to "Articles", "#articles", class: "cta-tile" %>
             <%= link_to "Profiles", users_path, class: "cta-tile" %>
           </div>

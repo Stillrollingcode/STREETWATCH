@@ -807,7 +807,7 @@
             <div class="meta-label">Filmer</div>
             <div class="meta-value">
               <% if @film.filmer_user %>
-                <%= link_to @film.filmer_display_name, edit_user_registration_path, style: "color: var(--accent); text-decoration: none;" %>
+                <%= link_to @film.filmer_display_name, user_path(@film.filmer_user), style: "color: var(--accent); text-decoration: none;" %>
               <% else %>
                 <%= @film.filmer_display_name %>
               <% end %>
@@ -819,7 +819,7 @@
             <div class="meta-label">Editor</div>
             <div class="meta-value">
               <% if @film.editor_user %>
-                <%= link_to @film.editor_display_name, edit_user_registration_path, style: "color: var(--accent); text-decoration: none;" %>
+                <%= link_to @film.editor_display_name, user_path(@film.editor_user), style: "color: var(--accent); text-decoration: none;" %>
               <% else %>
                 <%= @film.editor_display_name %>
               <% end %>
@@ -840,7 +840,7 @@
           <h2 class="section-title">Featured Riders</h2>
           <div class="riders-grid">
             <% @film.riders.each do |rider| %>
-              <%= link_to edit_user_registration_path, style: "text-decoration: none; color: inherit;" do %>
+              <%= link_to user_path(rider), style: "text-decoration: none; color: inherit;" do %>
                 <div class="rider-card">
                   <div class="rider-avatar">
                     <% if rider.avatar.attached? %>

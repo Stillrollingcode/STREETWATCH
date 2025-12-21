@@ -49,4 +49,27 @@ Rails.application.routes.draw do
       delete 'remove_film/:film_id', to: 'playlists#remove_film', as: :remove_film
     end
   end
+
+  # Albums and Photos
+  resources :albums do
+    resources :photos, only: [:new, :create], shallow: true
+  end
+
+  resources :photos do
+    resources :photo_comments, only: [:create, :edit, :update, :destroy]
+    member do
+      delete 'remove_tag/:tag_type/:tag_id', to: 'photos#remove_tag', as: :remove_tag
+    end
+    collection do
+      get 'batch_upload'
+      post 'batch_create'
+    end
+  end
+
+  resources :photo_approvals, only: [:index] do
+    member do
+      patch 'approve'
+      patch 'reject'
+    end
+  end
 end

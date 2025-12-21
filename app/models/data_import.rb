@@ -116,14 +116,18 @@ class DataImport < ApplicationRecord
     end
 
     # Create admin-created user profile
+    password = data['password'].presence || SecureRandom.hex(12)
+    profile_type = data['profile_type'].to_s.downcase == 'company' ? 'company' : 'individual'
     user = User.new(
       username: data['username'],
       name: data['name'],
       email: email,
-      password: SecureRandom.hex(16),
+      password: password,
+      password_confirmation: password,
       bio: data['bio'],
-      profile_type: data['profile_type'] || 'individual',
-      admin_created: true
+      profile_type: profile_type,
+      admin_created: true,
+      confirmed_at: Time.current
     )
     user.save!
   end
@@ -138,12 +142,25 @@ class DataImport < ApplicationRecord
       youtube_url: data['youtube_url']
     )
 
-    # Find or create users for filmer/editor
+    # Find owner/uploader by username
+    if data['owner_username']
+      owner = User.find_by(username: data['owner_username'])
+      film.user = owner if owner
+    end
+
+    # Find company by username
+    if data['company_username']
+      company = User.find_by(username: data['company_username'], profile_type: 'company')
+      film.company_user = company if company
+    end
+
+    # Find filmer by username
     if data['filmer_username']
       filmer = User.find_by(username: data['filmer_username'])
       film.filmer_user = filmer if filmer
     end
 
+    # Find editor by username
     if data['editor_username']
       editor = User.find_by(username: data['editor_username'])
       film.editor_user = editor if editor

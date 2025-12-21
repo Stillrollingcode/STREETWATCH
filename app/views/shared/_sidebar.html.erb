@@ -331,8 +331,8 @@
           <span class="chevron" id="photosChevron">▼</span>
         </div>
         <div class="sidebar-submenu" id="photosMenu">
-          <a href="#" class="sidebar-submenu-item">All Photos</a>
-          <a href="#" class="sidebar-submenu-item">Recent Uploads</a>
+          <%= link_to "All Photos", photos_path, class: "sidebar-submenu-item" %>
+          <%= link_to "Albums", albums_path, class: "sidebar-submenu-item" %>
         </div>
       </div>
 
@@ -369,7 +369,7 @@
           <span style="color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em;">
             <%= current_user.username.presence || current_user.email %>
           </span>
-          <%= link_to "Profile", edit_user_registration_path, class: "pill-btn" %>
+          <%= link_to "Profile", user_path(current_user), class: "pill-btn" %>
           <%= button_to "Logout", destroy_user_session_path, method: :delete, class: "pill-btn primary", form: { data: { turbo: false } } %>
         </div>
       </div>

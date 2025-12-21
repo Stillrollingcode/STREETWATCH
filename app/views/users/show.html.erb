@@ -385,6 +385,32 @@
   .content-section.active {
     display: block;
   }
+  .content-sub-tab {
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--muted);
+    transition: all 0.15s;
+    text-decoration: none;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid transparent;
+  }
+  .content-sub-tab:hover {
+    color: var(--text);
+    background: rgba(255,255,255,0.08);
+  }
+  .content-sub-tab.active {
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 15%, transparent);
+    border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+  }
+  .content-sub-section {
+    display: none;
+  }
+  .content-sub-section.active {
+    display: block;
+  }
   .bio-content {
     background: rgba(255,255,255,0.04);
     border: 1px solid var(--border);
@@ -618,16 +644,37 @@
       </div>
     <% end %>
 
-    <% if user_signed_in? && current_user.id == @user.id && current_user.film_approvals.pending.any? %>
-      <div class="approval-notification-banner">
-        <div class="approval-notification-text">
-          <h3>⏳ Content Awaiting Your Approval</h3>
-          <p>You have <%= pluralize(current_user.film_approvals.pending.count, 'film') %> waiting for your approval.</p>
+    <% if user_signed_in? && current_user.id == @user.id %>
+      <% pending_film_approvals = current_user.film_approvals.pending.count %>
+      <% pending_photo_approvals = current_user.photo_approvals.pending.count %>
+      <% total_pending = pending_film_approvals + pending_photo_approvals %>
+
+      <% if total_pending > 0 %>
+        <div class="approval-notification-banner">
+          <div class="approval-notification-text">
+            <h3>⏳ Content Awaiting Your Approval</h3>
+            <p>
+              <% if pending_film_approvals > 0 && pending_photo_approvals > 0 %>
+                You have <%= pluralize(pending_film_approvals, 'film') %> and <%= pluralize(pending_photo_approvals, 'photo') %> waiting for your approval.
+              <% elsif pending_film_approvals > 0 %>
+                You have <%= pluralize(pending_film_approvals, 'film') %> waiting for your approval.
+              <% else %>
+                You have <%= pluralize(pending_photo_approvals, 'photo') %> waiting for your approval.
+              <% end %>
+            </p>
+          </div>
+          <% if pending_film_approvals > 0 %>
+            <%= link_to film_approvals_path, class: "approval-notification-btn" do %>
+              <span>Review Films</span>
+            <% end %>
+          <% end %>
+          <% if pending_photo_approvals > 0 %>
+            <%= link_to photo_approvals_path, class: "approval-notification-btn" do %>
+              <span>Review Photos</span>
+            <% end %>
+          <% end %>
         </div>
-        <%= link_to film_approvals_path, class: "approval-notification-btn" do %>
-          <span>Review Now</span>
-        <% end %>
-      </div>
+      <% end %>
     <% end %>
 
     <!-- Profile Stats and Bio -->
@@ -669,6 +716,14 @@
 
     <!-- Films Content Section -->
     <div class="content-section active" id="films-section">
+      <!-- Films Sub-tabs -->
+      <div style="display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 8px;">
+        <a href="#" class="content-sub-tab active" data-subtab="all-films">All Films</a>
+        <a href="#" class="content-sub-tab" data-subtab="playlists">Playlists</a>
+      </div>
+
+      <!-- All Films Sub-section -->
+      <div class="content-sub-section active" id="all-films-section">
       <% films = @user.all_films %>
       <% if films.any? %>
         <div class="film-grid">
@@ -700,13 +755,117 @@
       <% else %>
         <div class="empty-state">No films yet.</div>
       <% end %>
+      </div>
+
+      <!-- Playlists Sub-section -->
+      <div class="content-sub-section" id="playlists-section">
+        <% playlists = @user.playlists.includes(:films).order(created_at: :desc) %>
+        <% if playlists.any? %>
+          <div class="film-grid">
+            <% playlists.each do |playlist| %>
+              <%= link_to playlist_path(playlist), class: "film-card" do %>
+                <div class="film-thumbnail" style="aspect-ratio: 16/9;">
+                  <% if playlist.films.any? && playlist.films.first.display_thumbnail %>
+                    <% first_film = playlist.films.first %>
+                    <% if first_film.display_thumbnail.respond_to?(:attachment) %>
+                      <%= image_tag first_film.display_thumbnail, alt: playlist.name %>
+                    <% else %>
+                      <img src="<%= first_film.display_thumbnail %>" alt="<%= playlist.name %>">
+                    <% end %>
+                  <% else %>
+                    <div class="placeholder">🎬</div>
+                  <% end %>
+                  <div style="position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.7); color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;">
+                    <%= pluralize(playlist.films.count, 'film') %>
+                  </div>
+                </div>
+                <div class="film-info">
+                  <div class="film-title"><%= playlist.name %></div>
+                  <% if playlist.description.present? %>
+                    <div style="color: var(--muted); font-size: 12px; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                      <%= playlist.description %>
+                    </div>
+                  <% end %>
+                </div>
+              <% end %>
+            <% end %>
+          </div>
+        <% else %>
+          <div class="empty-state">No playlists yet.</div>
+        <% end %>
+      </div>
     </div>
 
     <!-- Photos Content Section -->
     <div class="content-section" id="photos-section">
-      <div class="empty-state">
-        <h3 style="margin: 0 0 10px; color: var(--text);">Photos Coming Soon</h3>
-        <p>Photo uploads will be available in a future update.</p>
+      <!-- Photos Sub-tabs -->
+      <div style="display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 8px;">
+        <a href="#" class="content-sub-tab active" data-subtab="all-photos">All Photos</a>
+        <a href="#" class="content-sub-tab" data-subtab="albums">Albums</a>
+      </div>
+
+      <!-- All Photos Sub-section -->
+      <div class="content-sub-section active" id="all-photos-section">
+      <% photos = @user.all_photos %>
+      <% if photos.any? %>
+        <div class="film-grid">
+          <% photos.each do |photo| %>
+            <%= link_to photo_path(photo), class: "film-card" do %>
+              <div class="film-thumbnail" style="aspect-ratio: 1;">
+                <% if photo.image.attached? %>
+                  <%= image_tag url_for(photo.image), alt: photo.title %>
+                <% else %>
+                  <div class="placeholder">📷</div>
+                <% end %>
+              </div>
+              <div class="film-info">
+                <div class="film-title"><%= photo.title %></div>
+                <div class="role-badges">
+                  <% roles = @user.photo_roles(photo) %>
+                  <% roles.each do |role| %>
+                    <span class="role-badge <%= role.downcase %>"><%= role %></span>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+          <% end %>
+        </div>
+      <% else %>
+        <div class="empty-state">No photos yet.</div>
+      <% end %>
+      </div>
+
+      <!-- Albums Sub-section -->
+      <div class="content-sub-section" id="albums-section">
+      <% albums = @user.albums.includes(photos: :image_attachment).order(created_at: :desc) %>
+      <% if albums.any? %>
+        <div class="film-grid">
+          <% albums.each do |album| %>
+            <%= link_to album_path(album), class: "film-card" do %>
+              <div class="film-thumbnail" style="aspect-ratio: 16/10;">
+                <% if album.photos.any? && album.photos.first.image.attached? %>
+                  <%= image_tag url_for(album.photos.first.image), alt: album.title %>
+                <% else %>
+                  <div class="placeholder">📷</div>
+                <% end %>
+                <div style="position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.7); color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;">
+                  <%= pluralize(album.photos.count, 'photo') %>
+                </div>
+              </div>
+              <div class="film-info">
+                <div class="film-title"><%= album.title %></div>
+                <% if album.date %>
+                  <div style="color: var(--muted); font-size: 12px; margin-top: 4px;">
+                    <%= album.date.strftime("%b %Y") %>
+                  </div>
+                <% end %>
+              </div>
+            <% end %>
+          <% end %>
+        </div>
+      <% else %>
+        <div class="empty-state">No albums yet.</div>
+      <% end %>
       </div>
     </div>
 
@@ -725,6 +884,8 @@
   document.addEventListener('DOMContentLoaded', () => {
     const tabs = document.querySelectorAll('.content-tab');
     const sections = document.querySelectorAll('.content-section');
+    const subTabs = document.querySelectorAll('.content-sub-tab');
+    const subSections = document.querySelectorAll('.content-sub-section');
 
     tabs.forEach(tab => {
       tab.addEventListener('click', (e) => {
@@ -738,6 +899,27 @@
         // Add active class to clicked tab and corresponding section
         tab.classList.add('active');
         document.getElementById(`${targetTab}-section`).classList.add('active');
+      });
+    });
+
+    // Sub-tab switching
+    subTabs.forEach(subTab => {
+      subTab.addEventListener('click', (e) => {
+        e.preventDefault();
+        const targetSubTab = subTab.dataset.subtab;
+
+        // Get parent section to only affect sub-tabs within the same parent
+        const parentSection = subTab.closest('.content-section');
+        const parentSubTabs = parentSection.querySelectorAll('.content-sub-tab');
+        const parentSubSections = parentSection.querySelectorAll('.content-sub-section');
+
+        // Remove active class from sub-tabs and sub-sections in this parent
+        parentSubTabs.forEach(t => t.classList.remove('active'));
+        parentSubSections.forEach(s => s.classList.remove('active'));
+
+        // Add active class to clicked sub-tab and corresponding sub-section
+        subTab.classList.add('active');
+        document.getElementById(`${targetSubTab}-section`).classList.add('active');
       });
     });
 
@@ -758,6 +940,8 @@
   document.addEventListener('turbo:load', () => {
     const tabs = document.querySelectorAll('.content-tab');
     const sections = document.querySelectorAll('.content-section');
+    const subTabs = document.querySelectorAll('.content-sub-tab');
+    const subSections = document.querySelectorAll('.content-sub-section');
 
     tabs.forEach(tab => {
       tab.addEventListener('click', (e) => {
@@ -769,6 +953,27 @@
 
         tab.classList.add('active');
         document.getElementById(`${targetTab}-section`).classList.add('active');
+      });
+    });
+
+    // Sub-tab switching
+    subTabs.forEach(subTab => {
+      subTab.addEventListener('click', (e) => {
+        e.preventDefault();
+        const targetSubTab = subTab.dataset.subtab;
+
+        // Get parent section to only affect sub-tabs within the same parent
+        const parentSection = subTab.closest('.content-section');
+        const parentSubTabs = parentSection.querySelectorAll('.content-sub-tab');
+        const parentSubSections = parentSection.querySelectorAll('.content-sub-section');
+
+        // Remove active class from sub-tabs and sub-sections in this parent
+        parentSubTabs.forEach(t => t.classList.remove('active'));
+        parentSubSections.forEach(s => s.classList.remove('active'));
+
+        // Add active class to clicked sub-tab and corresponding sub-section
+        subTab.classList.add('active');
+        document.getElementById(`${targetSubTab}-section`).classList.add('active');
       });
     });
 

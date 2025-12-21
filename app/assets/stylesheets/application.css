@@ -8,6 +8,11 @@
  *
  * Consider organizing styles into separate files for maintainability.
  */
+
+@import url("list_views.css");
+@import url("cards.css");
+@import url("comments.css");
+
 nav {
   background: #333;
   padding: 10px;

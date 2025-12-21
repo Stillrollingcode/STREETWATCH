@@ -76,9 +76,10 @@ ActiveAdmin.register DataImport do
     # Define available fields based on import type
     @available_fields = case @data_import.import_type
     when 'users'
-      ['username', 'name', 'email', 'bio', 'profile_type']
+      ['username', 'name', 'email', 'bio', 'profile_type', 'password']
     when 'films'
-      ['title', 'description', 'release_date', 'film_type', 'youtube_url', 'filmer_username', 'editor_username', 'rider_usernames']
+      ['title', 'description', 'release_date', 'film_type', 'youtube_url',
+       'owner_username', 'company_username', 'filmer_username', 'editor_username', 'rider_usernames']
     when 'photos'
       ['title', 'description', 'photographer_username', 'photo_url']
     else

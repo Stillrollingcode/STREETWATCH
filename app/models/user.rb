@@ -1,5 +1,6 @@
 class User < ApplicationRecord
   include FriendlyIdentifiable
+  include Searchable
 
   # Include default devise modules. Others available are:
   # :lockable, :timeoutable, :trackable
@@ -19,12 +20,23 @@ class User < ApplicationRecord
   # Film approvals
   has_many :film_approvals, foreign_key: 'approver_id', dependent: :destroy
 
+  # Photos and albums
+  has_many :albums, dependent: :destroy
+  has_many :photos, dependent: :destroy
+  has_many :photographed_photos, class_name: 'Photo', foreign_key: :photographer_user_id
+  has_many :photo_company_photos, class_name: 'Photo', foreign_key: :company_user_id
+  has_many :photo_riders, dependent: :destroy
+  has_many :photos_featured_in, through: :photo_riders, source: :photo
+  has_many :photo_approvals, foreign_key: :approver_id, dependent: :destroy
+  has_many :photo_comments, dependent: :destroy
+
   # Favorites, comments, and playlists
   has_many :favorites, dependent: :destroy
   has_many :favorited_films, through: :favorites, source: :film
   has_many :comments, dependent: :destroy
   has_many :playlists, dependent: :destroy
   has_one :preference, class_name: 'UserPreference', dependent: :destroy
+  accepts_nested_attributes_for :preference, update_only: true
 
   # Follows (followers and following)
   has_many :active_follows, class_name: 'Follow', foreign_key: 'follower_id', dependent: :destroy
@@ -57,6 +69,22 @@ class User < ApplicationRecord
     roles << 'Editor' if film.editor_user_id == id
     roles << 'Rider' if film.riders.include?(self)
     roles << 'Company' if film.company_user_id == id
+    roles
+  end
+
+  # Get all photos associated with this user (as rider, photographer, or company)
+  def all_photos
+    Photo.where(id: (photos_featured_in.pluck(:id) + photographed_photos.pluck(:id) + photo_company_photos.pluck(:id)).uniq)
+         .includes(image_attachment: :blob)
+         .recent
+  end
+
+  # Get roles for a specific photo
+  def photo_roles(photo)
+    roles = []
+    roles << 'Photographer' if photo.photographer_user_id == id
+    roles << 'Rider' if photo.riders.include?(self)
+    roles << 'Company' if photo.company_user_id == id
     roles
   end
 

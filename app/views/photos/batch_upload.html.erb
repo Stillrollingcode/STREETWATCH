@@ -1,0 +1,1069 @@
+<% content_for :head do %>
+  <style>
+    .upload-shell {
+      max-width: 1000px;
+      margin: 28px auto 60px;
+      padding: 0 18px 40px;
+      color: var(--text);
+    }
+    .upload-header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    .upload-header h1 {
+      margin: 0 0 8px;
+      font-size: 32px;
+    }
+    .upload-header p {
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .upload-form {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+    }
+    .form-section {
+      margin-bottom: 24px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+    }
+    .form-section:last-of-type {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+    .form-section h3 {
+      margin: 0 0 16px;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .form-row {
+      display: grid;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .form-group label {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      font-size: 14px;
+      font-family: inherit;
+      width: 100%;
+    }
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .file-upload-area {
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      padding: 40px;
+      text-align: center;
+      background: rgba(255,255,255,0.02);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .file-upload-area:hover {
+      border-color: var(--accent);
+      background: rgba(255,255,255,0.04);
+    }
+    .file-upload-area.dragover {
+      border-color: var(--accent);
+      background: color-mix(in srgb, var(--accent) 10%, transparent);
+    }
+    .upload-icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+    }
+    .upload-text {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .upload-hint {
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .preview-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px;
+      margin-top: 24px;
+    }
+    .preview-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative;
+    }
+    .preview-image {
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: cover;
+      cursor: pointer;
+    }
+    .preview-info {
+      padding: 12px;
+    }
+    .preview-info input,
+    .preview-info textarea {
+      width: 100%;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+    .preview-info textarea {
+      resize: vertical;
+      min-height: 60px;
+    }
+    .remove-preview {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(220, 53, 69, 0.9);
+      border: none;
+      color: white;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
+    .remove-preview:hover {
+      background: rgba(220, 53, 69, 1);
+    }
+    .submit-section {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-top: 32px;
+    }
+    .submit-btn {
+      padding: 12px 32px;
+      border-radius: 10px;
+      border: none;
+      background: var(--accent);
+      color: white;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .submit-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    .submit-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .cancel-btn {
+      padding: 12px 24px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .cancel-btn:hover {
+      background: rgba(255,255,255,0.08);
+    }
+
+    /* Autocomplete styles */
+    .autocomplete-wrapper {
+      position: relative;
+    }
+    .autocomplete-results {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: <%= user_theme_styles[:theme_name] == 'light' ? 'rgba(255,255,255,0.98)' : 'rgba(20,20,24,0.98)' %>;
+      border: 1px solid var(--border);
+      border-top: none;
+      border-radius: 0 0 8px 8px;
+      max-height: 240px;
+      overflow-y: auto;
+      z-index: 100;
+      display: none;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    .autocomplete-results.show {
+      display: block;
+    }
+    .autocomplete-result-item {
+      padding: 10px 12px;
+      cursor: pointer;
+      transition: background 0.15s;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+    }
+    .autocomplete-result-item:hover,
+    .autocomplete-result-item.highlighted {
+      background: <%= user_theme_styles[:theme_name] == 'light' ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.1)' %>;
+    }
+    .autocomplete-result-username {
+      font-weight: 600;
+      color: var(--text);
+    }
+    .autocomplete-result-type {
+      font-size: 12px;
+      color: var(--muted);
+      text-transform: capitalize;
+    }
+    .selected-riders-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+      min-height: 40px;
+      padding: 8px;
+      border-radius: 8px;
+      background: <%= user_theme_styles[:theme_name] == 'light' ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)' %>;
+      border: 1px solid var(--border);
+    }
+    .selected-rider-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background: <%= user_theme_styles[:theme_name] == 'light' ? "hsl(#{user_theme_styles[:accent_hue]}, 50%, 35%)" : "color-mix(in srgb, var(--accent) 20%, transparent)" %>;
+      border: 1px solid <%= user_theme_styles[:theme_name] == 'light' ? "hsl(#{user_theme_styles[:accent_hue]}, 50%, 30%)" : "color-mix(in srgb, var(--accent) 40%, transparent)" %>;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      color: <%= user_theme_styles[:theme_name] == 'light' ? 'white' : 'var(--accent)' %>;
+    }
+    .selected-rider-tag button {
+      background: none;
+      border: none;
+      color: <%= user_theme_styles[:theme_name] == 'light' ? 'rgba(255,255,255,0.9)' : 'var(--accent)' %>;
+      font-size: 16px;
+      cursor: pointer;
+      padding: 0;
+      margin: 0;
+      line-height: 1;
+    }
+    .selected-rider-tag button:hover {
+      color: #ff6b6b;
+    }
+    .tag-all-section {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0;
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+    .tag-all-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .tag-all-header:hover {
+      background: rgba(255,255,255,0.04);
+    }
+    .tag-all-header h4 {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .tag-all-chevron {
+      font-size: 12px;
+      transition: transform 0.2s;
+      color: var(--muted);
+    }
+    .tag-all-chevron.open {
+      transform: rotate(180deg);
+    }
+    .tag-all-content {
+      display: none;
+      padding: 0 16px 16px;
+    }
+    .tag-all-content.open {
+      display: block;
+    }
+    .tag-all-btn {
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: 1px solid var(--accent);
+      background: color-mix(in srgb, var(--accent) 15%, transparent);
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .tag-all-btn:hover {
+      background: color-mix(in srgb, var(--accent) 25%, transparent);
+    }
+    .preview-card.has-tags {
+      border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+    }
+    .preview-tags-indicator {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      background: rgba(0,0,0,0.7);
+      color: var(--accent);
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      z-index: 5;
+    }
+    .tag-photo-btn {
+      width: 100%;
+      padding: 8px;
+      border: 1px dashed var(--border);
+      border-radius: 6px;
+      background: rgba(255,255,255,0.02);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      margin-top: 8px;
+    }
+    .tag-photo-btn:hover {
+      background: rgba(255,255,255,0.06);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+  </style>
+<% end %>
+
+<div class="upload-shell">
+  <div class="upload-header">
+    <h1>Upload Photos</h1>
+    <p>Upload multiple photos at once to an album</p>
+  </div>
+
+  <%= form_with url: batch_create_photos_path, method: :post, multipart: true, local: true, class: 'upload-form', id: 'batch-upload-form' do |f| %>
+    <div class="form-section">
+      <h3>Album Selection</h3>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Select Existing Album</label>
+          <%= select_tag 'album_id',
+            options_for_select([['Create New Album', '']] + @albums.map { |a| [a.title, a.to_param] }, @album&.to_param),
+            class: 'album-select',
+            id: 'album-select' %>
+        </div>
+      </div>
+
+      <div id="new-album-fields" style="<%= 'display: none;' if @album %>">
+        <div class="form-row">
+          <div class="form-group">
+            <label>New Album Title *</label>
+            <%= text_field_tag 'album[title]', nil, placeholder: 'Enter album title...' %>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Album Description</label>
+            <%= text_area_tag 'album[description]', nil, placeholder: 'Describe this album...', rows: 3 %>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Album Date</label>
+            <%= date_field_tag 'album[date]', nil %>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h3>Photo Files</h3>
+      <div class="file-upload-area" id="file-upload-area">
+        <div class="upload-icon">📷</div>
+        <div class="upload-text">Click to select photos or drag and drop</div>
+        <div class="upload-hint">Upload multiple photos at once (JPG, PNG, GIF)</div>
+        <%= file_field_tag 'photos[images][]', multiple: true, accept: 'image/*', id: 'file-input', style: 'display: none;' %>
+      </div>
+
+      <div id="preview-section" style="display: none;">
+        <div class="tag-all-section">
+          <div class="tag-all-header" id="tag-all-toggle">
+            <h4>
+              <span class="tag-all-chevron" id="tag-all-chevron">▼</span>
+              Tag All Photos (Optional)
+            </h4>
+            <button type="button" class="tag-all-btn" id="apply-tags-btn">Apply to All Photos</button>
+          </div>
+
+          <div class="tag-all-content" id="tag-all-content">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Date Taken</label>
+              <%= date_field_tag 'tag_all[date_taken]', nil, id: 'tag-all-date' %>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Photographer</label>
+              <div class="autocomplete-wrapper">
+                <input type="text" id="tag-all-photographer-search" placeholder="Search for photographer..." autocomplete="off">
+                <div class="autocomplete-results" id="tag-all-photographer-results"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Custom Photographer Name</label>
+              <%= text_field_tag 'tag_all[custom_photographer_name]', nil, placeholder: 'Or enter custom name...', id: 'tag-all-custom-photographer' %>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Riders</label>
+              <div class="autocomplete-wrapper">
+                <input type="text" id="tag-all-riders-search" placeholder="Search for riders..." autocomplete="off">
+                <div class="autocomplete-results" id="tag-all-riders-results"></div>
+              </div>
+              <div class="selected-riders-list" id="tag-all-riders-list"></div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Company</label>
+              <div class="autocomplete-wrapper">
+                <input type="text" id="tag-all-company-search" placeholder="Search for company..." autocomplete="off">
+                <div class="autocomplete-results" id="tag-all-company-results"></div>
+              </div>
+            </div>
+          </div>
+          </div>
+        </div>
+
+        <div class="preview-grid" id="preview-grid"></div>
+      </div>
+    </div>
+
+    <div class="submit-section">
+      <%= link_to 'Cancel', photos_path, class: 'cancel-btn' %>
+      <%= submit_tag 'Upload Photos', class: 'submit-btn', id: 'submit-btn', disabled: true %>
+    </div>
+  <% end %>
+</div>
+
+<!-- Photo Tagging Modal -->
+<div id="photo-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; overflow-y: auto;">
+  <div style="max-width: 600px; margin: 40px auto; background: rgba(20,20,24,0.98); border: 1px solid var(--border); border-radius: 16px; padding: 24px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+      <h3 style="margin: 0; font-size: 20px; color: var(--text);">Tag Photo</h3>
+      <button type="button" id="close-modal" style="background: none; border: none; color: var(--text); font-size: 24px; cursor: pointer;">×</button>
+    </div>
+
+    <div id="modal-preview" style="width: 100%; aspect-ratio: 1; background: var(--border); border-radius: 12px; margin-bottom: 20px; overflow: hidden;">
+      <img id="modal-image" style="width: 100%; height: 100%; object-fit: cover;">
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Date Taken</label>
+        <input type="date" id="modal-date-taken" style="width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); background: rgba(255,255,255,0.04); color: var(--text); font-size: 14px; font-family: inherit;">
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Photographer</label>
+        <div class="autocomplete-wrapper">
+          <input type="text" id="modal-photographer-search" placeholder="Search for photographer..." autocomplete="off" style="width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); background: rgba(255,255,255,0.04); color: var(--text); font-size: 14px; font-family: inherit;">
+          <div class="autocomplete-results" id="modal-photographer-results"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Custom Photographer Name</label>
+        <input type="text" id="modal-custom-photographer" placeholder="Or enter custom name..." style="width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); background: rgba(255,255,255,0.04); color: var(--text); font-size: 14px; font-family: inherit;">
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Riders</label>
+        <div class="autocomplete-wrapper">
+          <input type="text" id="modal-riders-search" placeholder="Search for riders..." autocomplete="off" style="width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); background: rgba(255,255,255,0.04); color: var(--text); font-size: 14px; font-family: inherit;">
+          <div class="autocomplete-results" id="modal-riders-results"></div>
+        </div>
+        <div class="selected-riders-list" id="modal-riders-list"></div>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Company</label>
+        <div class="autocomplete-wrapper">
+          <input type="text" id="modal-company-search" placeholder="Search for company..." autocomplete="off" style="width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); background: rgba(255,255,255,0.04); color: var(--text); font-size: 14px; font-family: inherit;">
+          <div class="autocomplete-results" id="modal-company-results"></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 12px; margin-top: 24px;">
+      <button type="button" id="save-tags-btn" style="flex: 1; padding: 12px; border-radius: 10px; border: none; background: var(--accent); color: white; font-size: 16px; font-weight: 600; cursor: pointer;">Save Tags</button>
+      <button type="button" id="clear-tags-btn" style="padding: 12px 24px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,0.04); color: var(--text); font-size: 14px; font-weight: 600; cursor: pointer;">Clear All</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Embed user data for autocomplete
+  const users = <%= User.order(:username).select(:id, :username, :name, :profile_type).map { |u| { id: u.id, username: u.username.presence || u.name, profile_type: u.profile_type } }.to_json.html_safe %>;
+
+  const fileUploadArea = document.getElementById('file-upload-area');
+  const fileInput = document.getElementById('file-input');
+  const previewGrid = document.getElementById('preview-grid');
+  const previewSection = document.getElementById('preview-section');
+  const albumSelect = document.getElementById('album-select');
+  const newAlbumFields = document.getElementById('new-album-fields');
+  const submitBtn = document.getElementById('submit-btn');
+  let selectedFiles = [];
+  let photoTags = {}; // Store tags per photo index
+  let currentPhotoIndex = null;
+
+  // Album selection logic
+  albumSelect.addEventListener('change', function() {
+    if (this.value === '') {
+      newAlbumFields.style.display = 'block';
+    } else {
+      newAlbumFields.style.display = 'none';
+    }
+  });
+
+  // File upload area click
+  fileUploadArea.addEventListener('click', () => fileInput.click());
+
+  // File input change
+  fileInput.addEventListener('change', (e) => {
+    handleFiles(e.target.files);
+  });
+
+  // Drag and drop
+  fileUploadArea.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    fileUploadArea.classList.add('dragover');
+  });
+
+  fileUploadArea.addEventListener('dragleave', () => {
+    fileUploadArea.classList.remove('dragover');
+  });
+
+  fileUploadArea.addEventListener('drop', (e) => {
+    e.preventDefault();
+    fileUploadArea.classList.remove('dragover');
+    handleFiles(e.dataTransfer.files);
+  });
+
+  function handleFiles(files) {
+    if (files.length > 0) {
+      previewSection.style.display = 'block';
+      submitBtn.disabled = false;
+    }
+
+    Array.from(files).forEach((file, index) => {
+      if (file.type.startsWith('image/')) {
+        selectedFiles.push(file);
+        const fileIndex = selectedFiles.length - 1;
+        photoTags[fileIndex] = { riders: new Map() }; // Initialize tags for this photo
+        createPreview(file, fileIndex);
+      }
+    });
+  }
+
+  function createPreview(file, index) {
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      const previewCard = document.createElement('div');
+      previewCard.className = 'preview-card';
+      previewCard.dataset.index = index;
+      previewCard.id = `preview-${index}`;
+
+      previewCard.innerHTML = `
+        <div class="preview-tags-indicator" id="tags-indicator-${index}" style="display: none;">Tagged</div>
+        <img src="${e.target.result}" class="preview-image" alt="Preview" data-index="${index}">
+        <button type="button" class="remove-preview" data-index="${index}">×</button>
+        <div class="preview-info">
+          <input type="text" name="photos[titles][${index}]" placeholder="Title" value="${file.name.replace(/\.[^/.]+$/, '')}">
+          <textarea name="photos[descriptions][${index}]" placeholder="Description (optional)"></textarea>
+          <button type="button" class="tag-photo-btn" data-index="${index}">Click here to tag this photo</button>
+        </div>
+      `;
+
+      previewGrid.appendChild(previewCard);
+
+      // Add click handler to tag button
+      previewCard.querySelector('.tag-photo-btn').addEventListener('click', () => openPhotoModal(index, e.target.result));
+
+      // Add remove handler
+      previewCard.querySelector('.remove-preview').addEventListener('click', (e) => {
+        e.stopPropagation();
+        removePreview(index);
+      });
+    };
+
+    reader.readAsDataURL(file);
+  }
+
+  function removePreview(index) {
+    const previewCard = document.querySelector(`[data-index="${index}"]`);
+    if (previewCard) {
+      previewCard.remove();
+    }
+    selectedFiles[index] = null;
+    delete photoTags[index];
+
+    // Check if any files remain
+    if (selectedFiles.filter(f => f !== null).length === 0) {
+      previewSection.style.display = 'none';
+      submitBtn.disabled = true;
+    }
+  }
+
+  // Update file input with selected files before form submission
+  document.getElementById('batch-upload-form').addEventListener('submit', function(e) {
+    const dataTransfer = new DataTransfer();
+
+    selectedFiles.forEach(file => {
+      if (file) {
+        dataTransfer.items.add(file);
+      }
+    });
+
+    fileInput.files = dataTransfer.files;
+
+    // Add hidden fields for photo tags
+    selectedFiles.forEach((file, index) => {
+      if (file && photoTags[index]) {
+        const tags = photoTags[index];
+
+        if (tags.dateTaken) {
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = `photos[dates_taken][${index}]`;
+          input.value = tags.dateTaken;
+          this.appendChild(input);
+        }
+
+        if (tags.photographerId) {
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = `photos[photographer_ids][${index}]`;
+          input.value = tags.photographerId;
+          this.appendChild(input);
+        }
+
+        if (tags.customPhotographer) {
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = `photos[custom_photographers][${index}]`;
+          input.value = tags.customPhotographer;
+          this.appendChild(input);
+        }
+
+        if (tags.companyId) {
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = `photos[company_ids][${index}]`;
+          input.value = tags.companyId;
+          this.appendChild(input);
+        }
+
+        if (tags.riders && tags.riders.size > 0) {
+          tags.riders.forEach((rider, riderId) => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = `photos[rider_ids][${index}][]`;
+            input.value = riderId;
+            this.appendChild(input);
+          });
+        }
+      }
+    });
+  });
+
+  // Photo Modal
+  const photoModal = document.getElementById('photo-modal');
+  const closeModalBtn = document.getElementById('close-modal');
+  const saveTagsBtn = document.getElementById('save-tags-btn');
+  const clearTagsBtn = document.getElementById('clear-tags-btn');
+  const modalImage = document.getElementById('modal-image');
+
+  function openPhotoModal(index, imageSrc) {
+    currentPhotoIndex = index;
+    modalImage.src = imageSrc;
+    photoModal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+
+    // Load existing tags if any
+    const tags = photoTags[index] || { riders: new Map() };
+    document.getElementById('modal-date-taken').value = tags.dateTaken || '';
+    document.getElementById('modal-photographer-search').value = tags.photographerName || '';
+    document.getElementById('modal-custom-photographer').value = tags.customPhotographer || '';
+    document.getElementById('modal-company-search').value = tags.companyName || '';
+
+    // Load riders
+    modalRidersMap.clear();
+    if (tags.riders) {
+      tags.riders.forEach((rider, riderId) => {
+        modalRidersMap.set(riderId, rider);
+      });
+    }
+    renderModalRiders();
+  }
+
+  function closePhotoModal() {
+    photoModal.style.display = 'none';
+    document.body.style.overflow = '';
+    currentPhotoIndex = null;
+  }
+
+  closeModalBtn.addEventListener('click', closePhotoModal);
+  photoModal.addEventListener('click', (e) => {
+    if (e.target === photoModal) {
+      closePhotoModal();
+    }
+  });
+
+  saveTagsBtn.addEventListener('click', () => {
+    if (currentPhotoIndex !== null) {
+      photoTags[currentPhotoIndex] = {
+        dateTaken: document.getElementById('modal-date-taken').value,
+        photographerId: modalPhotographerId,
+        photographerName: document.getElementById('modal-photographer-search').value,
+        customPhotographer: document.getElementById('modal-custom-photographer').value,
+        companyId: modalCompanyId,
+        companyName: document.getElementById('modal-company-search').value,
+        riders: new Map(modalRidersMap)
+      };
+
+      // Update indicator
+      const indicator = document.getElementById(`tags-indicator-${currentPhotoIndex}`);
+      const card = document.getElementById(`preview-${currentPhotoIndex}`);
+      const hasTags = photoTags[currentPhotoIndex].dateTaken ||
+                     photoTags[currentPhotoIndex].photographerId ||
+                     photoTags[currentPhotoIndex].customPhotographer ||
+                     photoTags[currentPhotoIndex].companyId ||
+                     (photoTags[currentPhotoIndex].riders && photoTags[currentPhotoIndex].riders.size > 0);
+
+      if (hasTags) {
+        indicator.style.display = 'block';
+        card.classList.add('has-tags');
+      } else {
+        indicator.style.display = 'none';
+        card.classList.remove('has-tags');
+      }
+
+      closePhotoModal();
+    }
+  });
+
+  clearTagsBtn.addEventListener('click', () => {
+    document.getElementById('modal-date-taken').value = '';
+    document.getElementById('modal-photographer-search').value = '';
+    document.getElementById('modal-custom-photographer').value = '';
+    document.getElementById('modal-company-search').value = '';
+    modalPhotographerId = null;
+    modalCompanyId = null;
+    modalRidersMap.clear();
+    renderModalRiders();
+  });
+
+  // Apply tags to all photos
+  document.getElementById('apply-tags-btn').addEventListener('click', () => {
+    const dateTaken = document.getElementById('tag-all-date').value;
+    const photographerName = document.getElementById('tag-all-photographer-search').value;
+    const customPhotographer = document.getElementById('tag-all-custom-photographer').value;
+    const companyName = document.getElementById('tag-all-company-search').value;
+    const riders = new Map(tagAllRidersMap);
+
+    selectedFiles.forEach((file, index) => {
+      if (file) {
+        photoTags[index] = {
+          dateTaken: dateTaken,
+          photographerId: tagAllPhotographerId,
+          photographerName: photographerName,
+          customPhotographer: customPhotographer,
+          companyId: tagAllCompanyId,
+          companyName: companyName,
+          riders: new Map(riders)
+        };
+
+        // Update indicator
+        const indicator = document.getElementById(`tags-indicator-${index}`);
+        const card = document.getElementById(`preview-${index}`);
+        const hasTags = dateTaken || tagAllPhotographerId || customPhotographer || tagAllCompanyId || riders.size > 0;
+
+        if (hasTags) {
+          indicator.style.display = 'block';
+          card.classList.add('has-tags');
+        }
+      }
+    });
+
+    alert('Tags applied to all photos!');
+  });
+
+  // Autocomplete variables
+  let tagAllPhotographerId = null;
+  let tagAllCompanyId = null;
+  let tagAllRidersMap = new Map();
+  let modalPhotographerId = null;
+  let modalCompanyId = null;
+  let modalRidersMap = new Map();
+
+  // Initialize all autocomplete fields
+  initPhotographerAutocomplete('tag-all-photographer-search', 'tag-all-photographer-results', (id, name) => {
+    tagAllPhotographerId = id;
+    document.getElementById('tag-all-custom-photographer').value = '';
+  });
+
+  initCompanyAutocomplete('tag-all-company-search', 'tag-all-company-results', (id) => {
+    tagAllCompanyId = id;
+  });
+
+  initRidersAutocomplete('tag-all-riders-search', 'tag-all-riders-results', 'tag-all-riders-list', tagAllRidersMap, renderTagAllRiders);
+
+  initPhotographerAutocomplete('modal-photographer-search', 'modal-photographer-results', (id, name) => {
+    modalPhotographerId = id;
+    document.getElementById('modal-custom-photographer').value = '';
+  });
+
+  initCompanyAutocomplete('modal-company-search', 'modal-company-results', (id) => {
+    modalCompanyId = id;
+  });
+
+  initRidersAutocomplete('modal-riders-search', 'modal-riders-results', 'modal-riders-list', modalRidersMap, renderModalRiders);
+
+  // Autocomplete helper functions
+  function initPhotographerAutocomplete(inputId, resultsId, onSelect) {
+    const searchInput = document.getElementById(inputId);
+    const resultsDiv = document.getElementById(resultsId);
+    let highlightedIndex = -1;
+
+    searchInput.addEventListener('input', function() {
+      const query = this.value.trim().toLowerCase();
+      if (query.length < 1) {
+        resultsDiv.classList.remove('show');
+        return;
+      }
+
+      const matches = users.filter(u => u.username.toLowerCase().includes(query)).slice(0, 10);
+      if (matches.length === 0) {
+        resultsDiv.classList.remove('show');
+        return;
+      }
+
+      resultsDiv.innerHTML = matches.map((user, index) => `
+        <div class="autocomplete-result-item" data-user-id="${user.id}" data-username="${user.username}" data-index="${index}">
+          <span class="autocomplete-result-username">${user.username}</span>
+          <span class="autocomplete-result-type">${user.profile_type || 'user'}</span>
+        </div>
+      `).join('');
+
+      resultsDiv.classList.add('show');
+      highlightedIndex = -1;
+    });
+
+    resultsDiv.addEventListener('click', function(e) {
+      const item = e.target.closest('.autocomplete-result-item');
+      if (item) {
+        searchInput.value = item.dataset.username;
+        onSelect(parseInt(item.dataset.userId), item.dataset.username);
+        resultsDiv.classList.remove('show');
+      }
+    });
+
+    document.addEventListener('click', function(e) {
+      if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {
+        resultsDiv.classList.remove('show');
+      }
+    });
+  }
+
+  function initCompanyAutocomplete(inputId, resultsId, onSelect) {
+    const searchInput = document.getElementById(inputId);
+    const resultsDiv = document.getElementById(resultsId);
+
+    searchInput.addEventListener('input', function() {
+      const query = this.value.trim().toLowerCase();
+      if (query.length < 1) {
+        resultsDiv.classList.remove('show');
+        return;
+      }
+
+      const matches = users.filter(u => u.profile_type === 'company' && u.username.toLowerCase().includes(query)).slice(0, 10);
+      if (matches.length === 0) {
+        resultsDiv.classList.remove('show');
+        return;
+      }
+
+      resultsDiv.innerHTML = matches.map((user, index) => `
+        <div class="autocomplete-result-item" data-user-id="${user.id}" data-username="${user.username}">
+          <span class="autocomplete-result-username">${user.username}</span>
+          <span class="autocomplete-result-type">company</span>
+        </div>
+      `).join('');
+
+      resultsDiv.classList.add('show');
+    });
+
+    resultsDiv.addEventListener('click', function(e) {
+      const item = e.target.closest('.autocomplete-result-item');
+      if (item) {
+        searchInput.value = item.dataset.username;
+        onSelect(parseInt(item.dataset.userId));
+        resultsDiv.classList.remove('show');
+      }
+    });
+
+    document.addEventListener('click', function(e) {
+      if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {
+        resultsDiv.classList.remove('show');
+      }
+    });
+  }
+
+  function initRidersAutocomplete(inputId, resultsId, listId, ridersMap, renderFunc) {
+    const searchInput = document.getElementById(inputId);
+    const resultsDiv = document.getElementById(resultsId);
+
+    searchInput.addEventListener('input', function() {
+      const query = this.value.trim().toLowerCase();
+      if (query.length < 1) {
+        resultsDiv.classList.remove('show');
+        return;
+      }
+
+      const matches = users.filter(u => !ridersMap.has(u.id) && u.username.toLowerCase().includes(query)).slice(0, 10);
+      if (matches.length === 0) {
+        resultsDiv.classList.remove('show');
+        return;
+      }
+
+      resultsDiv.innerHTML = matches.map((user, index) => `
+        <div class="autocomplete-result-item" data-user-id="${user.id}" data-username="${user.username}">
+          <span class="autocomplete-result-username">${user.username}</span>
+          <span class="autocomplete-result-type">${user.profile_type || 'user'}</span>
+        </div>
+      `).join('');
+
+      resultsDiv.classList.add('show');
+    });
+
+    resultsDiv.addEventListener('click', function(e) {
+      const item = e.target.closest('.autocomplete-result-item');
+      if (item) {
+        ridersMap.set(parseInt(item.dataset.userId), { username: item.dataset.username });
+        searchInput.value = '';
+        resultsDiv.classList.remove('show');
+        renderFunc();
+      }
+    });
+
+    document.addEventListener('click', function(e) {
+      if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {
+        resultsDiv.classList.remove('show');
+      }
+    });
+  }
+
+  function renderTagAllRiders() {
+    const list = document.getElementById('tag-all-riders-list');
+    list.innerHTML = '';
+    tagAllRidersMap.forEach((rider, riderId) => {
+      const tag = document.createElement('div');
+      tag.className = 'selected-rider-tag';
+      tag.innerHTML = `${rider.username} <button type="button" onclick="removeTagAllRider(${riderId})">×</button>`;
+      list.appendChild(tag);
+    });
+  }
+
+  function renderModalRiders() {
+    const list = document.getElementById('modal-riders-list');
+    list.innerHTML = '';
+    modalRidersMap.forEach((rider, riderId) => {
+      const tag = document.createElement('div');
+      tag.className = 'selected-rider-tag';
+      tag.innerHTML = `${rider.username} <button type="button" onclick="removeModalRider(${riderId})">×</button>`;
+      list.appendChild(tag);
+    });
+  }
+
+  window.removeTagAllRider = function(riderId) {
+    tagAllRidersMap.delete(riderId);
+    renderTagAllRiders();
+  };
+
+  window.removeModalRider = function(riderId) {
+    modalRidersMap.delete(riderId);
+    renderModalRiders();
+  };
+
+  // Toggle "Tag All Photos" dropdown
+  const tagAllToggle = document.getElementById('tag-all-toggle');
+  const tagAllContent = document.getElementById('tag-all-content');
+  const tagAllChevron = document.getElementById('tag-all-chevron');
+
+  tagAllToggle.addEventListener('click', (e) => {
+    // Don't toggle if clicking the Apply button
+    if (e.target.id === 'apply-tags-btn' || e.target.closest('#apply-tags-btn')) {
+      return;
+    }
+
+    tagAllContent.classList.toggle('open');
+    tagAllChevron.classList.toggle('open');
+  });
+</script>

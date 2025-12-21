@@ -23,68 +23,41 @@ class FilmsController < ApplicationController
         @films = @films.where(film_type: params[:film_type])
       end
 
-      # Apply search filter
+      # Apply search filter using Searchable concern
       if params[:q].present?
-        query = "%#{params[:q]}%"
-
-        # Search in film fields, custom names, and related user names
-        if ActiveRecord::Base.connection.adapter_name.downcase == 'postgresql'
-          @films = @films.where(
-            "films.title ILIKE :q OR
-             COALESCE(films.company, '') ILIKE :q OR
-             COALESCE(films.description, '') ILIKE :q OR
-             COALESCE(films.custom_filmer_name, '') ILIKE :q OR
-             COALESCE(films.custom_editor_name, '') ILIKE :q OR
-             COALESCE(films.custom_riders, '') ILIKE :q OR
-             EXISTS (
-               SELECT 1 FROM film_riders
-               JOIN users ON users.id = film_riders.user_id
-               WHERE film_riders.film_id = films.id AND COALESCE(users.username, '') ILIKE :q
-             ) OR
-             EXISTS (
-               SELECT 1 FROM users
-               WHERE users.id = films.filmer_user_id AND COALESCE(users.username, '') ILIKE :q
-             ) OR
-             EXISTS (
-               SELECT 1 FROM users
-               WHERE users.id = films.editor_user_id AND COALESCE(users.username, '') ILIKE :q
-             ) OR
-             EXISTS (
-               SELECT 1 FROM users
-               WHERE users.id = films.company_user_id AND COALESCE(users.username, '') ILIKE :q
-             )",
-            q: query
-          )
-        else
-          # SQLite fallback
-          lower_query = "%#{params[:q].downcase}%"
-          @films = @films.where(
-            "LOWER(films.title) LIKE :q OR
-             LOWER(COALESCE(films.company, '')) LIKE :q OR
-             LOWER(COALESCE(films.description, '')) LIKE :q OR
-             LOWER(COALESCE(films.custom_filmer_name, '')) LIKE :q OR
-             LOWER(COALESCE(films.custom_editor_name, '')) LIKE :q OR
-             LOWER(COALESCE(films.custom_riders, '')) LIKE :q OR
-             EXISTS (
-               SELECT 1 FROM film_riders
-               JOIN users ON users.id = film_riders.user_id
-               WHERE film_riders.film_id = films.id AND LOWER(COALESCE(users.username, '')) LIKE :q
-             ) OR
-             EXISTS (
-               SELECT 1 FROM users
-               WHERE users.id = films.filmer_user_id AND LOWER(COALESCE(users.username, '')) LIKE :q
-             ) OR
-             EXISTS (
-               SELECT 1 FROM users
-               WHERE users.id = films.editor_user_id AND LOWER(COALESCE(users.username, '')) LIKE :q
-             ) OR
-             EXISTS (
-               SELECT 1 FROM users
-               WHERE users.id = films.company_user_id AND LOWER(COALESCE(users.username, '')) LIKE :q
-             )",
-            q: lower_query
-          )
-        end
+        @films = @films.search_with_sql(
+          params[:q],
+          # PostgreSQL version
+          "films.title ILIKE :q OR
+           COALESCE(films.company, '') ILIKE :q OR
+           COALESCE(films.description, '') ILIKE :q OR
+           COALESCE(films.custom_filmer_name, '') ILIKE :q OR
+           COALESCE(films.custom_editor_name, '') ILIKE :q OR
+           COALESCE(films.custom_riders, '') ILIKE :q OR
+           EXISTS (
+             SELECT 1 FROM film_riders
+             JOIN users ON users.id = film_riders.user_id
+             WHERE film_riders.film_id = films.id AND COALESCE(users.username, '') ILIKE :q
+           ) OR
+           EXISTS (SELECT 1 FROM users WHERE users.id = films.filmer_user_id AND COALESCE(users.username, '') ILIKE :q) OR
+           EXISTS (SELECT 1 FROM users WHERE users.id = films.editor_user_id AND COALESCE(users.username, '') ILIKE :q) OR
+           EXISTS (SELECT 1 FROM users WHERE users.id = films.company_user_id AND COALESCE(users.username, '') ILIKE :q)",
+          # SQLite version
+          "LOWER(films.title) LIKE :q OR
+           LOWER(COALESCE(films.company, '')) LIKE :q OR
+           LOWER(COALESCE(films.description, '')) LIKE :q OR
+           LOWER(COALESCE(films.custom_filmer_name, '')) LIKE :q OR
+           LOWER(COALESCE(films.custom_editor_name, '')) LIKE :q OR
+           LOWER(COALESCE(films.custom_riders, '')) LIKE :q OR
+           EXISTS (
+             SELECT 1 FROM film_riders
+             JOIN users ON users.id = film_riders.user_id
+             WHERE film_riders.film_id = films.id AND LOWER(COALESCE(users.username, '')) LIKE :q
+           ) OR
+           EXISTS (SELECT 1 FROM users WHERE users.id = films.filmer_user_id AND LOWER(COALESCE(users.username, '')) LIKE :q) OR
+           EXISTS (SELECT 1 FROM users WHERE users.id = films.editor_user_id AND LOWER(COALESCE(users.username, '')) LIKE :q) OR
+           EXISTS (SELECT 1 FROM users WHERE users.id = films.company_user_id AND LOWER(COALESCE(users.username, '')) LIKE :q)"
+        )
       end
 
       # Apply sorting

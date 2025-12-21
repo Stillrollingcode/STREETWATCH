@@ -1,5 +1,6 @@
 class Film < ApplicationRecord
   include FriendlyIdentifiable
+  include Searchable
 
   has_one_attached :thumbnail
   has_one_attached :video

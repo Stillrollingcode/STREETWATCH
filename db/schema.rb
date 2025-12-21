@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_12_17_000001) do
+ActiveRecord::Schema[8.0].define(version: 2025_12_17_120004) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -51,6 +51,19 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_17_000001) do
     t.index ["email"], name: "index_admin_users_on_email", unique: true
     t.index ["reset_password_token"], name: "index_admin_users_on_reset_password_token", unique: true
     t.index ["role"], name: "index_admin_users_on_role"
+  end
+
+  create_table "albums", force: :cascade do |t|
+    t.string "title", null: false
+    t.text "description"
+    t.date "date"
+    t.integer "user_id", null: false
+    t.string "friendly_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["date"], name: "index_albums_on_date"
+    t.index ["friendly_id"], name: "index_albums_on_friendly_id", unique: true
+    t.index ["user_id"], name: "index_albums_on_user_id"
   end
 
   create_table "comments", force: :cascade do |t|
@@ -173,6 +186,67 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_17_000001) do
     t.index ["user_id", "read_at", "created_at"], name: "index_notifications_on_user_id_and_read_at_and_created_at"
   end
 
+  create_table "photo_approvals", force: :cascade do |t|
+    t.integer "photo_id", null: false
+    t.integer "approver_id", null: false
+    t.string "approval_type", null: false
+    t.string "status", default: "pending", null: false
+    t.text "rejection_reason"
+    t.string "friendly_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["approver_id"], name: "index_photo_approvals_on_approver_id"
+    t.index ["friendly_id"], name: "index_photo_approvals_on_friendly_id", unique: true
+    t.index ["photo_id", "approver_id", "approval_type"], name: "index_photo_approvals_unique", unique: true
+    t.index ["photo_id"], name: "index_photo_approvals_on_photo_id"
+  end
+
+  create_table "photo_comments", force: :cascade do |t|
+    t.integer "user_id", null: false
+    t.integer "photo_id", null: false
+    t.text "body", null: false
+    t.integer "parent_id"
+    t.string "friendly_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["friendly_id"], name: "index_photo_comments_on_friendly_id", unique: true
+    t.index ["parent_id"], name: "index_photo_comments_on_parent_id"
+    t.index ["photo_id", "created_at"], name: "index_photo_comments_on_photo_id_and_created_at"
+    t.index ["photo_id"], name: "index_photo_comments_on_photo_id"
+    t.index ["user_id"], name: "index_photo_comments_on_user_id"
+  end
+
+  create_table "photo_riders", force: :cascade do |t|
+    t.integer "photo_id", null: false
+    t.integer "user_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["photo_id", "user_id"], name: "index_photo_riders_on_photo_id_and_user_id", unique: true
+    t.index ["photo_id"], name: "index_photo_riders_on_photo_id"
+    t.index ["user_id"], name: "index_photo_riders_on_user_id"
+  end
+
+  create_table "photos", force: :cascade do |t|
+    t.string "title", null: false
+    t.text "description"
+    t.date "date_taken"
+    t.integer "album_id", null: false
+    t.integer "user_id", null: false
+    t.integer "photographer_user_id"
+    t.integer "company_user_id"
+    t.string "custom_photographer_name"
+    t.text "custom_riders"
+    t.string "friendly_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["album_id"], name: "index_photos_on_album_id"
+    t.index ["company_user_id"], name: "index_photos_on_company_user_id"
+    t.index ["date_taken"], name: "index_photos_on_date_taken"
+    t.index ["friendly_id"], name: "index_photos_on_friendly_id", unique: true
+    t.index ["photographer_user_id"], name: "index_photos_on_photographer_user_id"
+    t.index ["user_id"], name: "index_photos_on_user_id"
+  end
+
   create_table "playlist_films", force: :cascade do |t|
     t.integer "playlist_id", null: false
     t.integer "film_id", null: false
@@ -260,6 +334,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_17_000001) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "albums", "users"
   add_foreign_key "comments", "comments", column: "parent_id"
   add_foreign_key "comments", "films"
   add_foreign_key "comments", "users"
@@ -277,6 +352,17 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_17_000001) do
   add_foreign_key "follows", "users", column: "follower_id"
   add_foreign_key "notifications", "users"
   add_foreign_key "notifications", "users", column: "actor_id"
+  add_foreign_key "photo_approvals", "photos"
+  add_foreign_key "photo_approvals", "users", column: "approver_id"
+  add_foreign_key "photo_comments", "photo_comments", column: "parent_id"
+  add_foreign_key "photo_comments", "photos"
+  add_foreign_key "photo_comments", "users"
+  add_foreign_key "photo_riders", "photos"
+  add_foreign_key "photo_riders", "users"
+  add_foreign_key "photos", "albums"
+  add_foreign_key "photos", "users"
+  add_foreign_key "photos", "users", column: "company_user_id"
+  add_foreign_key "photos", "users", column: "photographer_user_id"
   add_foreign_key "playlist_films", "films"
   add_foreign_key "playlist_films", "playlists"
   add_foreign_key "playlists", "users"

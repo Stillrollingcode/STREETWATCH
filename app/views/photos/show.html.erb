@@ -1,0 +1,497 @@
+<% content_for :head do %>
+  <link rel="stylesheet" href="<%= asset_path('comments.css') %>">
+  <style>
+    .photo-shell {
+      max-width: 1000px;
+      margin: 28px auto 60px;
+      padding: 0 18px 40px;
+      color: var(--text);
+    }
+    .photo-detail-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 0;
+      overflow: hidden;
+      box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+    }
+    .photo-image-wrapper {
+      width: 100%;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+      position: relative;
+    }
+    .photo-image-wrapper img {
+      max-width: 100%;
+      max-height: 70vh;
+      object-fit: contain;
+      border-radius: 8px;
+    }
+    .fullscreen-btn {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      padding: 10px 16px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(0,0,0,0.7);
+      color: white;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      backdrop-filter: blur(10px);
+    }
+    .fullscreen-btn:hover {
+      background: rgba(0,0,0,0.85);
+      border-color: rgba(255,255,255,0.4);
+    }
+    .fullscreen-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0,0,0,0.95);
+      z-index: 10000;
+      align-items: center;
+      justify-content: center;
+    }
+    .fullscreen-modal.active {
+      display: flex;
+    }
+    .fullscreen-modal img {
+      max-width: 95vw;
+      max-height: 95vh;
+      object-fit: contain;
+    }
+    .fullscreen-close {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.3);
+      background: rgba(0,0,0,0.7);
+      color: white;
+      font-size: 24px;
+      font-weight: 300;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      backdrop-filter: blur(10px);
+    }
+    .fullscreen-close:hover {
+      background: rgba(0,0,0,0.9);
+      border-color: rgba(255,255,255,0.6);
+      transform: scale(1.1);
+    }
+    .photo-content {
+      padding: 24px;
+      display: grid;
+      gap: 20px;
+    }
+    .photo-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .photo-title-section h1 {
+      margin: 0 0 8px;
+      font-size: 32px;
+      letter-spacing: 0.01em;
+    }
+    .photo-date {
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .photo-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .action-btn {
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.15s ease;
+    }
+    .action-btn:hover {
+      background: rgba(255,255,255,0.08);
+      border-color: var(--accent);
+    }
+    .action-btn.delete {
+      border-color: rgba(220, 53, 69, 0.3);
+      color: rgba(220, 53, 69, 1);
+    }
+    .action-btn.delete:hover {
+      background: rgba(220, 53, 69, 0.1);
+      border-color: rgba(220, 53, 69, 0.5);
+    }
+    .photo-description {
+      font-size: 15px;
+      line-height: 1.7;
+      color: var(--text-secondary);
+    }
+    .photo-metadata {
+      display: grid;
+      gap: 16px;
+    }
+    .metadata-section {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+    }
+    .metadata-section h3 {
+      margin: 0 0 12px;
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+    }
+    .metadata-list {
+      display: grid;
+      gap: 8px;
+    }
+    .metadata-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+    }
+    .metadata-label {
+      color: var(--muted);
+      min-width: 100px;
+    }
+    .metadata-value {
+      color: var(--text);
+      font-weight: 500;
+    }
+    .metadata-value a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    .metadata-value a:hover {
+      text-decoration: underline;
+    }
+    .approval-banner {
+      background: linear-gradient(120deg, rgba(255, 165, 0, 0.2), rgba(255, 140, 0, 0.2));
+      border: 1px solid rgba(255, 165, 0, 0.3);
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .approval-banner h3 {
+      margin: 0 0 12px;
+      font-size: 18px;
+      color: hsl(39, 100%, 60%);
+    }
+    .approval-list {
+      display: grid;
+      gap: 8px;
+    }
+    .approval-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px;
+      background: rgba(0,0,0,0.2);
+      border-radius: 8px;
+    }
+    .approval-status {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+    .approval-status.pending {
+      background: rgba(255, 165, 0, 0.3);
+      color: hsl(39, 100%, 60%);
+    }
+    .approval-status.approved {
+      background: rgba(76, 175, 80, 0.3);
+      color: hsl(122, 39%, 60%);
+    }
+    .approval-status.rejected {
+      background: rgba(220, 53, 69, 0.3);
+      color: rgba(220, 53, 69, 1);
+    }
+    /* Comment styles are now in comments.css */
+  </style>
+<% end %>
+
+<div class="photo-shell">
+  <div class="photo-detail-card">
+    <div class="photo-image-wrapper">
+      <% if @photo.image.attached? %>
+        <%= image_tag @photo.image, alt: @photo.title, id: 'photo-image' %>
+        <button class="fullscreen-btn" id="fullscreen-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+          </svg>
+          Fullscreen
+        </button>
+      <% else %>
+        <p style="color: var(--muted);">No image available</p>
+      <% end %>
+    </div>
+
+    <div class="photo-content">
+      <% if user_signed_in? && @photo.photo_approvals.pending.where(approver: current_user).any? %>
+        <div class="approval-banner">
+          <h3>⏳ Approval Pending</h3>
+          <p style="color: var(--text); margin-bottom: 16px;">You've been tagged in this photo. Please review and approve or reject.</p>
+          <div class="approval-list">
+            <% @photo.photo_approvals.where(approver: current_user).each do |approval| %>
+              <div class="approval-item">
+                <div class="approval-status <%= approval.status %>">
+                  <%= approval.status == 'pending' ? '⏳' : approval.status == 'approved' ? '✓' : '✗' %>
+                </div>
+                <div class="approval-item-text">
+                  <strong><%= approval.approval_type.titleize %></strong> - <%= approval.status.titleize %>
+                </div>
+                <% if approval.status == 'pending' %>
+                  <%= button_to 'Approve', approve_photo_approval_path(approval), method: :patch, class: 'action-btn', style: 'margin: 0;' %>
+                  <%= button_to 'Reject', reject_photo_approval_path(approval), method: :patch, class: 'action-btn delete', style: 'margin: 0;' %>
+                <% end %>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+
+      <div class="photo-header-row">
+        <div class="photo-title-section">
+          <h1><%= @photo.title %></h1>
+          <% if @photo.date_taken %>
+            <p class="photo-date"><%= @photo.date_taken.strftime("%B %d, %Y") %></p>
+          <% end %>
+        </div>
+
+        <% if user_signed_in? && @photo.user == current_user %>
+          <div class="photo-actions">
+            <%= link_to 'Edit', edit_photo_path(@photo), class: 'action-btn' %>
+            <%= button_to 'Delete', photo_path(@photo), method: :delete, data: { confirm: 'Are you sure?' }, class: 'action-btn delete' %>
+          </div>
+        <% end %>
+      </div>
+
+      <% if @photo.description.present? %>
+        <div class="photo-description">
+          <%= simple_format(@photo.description) %>
+        </div>
+      <% end %>
+
+      <div class="photo-metadata">
+        <div class="metadata-section">
+          <h3>Photo Details</h3>
+          <div class="metadata-list">
+            <div class="metadata-item">
+              <span class="metadata-label">Album:</span>
+              <span class="metadata-value">
+                <%= link_to @photo.album.title, album_path(@photo.album) %>
+              </span>
+            </div>
+            <div class="metadata-item">
+              <span class="metadata-label">Photographer:</span>
+              <span class="metadata-value" style="display: flex; align-items: center; gap: 8px;">
+                <% if @photo.photographer_user %>
+                  <%= link_to @photo.photographer_user.name, user_path(@photo.photographer_user) %>
+                  <% if user_signed_in? && @photo.user == current_user %>
+                    <%= button_to '×', remove_tag_photo_path(@photo, tag_type: 'photographer', tag_id: @photo.photographer_user_id), method: :delete, data: { confirm: 'Remove this photographer tag?' }, style: 'background: rgba(220, 53, 69, 0.2); border: 1px solid rgba(220, 53, 69, 0.3); color: rgba(220, 53, 69, 1); border-radius: 4px; padding: 2px 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin: 0;' %>
+                  <% end %>
+                <% else %>
+                  <%= @photo.custom_photographer_name.presence || @photo.user.name %>
+                <% end %>
+              </span>
+            </div>
+            <% if @photo.riders.any? || @photo.custom_riders.present? %>
+              <div class="metadata-item">
+                <span class="metadata-label">Riders:</span>
+                <span class="metadata-value" style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+                  <% @photo.riders.each do |rider| %>
+                    <span style="display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.05); padding: 4px 10px; border-radius: 6px;">
+                      <%= link_to rider.name, user_path(rider) %>
+                      <% if user_signed_in? && @photo.user == current_user %>
+                        <%= button_to '×', remove_tag_photo_path(@photo, tag_type: 'rider', tag_id: rider.id), method: :delete, data: { confirm: 'Remove this rider tag?' }, style: 'background: rgba(220, 53, 69, 0.2); border: 1px solid rgba(220, 53, 69, 0.3); color: rgba(220, 53, 69, 1); border-radius: 4px; padding: 2px 6px; font-size: 14px; font-weight: bold; cursor: pointer; margin: 0; line-height: 1;' %>
+                      <% end %>
+                    </span>
+                  <% end %>
+                  <% if @photo.custom_riders.present? %>
+                    <span><%= @photo.custom_riders %></span>
+                  <% end %>
+                </span>
+              </div>
+            <% end %>
+            <% if @photo.company_user %>
+              <div class="metadata-item">
+                <span class="metadata-label">Company:</span>
+                <span class="metadata-value" style="display: flex; align-items: center; gap: 8px;">
+                  <%= link_to @photo.company_user.name, user_path(@photo.company_user) %>
+                  <% if user_signed_in? && @photo.user == current_user %>
+                    <%= button_to '×', remove_tag_photo_path(@photo, tag_type: 'company', tag_id: @photo.company_user_id), method: :delete, data: { confirm: 'Remove this company tag?' }, style: 'background: rgba(220, 53, 69, 0.2); border: 1px solid rgba(220, 53, 69, 0.3); color: rgba(220, 53, 69, 1); border-radius: 4px; padding: 2px 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin: 0;' %>
+                  <% end %>
+                </span>
+              </div>
+            <% end %>
+            <div class="metadata-item">
+              <span class="metadata-label">Uploaded by:</span>
+              <span class="metadata-value">
+                <%= link_to @photo.user.name, user_path(@photo.user) %>
+              </span>
+            </div>
+            <div class="metadata-item">
+              <span class="metadata-label">Uploaded:</span>
+              <span class="metadata-value">
+                <%= @photo.created_at.strftime("%B %d, %Y") %>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="comments-section">
+        <h2>Comments (<%= @photo.photo_comments.count %>)</h2>
+
+        <% if user_signed_in? %>
+          <div class="comment-form">
+            <%= form_with model: [@photo, @photo_comment], url: photo_photo_comments_path(@photo), local: true do |f| %>
+              <%= f.text_area :body, placeholder: "Add a comment...", required: true %>
+              <%= f.submit "Post Comment", class: "pill-btn" %>
+            <% end %>
+          </div>
+        <% end %>
+
+        <div class="comments-list">
+          <% @comments.each do |comment| %>
+            <div class="comment">
+              <div class="comment-header">
+                <%= link_to comment.user.name, user_path(comment.user), class: 'comment-author' %>
+                <span class="comment-date"><%= time_ago_in_words(comment.created_at) %> ago</span>
+              </div>
+              <div class="comment-body">
+                <%= simple_format(comment.body) %>
+              </div>
+
+              <% if comment.replies.any? %>
+                <div class="comment-replies">
+                  <% comment.replies.each do |reply| %>
+                    <div class="comment">
+                      <div class="comment-header">
+                        <%= link_to reply.user.name, user_path(reply.user), class: 'comment-author' %>
+                        <span class="comment-date"><%= time_ago_in_words(reply.created_at) %> ago</span>
+                      </div>
+                      <div class="comment-body">
+                        <%= simple_format(reply.body) %>
+                      </div>
+                    </div>
+                  <% end %>
+                </div>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Fullscreen Modal -->
+<% if @photo.image.attached? %>
+  <div class="fullscreen-modal" id="fullscreen-modal">
+    <%= image_tag @photo.image, alt: @photo.title %>
+    <button class="fullscreen-close" id="fullscreen-close">×</button>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const fullscreenBtn = document.getElementById('fullscreen-btn');
+      const fullscreenModal = document.getElementById('fullscreen-modal');
+      const fullscreenClose = document.getElementById('fullscreen-close');
+
+      if (fullscreenBtn && fullscreenModal && fullscreenClose) {
+        // Open fullscreen
+        fullscreenBtn.addEventListener('click', () => {
+          fullscreenModal.classList.add('active');
+          document.body.style.overflow = 'hidden';
+        });
+
+        // Close fullscreen on button click
+        fullscreenClose.addEventListener('click', () => {
+          fullscreenModal.classList.remove('active');
+          document.body.style.overflow = '';
+        });
+
+        // Close fullscreen on background click
+        fullscreenModal.addEventListener('click', (e) => {
+          if (e.target === fullscreenModal) {
+            fullscreenModal.classList.remove('active');
+            document.body.style.overflow = '';
+          }
+        });
+
+        // Close fullscreen on ESC key
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape' && fullscreenModal.classList.contains('active')) {
+            fullscreenModal.classList.remove('active');
+            document.body.style.overflow = '';
+          }
+        });
+      }
+    });
+
+    // Also handle Turbo navigation
+    document.addEventListener('turbo:load', () => {
+      const fullscreenBtn = document.getElementById('fullscreen-btn');
+      const fullscreenModal = document.getElementById('fullscreen-modal');
+      const fullscreenClose = document.getElementById('fullscreen-close');
+
+      if (fullscreenBtn && fullscreenModal && fullscreenClose) {
+        fullscreenBtn.addEventListener('click', () => {
+          fullscreenModal.classList.add('active');
+          document.body.style.overflow = 'hidden';
+        });
+
+        fullscreenClose.addEventListener('click', () => {
+          fullscreenModal.classList.remove('active');
+          document.body.style.overflow = '';
+        });
+
+        fullscreenModal.addEventListener('click', (e) => {
+          if (e.target === fullscreenModal) {
+            fullscreenModal.classList.remove('active');
+            document.body.style.overflow = '';
+          }
+        });
+
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape' && fullscreenModal.classList.contains('active')) {
+            fullscreenModal.classList.remove('active');
+            document.body.style.overflow = '';
+          }
+        });
+      }
+    });
+  </script>
+<% end %>

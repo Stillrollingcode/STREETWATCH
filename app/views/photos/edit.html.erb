@@ -1,0 +1,482 @@
+<% content_for :head do %>
+  <style>
+    .edit-photo-shell {
+      max-width: 800px;
+      margin: 28px auto 60px;
+      padding: 0 18px 40px;
+      color: var(--text);
+    }
+    .edit-photo-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+    }
+    .edit-photo-card h1 {
+      margin: 0 0 24px;
+      font-size: 28px;
+      letter-spacing: 0.01em;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--text);
+    }
+    .form-group input[type="text"],
+    .form-group input[type="date"],
+    .form-group textarea,
+    .form-group select {
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      font-size: 14px;
+      font-family: inherit;
+    }
+    .form-group input:focus,
+    .form-group textarea:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .form-group textarea {
+      min-height: 120px;
+      resize: vertical;
+    }
+    .form-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+    }
+    .btn {
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+      display: inline-block;
+      text-align: center;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+      border: none;
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    .btn-secondary {
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover {
+      background: rgba(255,255,255,0.08);
+    }
+    .current-image {
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .current-image img {
+      max-width: 100%;
+      max-height: 400px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    .field_with_errors {
+      display: inline;
+    }
+    .error-messages {
+      background: rgba(220, 53, 69, 0.1);
+      border: 1px solid rgba(220, 53, 69, 0.3);
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+    .error-messages h2 {
+      margin: 0 0 12px;
+      font-size: 16px;
+      color: rgba(220, 53, 69, 1);
+    }
+    .error-messages ul {
+      margin: 0;
+      padding-left: 20px;
+    }
+    .error-messages li {
+      color: rgba(220, 53, 69, 1);
+      font-size: 14px;
+    }
+
+    /* Autocomplete styles */
+    .autocomplete-wrapper {
+      position: relative;
+    }
+    .autocomplete-results {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: <%= user_theme_styles[:theme_name] == 'light' ? 'rgba(255,255,255,0.98)' : 'rgba(20,20,24,0.98)' %>;
+      border: 1px solid var(--border);
+      border-top: none;
+      border-radius: 0 0 8px 8px;
+      max-height: 240px;
+      overflow-y: auto;
+      z-index: 100;
+      display: none;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    .autocomplete-results.show {
+      display: block;
+    }
+    .autocomplete-result-item {
+      padding: 10px 12px;
+      cursor: pointer;
+      transition: background 0.15s;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+    }
+    .autocomplete-result-item:hover,
+    .autocomplete-result-item.highlighted {
+      background: <%= user_theme_styles[:theme_name] == 'light' ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.1)' %>;
+    }
+    .autocomplete-result-username {
+      font-weight: 600;
+      color: var(--text);
+    }
+    .autocomplete-result-type {
+      font-size: 12px;
+      color: var(--muted);
+      text-transform: capitalize;
+    }
+    .selected-riders-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+      min-height: 40px;
+      padding: 8px;
+      border-radius: 8px;
+      background: <%= user_theme_styles[:theme_name] == 'light' ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)' %>;
+      border: 1px solid var(--border);
+    }
+    .selected-rider-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background: <%= user_theme_styles[:theme_name] == 'light' ? "hsl(#{user_theme_styles[:accent_hue]}, 50%, 35%)" : "color-mix(in srgb, var(--accent) 20%, transparent)" %>;
+      border: 1px solid <%= user_theme_styles[:theme_name] == 'light' ? "hsl(#{user_theme_styles[:accent_hue]}, 50%, 30%)" : "color-mix(in srgb, var(--accent) 40%, transparent)" %>;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      color: <%= user_theme_styles[:theme_name] == 'light' ? 'white' : 'var(--accent)' %>;
+    }
+    .selected-rider-tag button {
+      background: none;
+      border: none;
+      color: <%= user_theme_styles[:theme_name] == 'light' ? 'rgba(255,255,255,0.9)' : 'var(--accent)' %>;
+      font-size: 16px;
+      cursor: pointer;
+      padding: 0;
+      margin: 0;
+      line-height: 1;
+    }
+    .selected-rider-tag button:hover {
+      color: #ff6b6b;
+    }
+  </style>
+<% end %>
+
+<div class="edit-photo-shell">
+  <div class="edit-photo-card">
+    <h1>Edit Photo</h1>
+
+    <% if @photo.errors.any? %>
+      <div class="error-messages">
+        <h2><%= pluralize(@photo.errors.count, "error") %> prohibited this photo from being saved:</h2>
+        <ul>
+          <% @photo.errors.full_messages.each do |message| %>
+            <li><%= message %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
+    <% if @photo.image.attached? %>
+      <div class="current-image">
+        <%= image_tag @photo.image, alt: @photo.title %>
+      </div>
+    <% end %>
+
+    <%= form_with(model: @photo, local: true) do |f| %>
+      <div class="form-group">
+        <%= f.label :title %>
+        <%= f.text_field :title, required: true %>
+      </div>
+
+      <div class="form-group">
+        <%= f.label :description %>
+        <%= f.text_area :description %>
+      </div>
+
+      <div class="form-group">
+        <%= f.label :date_taken, "Date Taken" %>
+        <%= f.date_field :date_taken %>
+      </div>
+
+      <div class="form-group">
+        <%= f.label :album_id, "Album" %>
+        <%= f.collection_select :album_id,
+            current_user.albums.order(:title),
+            :id,
+            :title,
+            { prompt: "Select an album" },
+            { required: true } %>
+      </div>
+
+      <div class="form-group">
+        <%= f.label :photographer_user_id, "Photographer" %>
+        <div class="autocomplete-wrapper">
+          <input type="text" id="photographer-search" placeholder="Search for photographer..." autocomplete="off" value="<%= @photo.photographer_user&.name || @photo.photographer_user&.username %>">
+          <div class="autocomplete-results" id="photographer-results"></div>
+        </div>
+        <%= f.hidden_field :photographer_user_id, id: 'photographer-user-id' %>
+      </div>
+
+      <div class="form-group">
+        <%= f.label :custom_photographer_name, "Custom Photographer Name" %>
+        <%= f.text_field :custom_photographer_name, placeholder: "If photographer is not a registered user" %>
+      </div>
+
+      <div class="form-group">
+        <%= f.label :rider_ids, "Riders" %>
+        <div class="autocomplete-wrapper">
+          <input type="text" id="riders-search" placeholder="Search for riders..." autocomplete="off">
+          <div class="autocomplete-results" id="riders-results"></div>
+        </div>
+        <div class="selected-riders-list" id="riders-list"></div>
+        <div id="rider-hidden-fields"></div>
+      </div>
+
+      <div class="form-group">
+        <%= f.label :custom_riders, "Custom Riders (comma-separated)" %>
+        <%= f.text_field :custom_riders, placeholder: "Names of riders who aren't registered users" %>
+      </div>
+
+      <div class="form-group">
+        <%= f.label :company_user_id, "Company" %>
+        <div class="autocomplete-wrapper">
+          <input type="text" id="company-search" placeholder="Search for company..." autocomplete="off" value="<%= @photo.company_user&.name || @photo.company_user&.username %>">
+          <div class="autocomplete-results" id="company-results"></div>
+        </div>
+        <%= f.hidden_field :company_user_id, id: 'company-user-id' %>
+      </div>
+
+      <div class="form-actions">
+        <%= f.submit "Update Photo", class: "btn btn-primary" %>
+        <%= link_to "Cancel", photo_path(@photo), class: "btn btn-secondary" %>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<script>
+  // Embed user data for autocomplete
+  const users = <%= User.order(:username).select(:id, :username, :name, :profile_type).map { |u| { id: u.id, username: u.username.presence || u.name, name: u.name, profile_type: u.profile_type } }.to_json.html_safe %>;
+
+  // Initialize existing riders
+  const ridersMap = new Map();
+  <% @photo.riders.each do |rider| %>
+    ridersMap.set(<%= rider.id %>, { username: '<%= rider.username.presence || rider.name %>', name: '<%= rider.name %>' });
+  <% end %>
+
+  // Photographer autocomplete
+  initPhotographerAutocomplete('photographer-search', 'photographer-results', 'photographer-user-id');
+
+  // Company autocomplete
+  initCompanyAutocomplete('company-search', 'company-results', 'company-user-id');
+
+  // Riders autocomplete
+  initRidersAutocomplete('riders-search', 'riders-results', 'riders-list', ridersMap);
+
+  // Render existing riders
+  renderRiders();
+
+  // Autocomplete helper functions
+  function initPhotographerAutocomplete(inputId, resultsId, hiddenFieldId) {
+    const searchInput = document.getElementById(inputId);
+    const resultsDiv = document.getElementById(resultsId);
+    const hiddenField = document.getElementById(hiddenFieldId);
+
+    searchInput.addEventListener('input', function() {
+      const query = this.value.trim().toLowerCase();
+      if (query.length < 1) {
+        resultsDiv.classList.remove('show');
+        return;
+      }
+
+      const matches = users.filter(u => u.username.toLowerCase().includes(query)).slice(0, 10);
+      if (matches.length === 0) {
+        resultsDiv.classList.remove('show');
+        return;
+      }
+
+      resultsDiv.innerHTML = matches.map((user, index) => `
+        <div class="autocomplete-result-item" data-user-id="${user.id}" data-username="${user.username}" data-index="${index}">
+          <span class="autocomplete-result-username">${user.username}</span>
+          <span class="autocomplete-result-type">${user.profile_type || 'user'}</span>
+        </div>
+      `).join('');
+
+      resultsDiv.classList.add('show');
+    });
+
+    resultsDiv.addEventListener('click', function(e) {
+      const item = e.target.closest('.autocomplete-result-item');
+      if (item) {
+        searchInput.value = item.dataset.username;
+        hiddenField.value = item.dataset.userId;
+        resultsDiv.classList.remove('show');
+        // Clear custom photographer name when selecting a user
+        const customPhotographerField = document.getElementById('photo_custom_photographer_name');
+        if (customPhotographerField) {
+          customPhotographerField.value = '';
+        }
+      }
+    });
+
+    document.addEventListener('click', function(e) {
+      if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {
+        resultsDiv.classList.remove('show');
+      }
+    });
+  }
+
+  function initCompanyAutocomplete(inputId, resultsId, hiddenFieldId) {
+    const searchInput = document.getElementById(inputId);
+    const resultsDiv = document.getElementById(resultsId);
+    const hiddenField = document.getElementById(hiddenFieldId);
+
+    searchInput.addEventListener('input', function() {
+      const query = this.value.trim().toLowerCase();
+      if (query.length < 1) {
+        resultsDiv.classList.remove('show');
+        return;
+      }
+
+      const matches = users.filter(u => u.profile_type === 'company' && u.username.toLowerCase().includes(query)).slice(0, 10);
+      if (matches.length === 0) {
+        resultsDiv.classList.remove('show');
+        return;
+      }
+
+      resultsDiv.innerHTML = matches.map((user, index) => `
+        <div class="autocomplete-result-item" data-user-id="${user.id}" data-username="${user.username}">
+          <span class="autocomplete-result-username">${user.username}</span>
+          <span class="autocomplete-result-type">company</span>
+        </div>
+      `).join('');
+
+      resultsDiv.classList.add('show');
+    });
+
+    resultsDiv.addEventListener('click', function(e) {
+      const item = e.target.closest('.autocomplete-result-item');
+      if (item) {
+        searchInput.value = item.dataset.username;
+        hiddenField.value = item.dataset.userId;
+        resultsDiv.classList.remove('show');
+      }
+    });
+
+    document.addEventListener('click', function(e) {
+      if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {
+        resultsDiv.classList.remove('show');
+      }
+    });
+  }
+
+  function initRidersAutocomplete(inputId, resultsId, listId, ridersMap) {
+    const searchInput = document.getElementById(inputId);
+    const resultsDiv = document.getElementById(resultsId);
+
+    searchInput.addEventListener('input', function() {
+      const query = this.value.trim().toLowerCase();
+      if (query.length < 1) {
+        resultsDiv.classList.remove('show');
+        return;
+      }
+
+      const matches = users.filter(u => !ridersMap.has(u.id) && u.username.toLowerCase().includes(query)).slice(0, 10);
+      if (matches.length === 0) {
+        resultsDiv.classList.remove('show');
+        return;
+      }
+
+      resultsDiv.innerHTML = matches.map((user, index) => `
+        <div class="autocomplete-result-item" data-user-id="${user.id}" data-username="${user.username}">
+          <span class="autocomplete-result-username">${user.username}</span>
+          <span class="autocomplete-result-type">${user.profile_type || 'user'}</span>
+        </div>
+      `).join('');
+
+      resultsDiv.classList.add('show');
+    });
+
+    resultsDiv.addEventListener('click', function(e) {
+      const item = e.target.closest('.autocomplete-result-item');
+      if (item) {
+        ridersMap.set(parseInt(item.dataset.userId), { username: item.dataset.username });
+        searchInput.value = '';
+        resultsDiv.classList.remove('show');
+        renderRiders();
+      }
+    });
+
+    document.addEventListener('click', function(e) {
+      if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {
+        resultsDiv.classList.remove('show');
+      }
+    });
+  }
+
+  function renderRiders() {
+    const list = document.getElementById('riders-list');
+    const hiddenFieldsContainer = document.getElementById('rider-hidden-fields');
+    list.innerHTML = '';
+    hiddenFieldsContainer.innerHTML = '';
+
+    ridersMap.forEach((rider, riderId) => {
+      const tag = document.createElement('div');
+      tag.className = 'selected-rider-tag';
+      tag.innerHTML = `${rider.username} <button type="button" onclick="removeRider(${riderId})">×</button>`;
+      list.appendChild(tag);
+
+      // Create hidden field for form submission
+      const hiddenField = document.createElement('input');
+      hiddenField.type = 'hidden';
+      hiddenField.name = 'photo[rider_ids][]';
+      hiddenField.value = riderId;
+      hiddenFieldsContainer.appendChild(hiddenField);
+    });
+  }
+
+  window.removeRider = function(riderId) {
+    ridersMap.delete(riderId);
+    renderRiders();
+  };
+</script>

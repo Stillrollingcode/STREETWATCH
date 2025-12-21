@@ -1,0 +1,30 @@
+<%= form_with model: album, local: true, class: 'album-form' do |f| %>
+  <div class="form-group">
+    <%= f.label :title, "Album Title *" %>
+    <%= f.text_field :title, required: true, placeholder: "Enter album title..." %>
+    <% if album.errors[:title].any? %>
+      <span class="error-message"><%= album.errors[:title].first %></span>
+    <% end %>
+  </div>
+
+  <div class="form-group">
+    <%= f.label :description, "Description" %>
+    <%= f.text_area :description, rows: 5, placeholder: "Describe this album..." %>
+    <% if album.errors[:description].any? %>
+      <span class="error-message"><%= album.errors[:description].first %></span>
+    <% end %>
+  </div>
+
+  <div class="form-group">
+    <%= f.label :date, "Date" %>
+    <%= f.date_field :date %>
+    <% if album.errors[:date].any? %>
+      <span class="error-message"><%= album.errors[:date].first %></span>
+    <% end %>
+  </div>
+
+  <div class="form-actions">
+    <%= link_to 'Cancel', album.persisted? ? album : albums_path, class: 'cancel-btn' %>
+    <%= f.submit album.persisted? ? 'Update Album' : 'Create Album', class: 'submit-btn' %>
+  </div>
+<% end %>

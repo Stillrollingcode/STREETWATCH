@@ -1,0 +1,113 @@
+<% content_for :head do %>
+  <link rel="stylesheet" href="<%= asset_path('list_views.css') %>">
+  <link rel="stylesheet" href="<%= asset_path('cards.css') %>">
+  <style>
+    /* Page-specific styles */
+    .add-photo-btn {
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid <%= user_theme_styles[:theme_name] == 'light' ? 'transparent' : 'rgba(255,255,255,0.1)' %>;
+      background: linear-gradient(120deg, var(--accent), var(--accent-2));
+      color: <%= user_theme_styles[:theme_name] == 'light' ? 'white' : '#0b0b0d' %>;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.15s ease;
+      font-size: 14px;
+      white-space: nowrap;
+      display: inline-block;
+    }
+    .add-photo-btn:hover {
+      transform: translateY(-1px);
+    }
+  </style>
+<% end %>
+
+<div class="list-shell">
+  <div class="list-header">
+    <h1>Photos</h1>
+  </div>
+
+  <div class="group-by-buttons">
+    <%= link_to "All Photos", photos_path, class: "group-btn #{'active' unless params[:group_by].present?}" %>
+    <%= link_to "By Photographer", photos_path(group_by: 'photographer'), class: "group-btn #{'active' if params[:group_by] == 'photographer'}" %>
+  </div>
+
+  <div class="filters-bar">
+    <div class="search-box">
+      <%= form_with url: photos_path, method: :get, local: true do |f| %>
+        <span class="search-icon">🔍</span>
+        <%= f.text_field :search, placeholder: "Search photos...", value: params[:search] %>
+        <%= f.hidden_field :group_by, value: params[:group_by] if params[:group_by] %>
+        <%= f.hidden_field :sort, value: params[:sort] if params[:sort] %>
+      <% end %>
+    </div>
+
+    <div class="sort-controls">
+      <%= form_with url: photos_path, method: :get, local: true do |f| %>
+        <%= f.select :sort,
+          [['Newest', 'newest'], ['Oldest', 'oldest'], ['Alphabetical', 'alphabetical'], ['By Date', 'by_date']],
+          { selected: params[:sort] || 'newest' },
+          { class: 'sort-select', onchange: 'this.form.submit()' }
+        %>
+        <%= f.hidden_field :search, value: params[:search] if params[:search] %>
+        <%= f.hidden_field :group_by, value: params[:group_by] if params[:group_by] %>
+      <% end %>
+      <% if user_signed_in? %>
+        <%= link_to "Add Photos", batch_upload_photos_path, class: "add-photo-btn" %>
+      <% end %>
+    </div>
+  </div>
+
+  <% if @grouped_photos %>
+    <% @grouped_photos.each do |photographer_name, photos| %>
+      <div class="content-group">
+        <h2><%= photographer_name %></h2>
+        <div class="content-grid">
+          <% photos.each do |photo| %>
+            <%= link_to photo_path(photo), class: "card", style: "text-decoration: none;" do %>
+              <% if photo.image.attached? %>
+                <%= image_tag url_for(photo.image),
+                  class: 'card-thumbnail',
+                  alt: photo.title,
+                  loading: 'lazy' %>
+              <% else %>
+                <div class="card-thumbnail-empty">
+                  No Image
+                </div>
+              <% end %>
+              <div class="card-info">
+                <h3 class="card-title"><%= photo.title %></h3>
+                <p class="card-subtitle"><%= photo.photographer_name %></p>
+              </div>
+            <% end %>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  <% else %>
+    <div class="content-grid">
+      <% @photos.each do |photo| %>
+        <%= link_to photo_path(photo), class: "card", style: "text-decoration: none;" do %>
+          <% if photo.image.attached? %>
+            <%= image_tag url_for(photo.image),
+              class: 'card-thumbnail',
+              alt: photo.title,
+              loading: 'lazy' %>
+          <% else %>
+            <div class="card-thumbnail-empty">
+              No Image
+            </div>
+          <% end %>
+          <div class="card-info">
+            <h3 class="card-title"><%= photo.title %></h3>
+            <p class="card-subtitle"><%= photo.photographer_name %></p>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+
+    <% if defined?(Kaminari) && @photos.respond_to?(:total_pages) %>
+      <%= paginate @photos %>
+    <% end %>
+  <% end %>
+</div>
