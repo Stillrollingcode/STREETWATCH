@@ -66,11 +66,87 @@
     border-radius: 8px;
     overflow: hidden;
     background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 20%, transparent), color-mix(in srgb, var(--accent-2) 20%, transparent));
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+  }
+  .approval-thumbnail:hover {
+    transform: scale(1.05);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  }
+  .approval-thumbnail::after {
+    content: '🔍';
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(0,0,0,0.7);
+    color: white;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+  .approval-thumbnail:hover::after {
+    opacity: 1;
   }
   .approval-thumbnail img {
     width: 100%;
     height: 100%;
     object-fit: cover;
+  }
+  .photo-preview-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.95);
+    z-index: 10000;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+  }
+  .photo-preview-modal.active {
+    display: flex;
+  }
+  .photo-preview-content {
+    max-width: 90vw;
+    max-height: 90vh;
+    position: relative;
+  }
+  .photo-preview-content img {
+    max-width: 100%;
+    max-height: 90vh;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+  .photo-preview-close {
+    position: absolute;
+    top: -40px;
+    right: -40px;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: white;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .photo-preview-close:hover {
+    background: rgba(255,255,255,0.2);
+    transform: scale(1.1);
   }
   .approval-info {
     flex: 1;
@@ -103,7 +179,21 @@
   .approval-meta {
     color: var(--muted);
     font-size: 14px;
+    margin-bottom: 8px;
+  }
+  .approval-uploader {
+    color: var(--muted);
+    font-size: 13px;
     margin-bottom: 16px;
+  }
+  .approval-uploader a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.15s ease;
+  }
+  .approval-uploader a:hover {
+    color: var(--accent-2);
   }
   .approval-actions {
     display: flex;
@@ -182,7 +272,7 @@
     <% if @pending_approvals.any? %>
       <% @pending_approvals.each do |approval| %>
         <div class="approval-card">
-          <div class="approval-thumbnail">
+          <div class="approval-thumbnail" onclick="openPhotoPreview('<%= approval.photo.image.attached? ? url_for(approval.photo.image) : '' %>', '<%= escape_javascript(approval.photo.title) %>')">
             <% if approval.photo.image.attached? %>
               <%= image_tag url_for(approval.photo.image), alt: approval.photo.title %>
             <% end %>
@@ -194,6 +284,9 @@
             <div class="approval-role">Tagged as <%= approval.approval_type.titleize %></div>
             <div class="approval-meta">
               Submitted <%= time_ago_in_words(approval.created_at) %> ago
+            </div>
+            <div class="approval-uploader">
+              Uploaded by <%= link_to approval.photo.user.username, user_path(approval.photo.user) %>
             </div>
             <div class="approval-actions">
               <%= button_to approve_photo_approval_path(approval), method: :patch, class: "approve-btn" do %>
@@ -221,7 +314,7 @@
     <% if @approved_approvals.any? %>
       <% @approved_approvals.each do |approval| %>
         <div class="approval-card">
-          <div class="approval-thumbnail">
+          <div class="approval-thumbnail" onclick="openPhotoPreview('<%= approval.photo.image.attached? ? url_for(approval.photo.image) : '' %>', '<%= escape_javascript(approval.photo.title) %>')">
             <% if approval.photo.image.attached? %>
               <%= image_tag url_for(approval.photo.image), alt: approval.photo.title %>
             <% end %>
@@ -233,6 +326,15 @@
             <div class="approval-role">Tagged as <%= approval.approval_type.titleize %></div>
             <div class="approval-meta">
               Approved <%= time_ago_in_words(approval.updated_at) %> ago
+            </div>
+            <div class="approval-uploader">
+              Uploaded by <%= link_to approval.photo.user.username, user_path(approval.photo.user) %>
+            </div>
+            <div class="approval-actions">
+              <%= button_to reset_photo_approval_path(approval), method: :patch, class: "reject-btn", form: { onsubmit: "return confirm('Send this tag back to pending so you can change your decision?');" } do %>
+                <span>↺</span>
+                <span>Reopen Decision</span>
+              <% end %>
             </div>
           </div>
         </div>
@@ -250,7 +352,7 @@
     <% if @rejected_approvals.any? %>
       <% @rejected_approvals.each do |approval| %>
         <div class="approval-card">
-          <div class="approval-thumbnail">
+          <div class="approval-thumbnail" onclick="openPhotoPreview('<%= approval.photo.image.attached? ? url_for(approval.photo.image) : '' %>', '<%= escape_javascript(approval.photo.title) %>')">
             <% if approval.photo.image.attached? %>
               <%= image_tag url_for(approval.photo.image), alt: approval.photo.title %>
             <% end %>
@@ -263,11 +365,20 @@
             <div class="approval-meta">
               Rejected <%= time_ago_in_words(approval.updated_at) %> ago
             </div>
+            <div class="approval-uploader">
+              Uploaded by <%= link_to approval.photo.user.username, user_path(approval.photo.user) %>
+            </div>
             <% if approval.rejection_reason.present? %>
               <div class="rejection-reason">
                 <strong>Reason:</strong> <%= approval.rejection_reason %>
               </div>
             <% end %>
+            <div class="approval-actions">
+              <%= button_to reset_photo_approval_path(approval), method: :patch, class: "approve-btn", form: { onsubmit: "return confirm('Send this tag back to pending so you can change your decision?');" } do %>
+                <span>↺</span>
+                <span>Reopen Decision</span>
+              <% end %>
+            </div>
           </div>
         </div>
       <% end %>
@@ -277,6 +388,14 @@
         <p>No rejected photos</p>
       </div>
     <% end %>
+  </div>
+</div>
+
+<!-- Photo Preview Modal -->
+<div class="photo-preview-modal" id="photoPreviewModal">
+  <div class="photo-preview-content">
+    <div class="photo-preview-close" onclick="closePhotoPreview()">×</div>
+    <img id="photoPreviewImage" src="" alt="">
   </div>
 </div>
 
@@ -307,4 +426,35 @@
       });
     });
   }
+
+  function openPhotoPreview(imageUrl, title) {
+    if (!imageUrl) return;
+    const modal = document.getElementById('photoPreviewModal');
+    const img = document.getElementById('photoPreviewImage');
+    img.src = imageUrl;
+    img.alt = title;
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closePhotoPreview() {
+    const modal = document.getElementById('photoPreviewModal');
+    modal.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+
+  // Close on background click
+  document.addEventListener('click', function(e) {
+    const modal = document.getElementById('photoPreviewModal');
+    if (e.target === modal) {
+      closePhotoPreview();
+    }
+  });
+
+  // Close on escape key
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      closePhotoPreview();
+    }
+  });
 </script>

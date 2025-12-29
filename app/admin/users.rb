@@ -1,10 +1,57 @@
 ActiveAdmin.register User do
   permit_params :email, :password, :password_confirmation, :username, :name, :bio,
-                :profile_type, :sponsor_requests, :subscription_active, :avatar, :admin_created
+                :profile_type, :sponsor_requests, :subscription_active, :admin_created, :avatar
+
+  # Add custom action item for search bar
+  action_item :search, only: :index do
+    text_node %{
+      <div style="display: flex; align-items: center; margin-top: 15px;">
+        <form action="#{admin_users_path}" method="get" accept-charset="UTF-8" style="display: flex; gap: 8px; align-items: center;">
+          <input
+            name="q[username_or_name_or_email_or_bio_cont]"
+            type="text"
+            placeholder="Search users..."
+            value="#{params.dig(:q, :username_or_name_or_email_or_bio_cont)}"
+            style="width: 300px; padding: 6px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px;" />
+          <input type="submit" value="Search" style="padding: 6px 16px; background: #5E6469; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; white-space: nowrap;" />
+          #{params[:q].present? ? '<a href="' + admin_users_path + '" style="padding: 6px 16px; background: #999; color: white; text-decoration: none; border-radius: 4px; display: inline-block; font-size: 13px; white-space: nowrap;">Clear</a>' : ''}
+        </form>
+      </div>
+    }.html_safe
+  end
+
+  # Add "Select All" action across all pages
+  batch_action :bulk_edit_all,
+               if: proc { params[:select_all].blank? },
+               form: -> {
+                 {
+                   profile_type: ['individual', 'company', 'crew'],
+                   subscription_active: ['true', 'false']
+                 }
+               } do |ids, inputs|
+    # This handles the actual bulk edit
+    users = User.where(id: ids)
+
+    users.each do |user|
+      user.update(profile_type: inputs[:profile_type]) if inputs[:profile_type].present?
+      user.update(subscription_active: inputs[:subscription_active] == 'true') if inputs[:subscription_active].present?
+    end
+
+    redirect_to collection_path, notice: "Updated #{users.count} users"
+  end
+
+  action_item :select_all_users, only: :index do
+    link_to "Select All #{collection.total_count} Users",
+            admin_users_path(params.to_unsafe_h.merge(select_all: 'true')),
+            class: 'button',
+            style: 'background: #ff9800; color: white;',
+            data: { confirm: "This will select all #{collection.total_count} users across all pages. Continue?" }
+  end
 
   index do
+
     selectable_column
-    id_column
+    column "ID", :friendly_id
     column :username
     column :name
     column :email
@@ -20,6 +67,11 @@ ActiveAdmin.register User do
     actions
   end
 
+  # Search bar - searches across username, name, email, and bio
+  filter :username_or_name_or_email_or_bio_cont,
+         as: :string,
+         label: 'Search'
+
   filter :username
   filter :name
   filter :email
@@ -28,9 +80,154 @@ ActiveAdmin.register User do
   filter :admin_created
   filter :created_at
 
+  controller do
+    after_action :add_select_all_script, only: :index
+
+    def find_resource
+      User.find_by_friendly_or_id(params[:id])
+    end
+
+    def index
+      super do |format|
+        format.html do
+          if params[:select_all] == 'true'
+            # Get all user IDs matching current filters
+            @all_user_ids = @users.pluck(:id)
+          end
+        end
+      end
+    end
+
+    def add_select_all_script
+      return unless @all_user_ids.present?
+
+      response.body = response.body.sub(
+        '</body>',
+        <<~HTML + '</body>'
+          <script type="text/javascript">
+            (function() {
+              const allIds = #{@all_user_ids.to_json};
+              console.log('[SELECT ALL] Script loaded with', allIds.length, 'user IDs');
+
+              function selectAllUsers() {
+                console.log('[SELECT ALL] Running selectAllUsers function');
+
+                // Find all checkboxes
+                const checkboxes = document.querySelectorAll('.paginated_collection tbody input[type="checkbox"]');
+                console.log('[SELECT ALL] Found', checkboxes.length, 'checkboxes');
+
+                let checkedCount = 0;
+                checkboxes.forEach(function(checkbox) {
+                  const value = parseInt(checkbox.value);
+                  if (allIds.includes(value)) {
+                    checkbox.checked = true;
+                    checkedCount++;
+
+                    // Manually trigger change event for ActiveAdmin
+                    const event = new Event('change', { bubbles: true });
+                    checkbox.dispatchEvent(event);
+                  }
+                });
+
+                console.log('[SELECT ALL] Checked', checkedCount, 'checkboxes');
+
+                // Check master checkbox
+                const masterCheckbox = document.querySelector('.paginated_collection thead input[type="checkbox"]');
+                if (masterCheckbox) {
+                  masterCheckbox.checked = true;
+                  console.log('[SELECT ALL] Checked master checkbox');
+                }
+
+                // Show notification
+                const notice = document.createElement('div');
+                notice.className = 'flash flash_notice';
+                notice.textContent = 'Selected all ' + allIds.length + ' users across all pages. Choose a batch action from the dropdown.';
+                notice.style.cssText = 'position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 10000; padding: 15px 30px; background: #6dd27f; color: white; border-radius: 4px; box-shadow: 0 2px 10px rgba(0,0,0,0.2);';
+                document.body.appendChild(notice);
+
+                setTimeout(function() {
+                  notice.remove();
+                }, 5000);
+              }
+
+              // Try multiple times to ensure DOM is ready
+              setTimeout(selectAllUsers, 100);
+              setTimeout(selectAllUsers, 500);
+              setTimeout(selectAllUsers, 1000);
+            })();
+          </script>
+        HTML
+      )
+    end
+
+    def create
+      attrs = normalize_user_params(permitted_params[:user])
+      avatar_param = attrs.delete(:avatar) || attrs.delete("avatar")
+
+      if attrs["password"].blank?
+        generated = SecureRandom.hex(12)
+        attrs["password"] = generated
+        attrs["password_confirmation"] = generated
+      end
+
+      @user = User.new(attrs)
+      @user.skip_confirmation! if @user.respond_to?(:skip_confirmation!)
+
+      if @user.save
+        @user.avatar.attach(avatar_param) if avatar_param.present?
+        redirect_to admin_user_path(@user), notice: 'User was successfully created.'
+      else
+        render :new
+      end
+    end
+
+    def update
+      @user = resource
+      attrs = normalize_user_params(permitted_params[:user])
+
+      # Handle password updates: only apply if provided
+      if attrs["password"].blank? && attrs["password_confirmation"].blank?
+        attrs.delete("password")
+        attrs.delete("password_confirmation")
+        attrs.delete(:password)
+        attrs.delete(:password_confirmation)
+      end
+
+      avatar_param = attrs.delete(:avatar) || attrs.delete("avatar")
+
+      if @user.update(attrs)
+        @user.avatar.attach(avatar_param) if avatar_param.present?
+        redirect_to admin_user_path(@user), notice: 'User was successfully updated.'
+      else
+        render :edit
+      end
+    end
+
+    private
+
+    def normalize_user_params(raw)
+      (raw || {}).respond_to?(:to_unsafe_h) ? raw.to_unsafe_h : raw.to_h
+    end
+  end
+
+  action_item :confirm_email, only: :show, if: proc { !resource.confirmed? } do
+    link_to "Force Confirm Email", confirm_admin_user_path(resource), method: :put,
+      data: { confirm: "Mark this user's email as verified?" }
+  end
+
+  member_action :confirm, method: :put do
+    if resource.confirmed?
+      redirect_to resource_path, notice: "User is already confirmed."
+    else
+      resource.confirm
+      redirect_to resource_path, notice: "User email marked as confirmed."
+    end
+  end
+
   show do
     attributes_table do
-      row :id
+      row :friendly_id
+      row "Database ID", :id
       row :username
       row :name
       row :email
@@ -110,7 +307,7 @@ ActiveAdmin.register User do
       f.input :name
       f.input :email
       f.input :bio, as: :text
-      f.input :profile_type, as: :select, collection: ['individual', 'company'], include_blank: false
+      f.input :profile_type, as: :select, collection: ['individual', 'company', 'crew'], include_blank: false
       f.input :subscription_active
       f.input :sponsor_requests, as: :text
       f.input :avatar, as: :file, hint: "Upload profile avatar"
@@ -118,9 +315,9 @@ ActiveAdmin.register User do
     end
 
     f.inputs "Password" do
-      f.input :password
-      f.input :password_confirmation
-      li "Leave password fields blank to keep current password"
+      f.input :password, required: false, input_html: { autocomplete: "new-password" }
+      f.input :password_confirmation, required: false
+      li "Leave blank to keep current password. Fill only to reset."
     end
 
     f.actions
@@ -172,5 +369,6 @@ ActiveAdmin.register User do
         })();
       }
     end
+
   end
 end

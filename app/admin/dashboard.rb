@@ -20,7 +20,7 @@ ActiveAdmin.register_page "Dashboard" do
               time_ago_in_words(approval.created_at) + " ago"
             end
           end
-          if FilmApproval.pending.count == 0
+          if FilmApproval.pending.empty?
             para "No pending approvals", style: "text-align: center; color: #999; padding: 20px;"
           end
         end
@@ -28,7 +28,7 @@ ActiveAdmin.register_page "Dashboard" do
 
       column do
         panel "Recent Films" do
-          table_for Film.order(created_at: :desc).limit(5) do
+          table_for Film.includes(:pending_approvals).order(created_at: :desc).limit(5) do
             column "Title" do |film|
               link_to film.title, admin_film_path(film)
             end

@@ -1,4 +1,6 @@
 ActiveAdmin.register Comment, as: "FilmComment" do
+  menu parent: "Films", priority: 2, label: "Comments"
+
   permit_params :user_id, :film_id, :body, :parent_id
 
   index do

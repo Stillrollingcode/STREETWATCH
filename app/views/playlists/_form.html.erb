@@ -67,6 +67,24 @@
       padding-left: 20px;
       font-size: 13px;
     }
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .checkbox-group input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+    .checkbox-group label {
+      margin: 0;
+      font-weight: 500;
+      cursor: pointer;
+      font-size: 14px;
+      color: var(--text);
+    }
   </style>
 <% end %>
 
@@ -96,6 +114,11 @@
       <div class="form-group">
         <%= f.label :description %>
         <%= f.text_area :description, placeholder: "What's this playlist about? (optional)" %>
+      </div>
+
+      <div class="checkbox-group">
+        <%= f.check_box :is_public, id: "playlist_is_public" %>
+        <%= f.label :is_public, "Make this playlist public (visible to others)", for: "playlist_is_public" %>
       </div>
 
       <div class="form-actions">

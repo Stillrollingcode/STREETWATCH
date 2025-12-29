@@ -1,0 +1,15 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  film: one
+  requester: one
+  role: MyString
+  status: MyString
+  message: MyText
+
+two:
+  film: two
+  requester: two
+  role: MyString
+  status: MyString
+  message: MyText

@@ -37,4 +37,8 @@ class FilmApproval < ApplicationRecord
   def reject!(reason = nil)
     update!(status: 'rejected', rejection_reason: reason)
   end
+
+  def reset!
+    update!(status: 'pending', rejection_reason: nil)
+  end
 end

@@ -21,6 +21,12 @@ Rails.application.routes.draw do
   patch "/settings", to: "settings#update"
   post "/notifications/mark_as_read", to: "notifications#mark_as_read"
 
+  # Policy pages
+  get "/about", to: "pages#about", as: :about
+  get "/subscription", to: "pages#subscription", as: :subscription
+  get "/privacy", to: "pages#privacy", as: :privacy
+  get "/sellers-disclaimer", to: "pages#sellers_disclaimer", as: :sellers_disclaimer
+
   resources :users, only: [:index, :show] do
     member do
       post 'follow', to: 'follows#create'
@@ -34,12 +40,33 @@ Rails.application.routes.draw do
   resources :films do
     resources :comments, only: [:create, :destroy]
     resource :favorite, only: [:create, :destroy]
+    resources :tag_requests, only: [:create]
+    member do
+      post 'hide_from_profile', to: 'films#hide_from_profile'
+      delete 'unhide_from_profile', to: 'films#unhide_from_profile'
+    end
+  end
+
+  resources :tag_requests, only: [] do
+    member do
+      post 'approve'
+      post 'deny'
+    end
   end
 
   resources :film_approvals, only: [:index] do
     member do
       post 'approve'
       post 'reject'
+      patch 'reset'
+    end
+  end
+
+  resources :sponsor_approvals, only: [:index] do
+    member do
+      post 'approve'
+      post 'reject'
+      patch 'reset'
     end
   end
 
@@ -59,6 +86,8 @@ Rails.application.routes.draw do
     resources :photo_comments, only: [:create, :edit, :update, :destroy]
     member do
       delete 'remove_tag/:tag_type/:tag_id', to: 'photos#remove_tag', as: :remove_tag
+      post 'hide_from_profile', to: 'photos#hide_from_profile'
+      delete 'unhide_from_profile', to: 'photos#unhide_from_profile'
     end
     collection do
       get 'batch_upload'
@@ -70,6 +99,7 @@ Rails.application.routes.draw do
     member do
       patch 'approve'
       patch 'reject'
+      patch 'reset'
     end
   end
 end

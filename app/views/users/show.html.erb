@@ -77,7 +77,7 @@
     background: linear-gradient(120deg, var(--accent), var(--accent-2));
     border: none;
     border-radius: 10px;
-    color: #0b0b0d;
+    color: <%= user_theme_styles[:theme_name] == 'light' ? 'white' : '#0b0b0d' %>;
     font-size: 14px;
     font-weight: 700;
     cursor: pointer;
@@ -405,6 +405,15 @@
     background: color-mix(in srgb, var(--accent) 15%, transparent);
     border-color: color-mix(in srgb, var(--accent) 30%, transparent);
   }
+  .film-type-filter:hover {
+    color: var(--text);
+    background: rgba(255,255,255,0.08);
+  }
+  .film-type-filter.active {
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 15%, transparent);
+    border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+  }
   .content-sub-section {
     display: none;
   }
@@ -445,8 +454,87 @@
   }
   .film-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 30px;
+  }
+  @media (max-width: 900px) {
+    .film-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  @media (max-width: 600px) {
+    .film-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+  .search-box {
+    position: relative;
+    margin-bottom: 20px;
+  }
+  .search-box input {
+    width: 100%;
+    padding: 10px 12px 10px 36px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.04);
+    color: var(--text);
+    font-size: 14px;
+    font-family: inherit;
+  }
+  .search-box input:focus {
+    outline: none;
+    border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  }
+  .search-box input::placeholder {
+    color: var(--muted);
+  }
+  .search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    pointer-events: none;
+  }
+  .pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin: 32px 0;
+  }
+  .pagination a,
+  .pagination .current,
+  .pagination .gap {
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.04);
+    color: var(--text);
+    text-decoration: none;
+    font-size: 14px;
+    transition: all 0.15s ease;
+  }
+  .pagination a:hover {
+    background: rgba(255,255,255,0.08);
+    border-color: var(--accent);
+  }
+  .pagination .current {
+    background: color-mix(in srgb, var(--accent) 20%, transparent);
+    border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .pagination .gap {
+    border: none;
+    background: transparent;
+    color: var(--muted);
+  }
+  .pagination .first,
+  .pagination .prev,
+  .pagination .next,
+  .pagination .last {
+    font-weight: 600;
   }
   .film-card {
     background: rgba(255,255,255,0.04);
@@ -457,30 +545,204 @@
     text-decoration: none;
     color: inherit;
     display: block;
+    position: relative;
   }
   .film-card:hover {
     border-color: rgba(255,255,255,0.2);
     transform: translateY(-2px);
     box-shadow: 0 10px 30px rgba(0,0,0,0.35);
   }
+  /* DVD disc made from film thumbnail */
   .film-thumbnail {
-    width: 100%;
-    background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 20%, transparent), color-mix(in srgb, var(--accent-2) 20%, transparent));
+    /* controls */
+    --size: 260px;
+    --hole: 18%;
+    --inner-ring: 28%;
+    --bg: var(--bg);
+
+    width: var(--size);
+    aspect-ratio: 1 / 1;
+    border-radius: 50%;
+    position: relative;
+    overflow: visible;
+
+    /* depth */
+    box-shadow:
+      inset 0 0 0 2px rgba(255,255,255,.10),
+      inset 0 -14px 30px rgba(0,0,0,.35);
+    transform: translateZ(0);
+
+    /* punch the center hole (best support is WebKit) */
+    -webkit-mask-image: radial-gradient(
+      circle at 50% 50%,
+      transparent 0 calc(var(--hole) * 0.50),
+      #000      calc(var(--hole) * 0.52) 100%
+    );
+    mask-image: radial-gradient(
+      circle at 50% 50%,
+      transparent 0 calc(var(--hole) * 0.50),
+      #000      calc(var(--hole) * 0.52) 100%
+    );
+
     display: flex;
     align-items: center;
     justify-content: center;
-    overflow: hidden;
-    position: relative;
   }
+
+  /* Inner data ring circle - creates transparency for inner area like real DVDs */
+  .film-thumbnail .inner-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 3;
+
+    /* Create uniform transparency overlay for inner area + visible ring border */
+    background:
+      /* Inner semi-transparent overlay (uniform opacity up to ring) */
+      radial-gradient(
+        circle at 50% 50%,
+        rgba(255, 255, 255, 0.20) 0 calc(var(--inner-ring) * 0.94),
+        rgba(255, 255, 255, 0.20) calc(var(--inner-ring) * 0.96),
+        transparent calc(var(--inner-ring) * 0.97),
+        transparent calc(var(--inner-ring) * 0.98),
+        /* The actual ring border */
+        rgba(180, 180, 200, 0.40) calc(var(--inner-ring) * 0.98),
+        rgba(220, 220, 235, 0.50) calc(var(--inner-ring) * 1.00),
+        rgba(180, 180, 200, 0.40) calc(var(--inner-ring) * 1.02),
+        transparent calc(var(--inner-ring) * 1.03) 100%
+      );
+  }
+
+  /* rim + bevel + subtle radial "plastic" shading */
+  .film-thumbnail::before {
+    content: "";
+    position: absolute;
+    inset: -2%;
+    border-radius: 50%;
+    background:
+      radial-gradient(circle at 50% 50%,
+        rgba(255,255,255,.00) 48%,
+        rgba(255,255,255,.10) 58%,
+        rgba(0,0,0,.20) 72%,
+        rgba(255,255,255,.14) 86%,
+        rgba(0,0,0,.35) 100%
+      );
+    mix-blend-mode: overlay;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* glossy sweep + a faint "ring" texture */
+  .film-thumbnail::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background:
+      conic-gradient(from 220deg,
+        rgba(255,255,255,.00) 0 20%,
+        rgba(255,255,255,.18) 26%,
+        rgba(255,255,255,.00) 36% 100%
+      ),
+      repeating-radial-gradient(circle at 50% 50%,
+        rgba(255,255,255,.05) 0 2px,
+        rgba(0,0,0,.00) 2px 7px
+      );
+    opacity: .85;
+    mix-blend-mode: screen;
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  /* fallback hole for browsers that ignore mask-image */
+  @supports not (-webkit-mask-image: radial-gradient(circle, #000, transparent)) {
+    .film-thumbnail {
+      clip-path: circle(50% at 50% 50%);
+    }
+    .film-thumbnail::before {
+      /* keep rim; add a "fake" hole fill on top */
+      background:
+        radial-gradient(circle at 50% 50%,
+          var(--bg) 0 calc(var(--hole) * 0.50),
+          rgba(255,255,255,.00) calc(var(--hole) * 0.52) 100%
+        ),
+        radial-gradient(circle at 50% 50%,
+          rgba(255,255,255,.00) 48%,
+          rgba(255,255,255,.10) 58%,
+          rgba(0,0,0,.20) 72%,
+          rgba(255,255,255,.14) 86%,
+          rgba(0,0,0,.35) 100%
+        );
+    }
+  }
+
+  .pending-arc-text {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));
+    z-index: 4;
+  }
+
+  /* Add yellow hue to pending films */
+  .film-thumbnail.pending-film::after {
+    background:
+      conic-gradient(from 220deg,
+        rgba(255,255,255,.00) 0 20%,
+        rgba(255,255,255,.18) 26%,
+        rgba(255,255,255,.00) 36% 100%
+      ),
+      repeating-radial-gradient(circle at 50% 50%,
+        rgba(255,255,255,.05) 0 2px,
+        rgba(0,0,0,.00) 2px 7px
+      ),
+      radial-gradient(circle at 50% 50%,
+        rgba(255, 165, 0, 0.6) 0%,
+        rgba(255, 165, 0, 0.4) 100%
+      );
+    opacity: 1;
+  }
+
   .film-thumbnail img {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    position: absolute;
+    inset: 0;
   }
+
   .film-thumbnail .placeholder {
+    font-size: 48px;
+    opacity: 0.3;
+    z-index: 0;
+  }
+
+  /* Photo thumbnail styling (simple square, no DVD disc effects) */
+  .photo-thumbnail {
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 20%, transparent), color-mix(in srgb, var(--accent-2) 20%, transparent));
+  }
+  .photo-thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .photo-thumbnail .placeholder {
     font-size: 36px;
     opacity: 0.3;
   }
+
   .film-info { padding: 10px 12px; }
   .film-title { font-weight: 700; font-size: 14px; margin-bottom: 6px; line-height: 1.3; }
   .role-badges { display: flex; gap: 4px; flex-wrap: wrap; }
@@ -518,49 +780,42 @@
     color: var(--muted);
     font-style: italic;
   }
-  .approval-notification-banner {
-    background: linear-gradient(120deg, rgba(255, 165, 0, 0.2), rgba(255, 140, 0, 0.2));
-    border: 1px solid rgba(255, 165, 0, 0.3);
-    border-radius: 12px;
-    padding: 16px 20px;
-    margin-bottom: 24px;
+  .approval-buttons-container {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
   }
-  .approval-notification-text {
-    flex: 1;
-  }
-  .approval-notification-text h3 {
-    margin: 0 0 4px;
-    font-size: 16px;
+  .compact-approval-btn {
+    padding: 8px 14px;
+    background: rgba(255, 165, 0, 0.15);
+    border: 1px solid rgba(255, 165, 0, 0.3);
+    border-radius: 8px;
     color: hsl(39, 100%, 60%);
-  }
-  .approval-notification-text p {
-    margin: 0;
-    color: var(--text);
-    font-size: 14px;
-  }
-  .approval-notification-btn {
-    padding: 10px 20px;
-    background: linear-gradient(120deg, hsl(39, 100%, 50%), hsl(39, 100%, 40%));
-    border: none;
-    border-radius: 10px;
-    color: #0b0b0d;
-    font-size: 14px;
-    font-weight: 700;
+    font-size: 13px;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.15s ease;
     text-decoration: none;
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     white-space: nowrap;
   }
-  .approval-notification-btn:hover {
+  .compact-approval-btn:hover {
+    background: rgba(255, 165, 0, 0.25);
+    border-color: rgba(255, 165, 0, 0.5);
     transform: translateY(-1px);
-    box-shadow: 0 8px 20px rgba(255, 165, 0, 0.4);
+  }
+  .approval-badge {
+    background: hsl(39, 100%, 50%);
+    color: #0b0b0d;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 700;
+    min-width: 18px;
+    text-align: center;
   }
 </style>
 <% end %>
@@ -579,9 +834,9 @@
         <div class="profile-meta-info">
           <h2>
             <span><%= @user.username.presence || @user.email %></span>
-            <% if @user.company? %>
+            <% if @user.company_type? %>
               <span class="company-badge">
-                <span>Company</span>
+                <span><%= @user.company? ? 'Company' : 'Crew' %></span>
               </span>
             <% end %>
           </h2>
@@ -595,8 +850,10 @@
       </div>
       <% if user_signed_in? %>
         <% if current_user.id == @user.id %>
-          <%= link_to settings_path, class: "settings-btn" do %>
-            <span>⚙️</span>
+          <%= button_tag type: "button", class: "settings-btn", id: "toggle-settings" do %>
+            <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" style="flex-shrink: 0;">
+              <path d="M17.43 10.98a7.793 7.793 0 00.07-1.05c0-.34-.03-.68-.07-1.02l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46a.5.5 0 00-.61-.22l-2.49 1c-.52-.39-1.06-.73-1.69-.98l-.37-2.65A.488.488 0 0012 0h-4c-.25 0-.46.18-.49.42l-.37 2.65c-.63.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.12.22-.07.49.12.64L2.58 8.9c-.04.34-.07.68-.07 1.02 0 .34.03.68.07 1.02l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.39 1.06.73 1.69.98l.37 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.37-2.65c.63-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM10 13c-1.65 0-3-1.35-3-3s1.35-3 3-3 3 1.35 3 3-1.35 3-3 3z"/>
+            </svg>
             <span>Settings</span>
           <% end %>
         <% else %>
@@ -639,7 +896,8 @@
       <div class="claim-info-banner" id="claim-info-banner" style="display: none;">
         <div class="claim-info-text">
           <h3>Ready to claim your profile?</h3>
-          <p>Please contact us at <a href="mailto:streetwatchmov@gmail.com" style="color: hsl(210, 70%, 60%); text-decoration: underline;">streetwatchmov@gmail.com</a> to confirm ownership and gain access to your profile.</p>
+          <p>Send an Instagram message from your account to <a href="https://www.instagram.com/streetwatch.mov/" target="_blank" style="color: hsl(210, 70%, 60%); text-decoration: underline;">@streetwatch.mov</a> with your email address, so we can verify it is truly you.</p><br/>
+          <p>Don't have an instagram? Shoot an email over to <a href="mailto:streetwatchmov@gmail.com" style="color: hsl(210, 70%, 60%); text-decoration: underline;">streetwatchmov@gmail.com</a> with a form of identification.</p>
         </div>
       </div>
     <% end %>
@@ -647,30 +905,27 @@
     <% if user_signed_in? && current_user.id == @user.id %>
       <% pending_film_approvals = current_user.film_approvals.pending.count %>
       <% pending_photo_approvals = current_user.photo_approvals.pending.count %>
-      <% total_pending = pending_film_approvals + pending_photo_approvals %>
+      <% pending_sponsor_approvals = current_user.company_type? ? current_user.sponsored_by_approvals.pending.count : 0 %>
+      <% total_pending = pending_film_approvals + pending_photo_approvals + pending_sponsor_approvals %>
 
       <% if total_pending > 0 %>
-        <div class="approval-notification-banner">
-          <div class="approval-notification-text">
-            <h3>⏳ Content Awaiting Your Approval</h3>
-            <p>
-              <% if pending_film_approvals > 0 && pending_photo_approvals > 0 %>
-                You have <%= pluralize(pending_film_approvals, 'film') %> and <%= pluralize(pending_photo_approvals, 'photo') %> waiting for your approval.
-              <% elsif pending_film_approvals > 0 %>
-                You have <%= pluralize(pending_film_approvals, 'film') %> waiting for your approval.
-              <% else %>
-                You have <%= pluralize(pending_photo_approvals, 'photo') %> waiting for your approval.
-              <% end %>
-            </p>
-          </div>
+        <div class="approval-buttons-container">
           <% if pending_film_approvals > 0 %>
-            <%= link_to film_approvals_path, class: "approval-notification-btn" do %>
-              <span>Review Films</span>
+            <%= link_to film_approvals_path, class: "compact-approval-btn" do %>
+              <span>Film Approvals</span>
+              <span class="approval-badge"><%= pending_film_approvals %></span>
             <% end %>
           <% end %>
           <% if pending_photo_approvals > 0 %>
-            <%= link_to photo_approvals_path, class: "approval-notification-btn" do %>
-              <span>Review Photos</span>
+            <%= link_to photo_approvals_path, class: "compact-approval-btn" do %>
+              <span>Photo Approvals</span>
+              <span class="approval-badge"><%= pending_photo_approvals %></span>
+            <% end %>
+          <% end %>
+          <% if pending_sponsor_approvals > 0 %>
+            <%= link_to sponsor_approvals_path, class: "compact-approval-btn" do %>
+              <span>Sponsorship Requests</span>
+              <span class="approval-badge"><%= pending_sponsor_approvals %></span>
             <% end %>
           <% end %>
         </div>
@@ -698,9 +953,12 @@
               <%= simple_format(@user.bio) %>
             </div>
           <% end %>
-          <% if @user.sponsor_requests.present? %>
+          <% if @user.approved_sponsors.any? %>
             <div style="color: var(--muted); font-size: 13px;">
-              <strong style="color: var(--text);">Sponsors:</strong> <%= @user.sponsor_requests %>
+              <strong style="color: var(--text);">Sponsors:</strong>
+              <% @user.approved_sponsors.each_with_index do |sponsor, index| %>
+                <%= link_to sponsor.username, user_path(sponsor), style: "color: var(--accent); text-decoration: none;" %><%= index < @user.approved_sponsors.size - 1 ? ', ' : '' %>
+              <% end %>
             </div>
           <% end %>
         </div>
@@ -708,37 +966,83 @@
 
       <!-- Content Tabs -->
       <div class="content-tabs">
-        <a href="#" class="content-tab active" data-tab="films">Films</a>
-        <a href="#" class="content-tab" data-tab="photos">Photos</a>
-        <a href="#" class="content-tab" data-tab="articles">Articles</a>
+        <%
+          ordered_tabs = @user.preference&.ordered_tabs || ["films", "photos", "articles"]
+          tab_labels = { "films" => "Films", "photos" => "Photos", "articles" => "Articles" }
+        %>
+        <% ordered_tabs.each_with_index do |tab, index| %>
+          <a href="#" class="content-tab <%= 'active' if index == 0 %>" data-tab="<%= tab %>"><%= tab_labels[tab] %></a>
+        <% end %>
       </div>
     </div>
 
     <!-- Films Content Section -->
-    <div class="content-section active" id="films-section">
+    <div class="content-section <%= 'active' if ordered_tabs.first == 'films' %>" id="films-section">
       <!-- Films Sub-tabs -->
       <div style="display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 8px;">
         <a href="#" class="content-sub-tab active" data-subtab="all-films">All Films</a>
         <a href="#" class="content-sub-tab" data-subtab="playlists">Playlists</a>
+        <% if user_signed_in? && current_user.id == @user.id %>
+          <a href="#" class="content-sub-tab" data-subtab="pending-films">Pending Approval</a>
+          <a href="#" class="content-sub-tab" data-subtab="hidden-films">Hidden</a>
+        <% end %>
       </div>
 
       <!-- All Films Sub-section -->
       <div class="content-sub-section active" id="all-films-section">
-      <% films = @user.all_films %>
-      <% if films.any? %>
+      <!-- Film Type Filter Buttons -->
+      <div style="display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; justify-content: center;">
+        <%= link_to "All Types", user_path(@user, params.permit(:q, :sort).to_h),
+          class: "film-type-filter #{params[:film_type].blank? ? 'active' : ''}",
+          style: "flex: 0 0 auto; padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: 600; color: var(--muted); transition: all 0.15s; text-decoration: none; background: rgba(255,255,255,0.04); border: 1px solid transparent;" %>
+        <%= link_to "Full Length", user_path(@user, params.permit(:q, :sort).to_h.merge(film_type: 'full_length')),
+          class: "film-type-filter #{params[:film_type] == 'full_length' ? 'active' : ''}",
+          style: "flex: 0 0 auto; padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: 600; color: var(--muted); transition: all 0.15s; text-decoration: none; background: rgba(255,255,255,0.04); border: 1px solid transparent;" %>
+        <%= link_to "Rider Part", user_path(@user, params.permit(:q, :sort).to_h.merge(film_type: 'rider_part')),
+          class: "film-type-filter #{params[:film_type] == 'rider_part' ? 'active' : ''}",
+          style: "flex: 0 0 auto; padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: 600; color: var(--muted); transition: all 0.15s; text-decoration: none; background: rgba(255,255,255,0.04); border: 1px solid transparent;" %>
+        <%= link_to "Mixtape", user_path(@user, params.permit(:q, :sort).to_h.merge(film_type: 'mixtape')),
+          class: "film-type-filter #{params[:film_type] == 'mixtape' ? 'active' : ''}",
+          style: "flex: 0 0 auto; padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: 600; color: var(--muted); transition: all 0.15s; text-decoration: none; background: rgba(255,255,255,0.04); border: 1px solid transparent;" %>
+        <%= link_to "Series", user_path(@user, params.permit(:q, :sort).to_h.merge(film_type: 'series')),
+          class: "film-type-filter #{params[:film_type] == 'series' ? 'active' : ''}",
+          style: "flex: 0 0 auto; padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: 600; color: var(--muted); transition: all 0.15s; text-decoration: none; background: rgba(255,255,255,0.04); border: 1px solid transparent;" %>
+        <%= link_to "B-Sides", user_path(@user, params.permit(:q, :sort).to_h.merge(film_type: 'b_sides')),
+          class: "film-type-filter #{params[:film_type] == 'b_sides' ? 'active' : ''}",
+          style: "flex: 0 0 auto; padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: 600; color: var(--muted); transition: all 0.15s; text-decoration: none; background: rgba(255,255,255,0.04); border: 1px solid transparent;" %>
+        <%= link_to "All The Rest", user_path(@user, params.permit(:q, :sort).to_h.merge(film_type: 'all_the_rest')),
+          class: "film-type-filter #{params[:film_type] == 'all_the_rest' ? 'active' : ''}",
+          style: "flex: 0 0 auto; padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: 600; color: var(--muted); transition: all 0.15s; text-decoration: none; background: rgba(255,255,255,0.04); border: 1px solid transparent;" %>
+      </div>
+
+      <!-- Search and Sort Controls -->
+      <div style="display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; align-items: center;">
+        <div class="search-box" style="flex: 1; min-width: 200px; margin-bottom: 0;">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="films-search" placeholder="Search films..." value="<%= @query %>">
+        </div>
+        <select id="films-sort-select" style="padding: 10px 32px 10px 12px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,0.04); color: var(--text); font-size: 14px; font-family: inherit; cursor: pointer; appearance: none; background-image: url('data:image/svg+xml,%3Csvg width=\'12\' height=\'8\' viewBox=\'0 0 12 8\' fill=\'none\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M1 1L6 6L11 1\' stroke=\'%23999\' stroke-width=\'2\' stroke-linecap=\'round\'/%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 12px center;">
+          <option value="date_desc" <%= 'selected' if params[:sort] == 'date_desc' || params[:sort].blank? %>>Newest-Oldest</option>
+          <option value="date_asc" <%= 'selected' if params[:sort] == 'date_asc' %>>Oldest-Newest</option>
+          <option value="alpha_asc" <%= 'selected' if params[:sort] == 'alpha_asc' %>>A-Z</option>
+          <option value="alpha_desc" <%= 'selected' if params[:sort] == 'alpha_desc' %>>Z-A</option>
+        </select>
+      </div>
+      <% if @films.any? %>
         <div class="film-grid">
-          <% films.each do |film| %>
+          <% @films.each do |film| %>
             <%= link_to film_path(film), class: "film-card" do %>
               <div class="film-thumbnail">
                 <% if film.display_thumbnail.present? %>
                   <% if film.display_thumbnail.respond_to?(:attachment) %>
                     <%= image_tag film.display_thumbnail, alt: film.title %>
                   <% else %>
-                    <img src="<%= film.display_thumbnail %>" alt="<%= film.title %>">
+                    <%= image_tag film.display_thumbnail, alt: film.title %>
                   <% end %>
                 <% else %>
                   <div class="placeholder">🎬</div>
                 <% end %>
+                <div class="inner-ring"></div>
               </div>
               <div class="film-info">
                 <div class="film-title"><%= film.title %></div>
@@ -752,32 +1056,45 @@
             <% end %>
           <% end %>
         </div>
+        <!-- Pagination -->
+        <%= paginate @films, param_name: :films_page, params: { q: @query, film_type: params[:film_type], sort: params[:sort] } %>
       <% else %>
-        <div class="empty-state">No films yet.</div>
+        <div class="empty-state">No films <%= "matching '#{@query}'" if @query.present? %>.</div>
       <% end %>
       </div>
 
       <!-- Playlists Sub-section -->
       <div class="content-sub-section" id="playlists-section">
         <% playlists = @user.playlists.includes(:films).order(created_at: :desc) %>
+        <% unless user_signed_in? && current_user.id == @user.id %>
+          <% playlists = playlists.where(is_public: true) %>
+        <% end %>
         <% if playlists.any? %>
           <div class="film-grid">
             <% playlists.each do |playlist| %>
               <%= link_to playlist_path(playlist), class: "film-card" do %>
-                <div class="film-thumbnail" style="aspect-ratio: 16/9;">
+                <div class="playlist-thumbnail" style="position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 12px; overflow: hidden; background: rgba(255,255,255,0.02);">
                   <% if playlist.films.any? && playlist.films.first.display_thumbnail %>
                     <% first_film = playlist.films.first %>
                     <% if first_film.display_thumbnail.respond_to?(:attachment) %>
-                      <%= image_tag first_film.display_thumbnail, alt: playlist.name %>
+                      <%= image_tag first_film.display_thumbnail, alt: playlist.name, style: "width: 100%; height: 100%; object-fit: cover;" %>
                     <% else %>
-                      <img src="<%= first_film.display_thumbnail %>" alt="<%= playlist.name %>">
+                      <img src="<%= first_film.display_thumbnail %>" alt="<%= playlist.name %>" style="width: 100%; height: 100%; object-fit: cover;">
                     <% end %>
                   <% else %>
-                    <div class="placeholder">🎬</div>
+                    <div class="placeholder" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 48px;">🎬</div>
                   <% end %>
                   <div style="position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.7); color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;">
                     <%= pluralize(playlist.films.count, 'film') %>
                   </div>
+                  <% unless playlist.is_public %>
+                    <div style="position: absolute; top: 8px; left: 8px; background: rgba(100, 100, 100, 0.9); color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 4px;">
+                      <svg width="10" height="10" viewBox="0 0 12 16" fill="none" style="flex-shrink: 0;">
+                        <path fill-rule="evenodd" clip-rule="evenodd" d="M4 4v2h4V4a2 2 0 10-4 0zm6.5 2V4a3.5 3.5 0 10-7 0v2H2a1 1 0 00-1 1v8a1 1 0 001 1h10a1 1 0 001-1V7a1 1 0 00-1-1h-1.5z" fill="currentColor"/>
+                      </svg>
+                      Private
+                    </div>
+                  <% end %>
                 </div>
                 <div class="film-info">
                   <div class="film-title"><%= playlist.name %></div>
@@ -794,24 +1111,92 @@
           <div class="empty-state">No playlists yet.</div>
         <% end %>
       </div>
+
+      <!-- Pending Films Sub-section (only for profile owner) -->
+      <% if user_signed_in? && current_user.id == @user.id %>
+        <div class="content-sub-section" id="pending-films-section">
+          <% pending_films = Film.where(user_id: @user.id).where(id: Film.select(:id).joins(:film_approvals).where(film_approvals: { status: 'pending' }).distinct) %>
+          <% if pending_films.any? %>
+            <div class="film-grid">
+              <% pending_films.each do |film| %>
+                <%= link_to film_path(film), class: "film-card" do %>
+                  <%= render 'shared/film_thumbnail', film: film, show_pending: true, unique_id: "pending-#{film.id}" %>
+                  <div class="film-info">
+                    <div class="film-title"><%= film.title %></div>
+                    <div style="color: var(--muted); font-size: 12px; margin-top: 4px;">
+                      <%= pluralize(film.film_approvals.where(status: 'pending').count, 'approval') %> pending
+                    </div>
+                  </div>
+                <% end %>
+              <% end %>
+            </div>
+          <% else %>
+            <div class="empty-state">No films waiting for approval.</div>
+          <% end %>
+        </div>
+
+        <!-- Hidden Films Sub-section (only for profile owner) -->
+        <div class="content-sub-section" id="hidden-films-section">
+          <% hidden_films = @user.hidden_films_from_profile %>
+          <% if hidden_films.any? %>
+            <div class="film-grid">
+              <% hidden_films.each do |film| %>
+                <%= link_to film_path(film), class: "film-card" do %>
+                  <div class="film-thumbnail">
+                    <% if film.display_thumbnail.present? %>
+                      <% if film.display_thumbnail.respond_to?(:attachment) %>
+                        <%= image_tag film.display_thumbnail, alt: film.title %>
+                      <% else %>
+                        <%= image_tag film.display_thumbnail, alt: film.title %>
+                      <% end %>
+                    <% else %>
+                      <div class="placeholder">🎬</div>
+                    <% end %>
+                    <div class="inner-ring"></div>
+                  </div>
+                  <div class="film-info">
+                    <div class="film-title"><%= film.title %></div>
+                    <div class="role-badges">
+                      <% roles = @user.film_roles(film) %>
+                      <% roles.each do |role| %>
+                        <span class="role-badge <%= role.downcase %>"><%= role %></span>
+                      <% end %>
+                    </div>
+                  </div>
+                <% end %>
+              <% end %>
+            </div>
+          <% else %>
+            <div class="empty-state">No hidden films.</div>
+          <% end %>
+        </div>
+      <% end %>
     </div>
 
     <!-- Photos Content Section -->
-    <div class="content-section" id="photos-section">
+    <div class="content-section <%= 'active' if ordered_tabs.first == 'photos' %>" id="photos-section">
       <!-- Photos Sub-tabs -->
       <div style="display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 8px;">
         <a href="#" class="content-sub-tab active" data-subtab="all-photos">All Photos</a>
         <a href="#" class="content-sub-tab" data-subtab="albums">Albums</a>
+        <% if user_signed_in? && current_user.id == @user.id %>
+          <a href="#" class="content-sub-tab" data-subtab="pending-photos">Pending Approval</a>
+          <a href="#" class="content-sub-tab" data-subtab="hidden-photos">Hidden</a>
+        <% end %>
       </div>
 
       <!-- All Photos Sub-section -->
       <div class="content-sub-section active" id="all-photos-section">
-      <% photos = @user.all_photos %>
-      <% if photos.any? %>
+      <!-- Search Box -->
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="photos-search" placeholder="Search photos..." value="<%= @query %>">
+      </div>
+      <% if @photos.any? %>
         <div class="film-grid">
-          <% photos.each do |photo| %>
+          <% @photos.each do |photo| %>
             <%= link_to photo_path(photo), class: "film-card" do %>
-              <div class="film-thumbnail" style="aspect-ratio: 1;">
+              <div class="photo-thumbnail">
                 <% if photo.image.attached? %>
                   <%= image_tag url_for(photo.image), alt: photo.title %>
                 <% else %>
@@ -830,27 +1215,40 @@
             <% end %>
           <% end %>
         </div>
+        <!-- Pagination -->
+        <%= paginate @photos, param_name: :photos_page, params: { q: @query } %>
       <% else %>
-        <div class="empty-state">No photos yet.</div>
+        <div class="empty-state">No photos <%= "matching '#{@query}'" if @query.present? %>.</div>
       <% end %>
       </div>
 
       <!-- Albums Sub-section -->
       <div class="content-sub-section" id="albums-section">
       <% albums = @user.albums.includes(photos: :image_attachment).order(created_at: :desc) %>
+      <% unless user_signed_in? && current_user.id == @user.id %>
+        <% albums = albums.where(is_public: true) %>
+      <% end %>
       <% if albums.any? %>
         <div class="film-grid">
           <% albums.each do |album| %>
             <%= link_to album_path(album), class: "film-card" do %>
-              <div class="film-thumbnail" style="aspect-ratio: 16/10;">
+              <div class="playlist-thumbnail" style="position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 12px; overflow: hidden; background: rgba(255,255,255,0.02);">
                 <% if album.photos.any? && album.photos.first.image.attached? %>
-                  <%= image_tag url_for(album.photos.first.image), alt: album.title %>
+                  <%= image_tag url_for(album.photos.first.image), alt: album.title, style: "width: 100%; height: 100%; object-fit: cover;" %>
                 <% else %>
-                  <div class="placeholder">📷</div>
+                  <div class="placeholder" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 48px;">📷</div>
                 <% end %>
                 <div style="position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.7); color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;">
                   <%= pluralize(album.photos.count, 'photo') %>
                 </div>
+                <% unless album.is_public %>
+                  <div style="position: absolute; top: 8px; left: 8px; background: rgba(100, 100, 100, 0.9); color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 4px;">
+                    <svg width="10" height="10" viewBox="0 0 12 16" fill="none" style="flex-shrink: 0;">
+                      <path fill-rule="evenodd" clip-rule="evenodd" d="M4 4v2h4V4a2 2 0 10-4 0zm6.5 2V4a3.5 3.5 0 10-7 0v2H2a1 1 0 00-1 1v8a1 1 0 001 1h10a1 1 0 001-1V7a1 1 0 00-1-1h-1.5z" fill="currentColor"/>
+                    </svg>
+                    Private
+                  </div>
+                <% end %>
               </div>
               <div class="film-info">
                 <div class="film-title"><%= album.title %></div>
@@ -867,10 +1265,74 @@
         <div class="empty-state">No albums yet.</div>
       <% end %>
       </div>
+
+      <!-- Pending Photos Sub-section (only for profile owner) -->
+      <% if user_signed_in? && current_user.id == @user.id %>
+        <div class="content-sub-section" id="pending-photos-section">
+          <% pending_photos = Photo.where(user_id: @user.id).where(id: Photo.select(:id).joins(:photo_approvals).where(photo_approvals: { status: 'pending' }).distinct) %>
+          <% if pending_photos.any? %>
+            <div class="film-grid">
+              <% pending_photos.each do |photo| %>
+                <%= link_to photo_path(photo), class: "film-card" do %>
+                  <div class="photo-thumbnail">
+                    <% if photo.image.attached? %>
+                      <%= image_tag url_for(photo.image), alt: photo.title %>
+                    <% else %>
+                      <div class="placeholder">📷</div>
+                    <% end %>
+                    <div style="position: absolute; top: 8px; right: 8px; background: rgba(255, 165, 0, 0.9); color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;">
+                      Pending
+                    </div>
+                  </div>
+                  <div class="film-info">
+                    <div class="film-title"><%= photo.title %></div>
+                    <div style="color: var(--muted); font-size: 12px; margin-top: 4px;">
+                      <%= pluralize(photo.photo_approvals.where(status: 'pending').count, 'approval') %> pending
+                    </div>
+                  </div>
+                <% end %>
+              <% end %>
+            </div>
+          <% else %>
+            <div class="empty-state">No photos waiting for approval.</div>
+          <% end %>
+        </div>
+
+        <!-- Hidden Photos Sub-section (only for profile owner) -->
+        <div class="content-sub-section" id="hidden-photos-section">
+          <% hidden_photos = @user.hidden_photos_from_profile %>
+          <% if hidden_photos.any? %>
+            <div class="film-grid">
+              <% hidden_photos.each do |photo| %>
+                <%= link_to photo_path(photo), class: "film-card" do %>
+                  <div class="photo-thumbnail">
+                    <% if photo.image.attached? %>
+                      <%= image_tag url_for(photo.image), alt: photo.title %>
+                    <% else %>
+                      <div class="placeholder">📷</div>
+                    <% end %>
+                  </div>
+                  <div class="film-info">
+                    <div class="film-title"><%= photo.title %></div>
+                    <div class="role-badges">
+                      <% roles = @user.photo_roles(photo) %>
+                      <% roles.each do |role| %>
+                        <span class="role-badge <%= role.downcase %>"><%= role %></span>
+                      <% end %>
+                    </div>
+                  </div>
+                <% end %>
+              <% end %>
+            </div>
+          <% else %>
+            <div class="empty-state">No hidden photos.</div>
+          <% end %>
+        </div>
+      <% end %>
     </div>
 
     <!-- Articles Content Section -->
-    <div class="content-section" id="articles-section">
+    <div class="content-section <%= 'active' if ordered_tabs.first == 'articles' %>" id="articles-section">
       <div class="empty-state">
         <h3 style="margin: 0 0 10px; color: var(--text);">Articles Coming Soon</h3>
         <p>Article publishing will be available in a future update.</p>
@@ -878,6 +1340,10 @@
     </div>
   </div>
 </div>
+
+<% if user_signed_in? && current_user.id == @user.id %>
+  <%= render "users/settings_drawer", resource: current_user %>
+<% end %>
 
 <script>
   // Content tab switching
@@ -989,4 +1455,158 @@
       });
     }
   });
+
+  // Profile search functionality with global timeout variable
+  let globalSearchTimeout;
+
+  function initializeProfileSearch() {
+    let filmsSearchInput = document.getElementById('films-search');
+    let photosSearchInput = document.getElementById('photos-search');
+    const filmsSortSelect = document.getElementById('films-sort-select');
+
+    // Only proceed if at least one search input exists
+    if (!filmsSearchInput && !photosSearchInput) {
+      console.log('[Profile Search] No search inputs found on this page');
+      return;
+    }
+
+    console.log('[Profile Search] Initializing search inputs');
+
+    function updateSearch(searchValue) {
+      const params = new URLSearchParams(window.location.search);
+
+      // Update or remove search parameter
+      if (searchValue && searchValue.trim()) {
+        params.set('q', searchValue.trim());
+      } else {
+        params.delete('q');
+      }
+
+      // Preserve film_type and sort parameters
+      // (they are already in URLSearchParams from window.location.search)
+
+      // Reset pagination when searching
+      params.delete('films_page');
+      params.delete('photos_page');
+
+      // Store that we should refocus after reload
+      sessionStorage.setItem('profileSearchFocus', 'true');
+
+      // Navigate to new URL
+      const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+      console.log('[Profile Search] Navigating to:', newUrl);
+      window.location.href = newUrl;
+    }
+
+    function updateFilters() {
+      const params = new URLSearchParams(window.location.search);
+
+      // Get fresh references to inputs (in case they were cloned)
+      const currentFilmsSearch = document.getElementById('films-search');
+      const currentSortSelect = document.getElementById('films-sort-select');
+
+      // Get current values
+      const searchValue = currentFilmsSearch ? currentFilmsSearch.value.trim() : '';
+      const sortValue = currentSortSelect ? currentSortSelect.value : '';
+
+      // Update search parameter
+      if (searchValue) {
+        params.set('q', searchValue);
+      } else {
+        params.delete('q');
+      }
+
+      // Update sort parameter
+      if (sortValue && sortValue !== 'date_desc') {
+        params.set('sort', sortValue);
+      } else {
+        params.delete('sort');
+      }
+
+      // Preserve film_type parameter if present
+      // (film_type is changed via link clicks, not through this function)
+
+      // Reset pagination
+      params.delete('films_page');
+
+      // Navigate to new URL
+      const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+      window.location.href = newUrl;
+    }
+
+    function setupSearchInput(searchInput, inputName) {
+      if (!searchInput) {
+        console.log('[Profile Search] ' + inputName + ' input not found');
+        return;
+      }
+
+      // Remove existing event listeners by cloning the element
+      const newSearchInput = searchInput.cloneNode(true);
+      searchInput.parentNode.replaceChild(newSearchInput, searchInput);
+
+      console.log('[Profile Search] Setting up ' + inputName + ' input');
+
+      // Auto-focus if we just did a search
+      if (sessionStorage.getItem('profileSearchFocus') === 'true') {
+        sessionStorage.removeItem('profileSearchFocus');
+        setTimeout(() => {
+          newSearchInput.focus();
+          const length = newSearchInput.value.length;
+          newSearchInput.setSelectionRange(length, length);
+          console.log('[Profile Search] Auto-focused input');
+        }, 100);
+      }
+
+      // Debounced search on input - 2 second delay
+      newSearchInput.addEventListener('input', function() {
+        console.log('[Profile Search] Input changed:', this.value);
+        clearTimeout(globalSearchTimeout);
+        globalSearchTimeout = setTimeout(() => {
+          console.log('[Profile Search] Triggering search after 2s delay');
+          updateSearch(this.value);
+        }, 2000);
+      });
+
+      // Immediate search on Enter key
+      newSearchInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          console.log('[Profile Search] Enter key pressed, triggering immediate search');
+          clearTimeout(globalSearchTimeout);
+          updateSearch(this.value);
+        }
+      });
+    }
+
+    setupSearchInput(filmsSearchInput, 'Films');
+    setupSearchInput(photosSearchInput, 'Photos');
+
+    // Setup sort select dropdown
+    if (filmsSortSelect) {
+      filmsSortSelect.addEventListener('change', function() {
+        console.log('[Profile Search] Sort changed to:', this.value);
+        updateFilters();
+      });
+    }
+
+    console.log('[Profile Search] Initialization complete');
+  }
+
+  // Initialize on DOMContentLoaded
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log('[Profile Search] DOMContentLoaded event fired');
+    initializeProfileSearch();
+  });
+
+  // Also initialize on Turbo navigation
+  document.addEventListener('turbo:load', function() {
+    console.log('[Profile Search] turbo:load event fired');
+    initializeProfileSearch();
+  });
+
+  // Fallback: Initialize after a short delay if other methods fail
+  setTimeout(function() {
+    console.log('[Profile Search] Fallback initialization after 500ms');
+    initializeProfileSearch();
+  }, 500);
 </script>

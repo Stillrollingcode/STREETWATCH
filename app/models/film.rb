@@ -17,10 +17,18 @@ class Film < ApplicationRecord
   has_many :film_riders, dependent: :destroy
   has_many :riders, through: :film_riders, source: :user
 
+  # Filmer associations (multiple filmers supported)
+  has_many :film_filmers, dependent: :destroy
+  has_many :filmers, through: :film_filmers, source: :user
+
+  # Company associations (multiple companies supported)
+  has_many :film_companies, dependent: :destroy
+  has_many :companies, through: :film_companies, source: :user
+
   # User who uploaded the film
   belongs_to :user, optional: true
 
-  # Filmer and editor associations (profile users)
+  # Legacy single filmer/company/editor associations (kept for backwards compatibility)
   belongs_to :filmer_user, class_name: 'User', optional: true
   belongs_to :editor_user, class_name: 'User', optional: true
   belongs_to :company_user, class_name: 'User', optional: true
@@ -36,7 +44,24 @@ class Film < ApplicationRecord
   has_many :film_approvals, dependent: :destroy
   has_many :pending_approvals, -> { pending }, class_name: 'FilmApproval'
 
-  FILM_TYPES = %w[full_length video_part mixtape series].freeze
+  # Tag requests from users asking to be tagged
+  has_many :tag_requests, dependent: :destroy
+  has_many :pending_tag_requests, -> { pending }, class_name: 'TagRequest'
+
+  # Hidden from profile associations
+  has_many :hidden_profile_films, dependent: :destroy
+  has_many :hidden_by_users, through: :hidden_profile_films, source: :user
+
+  FILM_TYPES = %w[full_length rider_part mixtape series b_sides all_the_rest].freeze
+
+  FILM_TYPE_DESCRIPTIONS = {
+    'full_length' => 'A large production video featuring sections from numerous riders, usually lasting at least 40 minutes',
+    'rider_part' => 'A video featuring a full part from 1-2 riders, sometimes reposted from a full length project',
+    'mixtape' => 'A mix of clips from various riders, usually lasting from 10-30 minutes',
+    'series' => 'A recurring edit, usually with a theme',
+    'b_sides' => 'Raw, behind the scenes footage from the making of another project',
+    'all_the_rest' => 'Anything that does not fall into one of these categories such as documentaries, commentary, or interviews'
+  }.freeze
 
   validates :title, presence: true
   validates :film_type, inclusion: { in: FILM_TYPES }
@@ -44,8 +69,10 @@ class Film < ApplicationRecord
   validate :video_source_required
 
   # Process video in background after commit
-  after_commit :enqueue_video_processing, on: [:create, :update], if: :video_attached?
+  # TEMPORARILY DISABLED for development performance
+  # after_commit :enqueue_video_processing, on: [:create, :update], if: :video_attached?
   after_commit :create_approval_requests, on: [:create, :update]
+  after_commit :download_youtube_thumbnail, on: [:create, :update], if: :should_download_youtube_thumbnail?
 
   scope :recent, -> { order(release_date: :desc, created_at: :desc) }
   scope :by_company, ->(company) { where(company: company) if company.present? }
@@ -69,8 +96,23 @@ class Film < ApplicationRecord
     film_type.to_s.titleize.gsub('_', ' ')
   end
 
+  def film_type_description
+    FILM_TYPE_DESCRIPTIONS[film_type]
+  end
+
+  def self.film_type_description(type)
+    FILM_TYPE_DESCRIPTIONS[type]
+  end
+
   def filmer_display_name
     filmer_user&.username || custom_filmer_name
+  end
+
+  def filmers_display_names
+    filmer_names = filmers.pluck(:username)
+    custom_filmer_list = custom_filmer_name.to_s.split(',').map(&:strip).reject(&:blank?)
+    all_filmers = (filmer_names + custom_filmer_list).uniq
+    all_filmers.empty? ? [filmer_display_name].compact : all_filmers
   end
 
   def editor_display_name
@@ -79,6 +121,13 @@ class Film < ApplicationRecord
 
   def company_display_name
     company_user&.username || company
+  end
+
+  def companies_display_names
+    company_names = companies.pluck(:username)
+    custom_company_list = company.to_s.split(',').map(&:strip).reject(&:blank?)
+    all_companies = (company_names + custom_company_list).uniq
+    all_companies.empty? ? [company_display_name].compact : all_companies
   end
 
   def all_riders_display
@@ -122,6 +171,7 @@ class Film < ApplicationRecord
     if thumbnail.attached?
       thumbnail
     elsif youtube_thumbnail_url
+      # This will only be used if thumbnail download failed or hasn't happened yet
       youtube_thumbnail_url
     else
       nil
@@ -133,27 +183,82 @@ class Film < ApplicationRecord
   end
 
   def requires_approvals?
-    filmer_user.present? || editor_user.present? || company_user.present? || riders.any?
+    filmers.any? || companies.any? || editor_user.present? || riders.any? ||
+    filmer_user.present? || company_user.present?
   end
 
   def tagged_users
     users = []
-    users << filmer_user if filmer_user.present?
+    # New multi-select associations
+    users += filmers.to_a
+    users += companies.to_a
     users << editor_user if editor_user.present?
-    users << company_user if company_user.present?
     users += riders.to_a
+    # Legacy single associations
+    users << filmer_user if filmer_user.present?
+    users << company_user if company_user.present?
     users.uniq
   end
 
   private
 
+  def should_download_youtube_thumbnail?
+    # Download YouTube thumbnail if:
+    # 1. There's a YouTube URL
+    # 2. No thumbnail is currently attached
+    # 3. YouTube URL has changed (for updates)
+    youtube_url.present? && !thumbnail.attached? && youtube_video_id.present?
+  end
+
+  def download_youtube_thumbnail
+    require 'open-uri'
+
+    begin
+      Rails.logger.info "[FILM #{id}] Downloading YouTube thumbnail from: #{youtube_thumbnail_url}"
+
+      # Try maxresdefault first (highest quality)
+      thumbnail_url = youtube_thumbnail_url('maxresdefault')
+      downloaded_image = URI.open(thumbnail_url)
+
+      # Check if we got the default placeholder image (120x90)
+      # YouTube returns a small placeholder if maxresdefault doesn't exist
+      if downloaded_image.size < 5000
+        Rails.logger.info "[FILM #{id}] maxresdefault not available, trying hqdefault..."
+        downloaded_image.close
+        thumbnail_url = youtube_thumbnail_url('hqdefault')
+        downloaded_image = URI.open(thumbnail_url)
+      end
+
+      # Attach the downloaded image
+      thumbnail.attach(
+        io: downloaded_image,
+        filename: "#{title.parameterize}_youtube_thumbnail.jpg",
+        content_type: 'image/jpeg'
+      )
+
+      Rails.logger.info "[FILM #{id}] Successfully downloaded and attached YouTube thumbnail"
+    rescue => e
+      Rails.logger.error "[FILM #{id}] Failed to download YouTube thumbnail: #{e.class} - #{e.message}"
+      Rails.logger.error e.backtrace.join("\n")
+      # Don't raise error - thumbnail download failure shouldn't break film creation
+    ensure
+      downloaded_image&.close
+    end
+  end
+
   def create_approval_requests
     # Get all currently tagged users
     current_tagged_users = []
-    current_tagged_users << { user: filmer_user, type: 'filmer' } if filmer_user.present?
-    current_tagged_users << { user: editor_user, type: 'editor' } if editor_user.present?
-    current_tagged_users << { user: company_user, type: 'company' } if company_user.present?
+
+    # New multi-select associations
+    filmers.each { |filmer| current_tagged_users << { user: filmer, type: 'filmer' } }
+    companies.each { |company| current_tagged_users << { user: company, type: 'company' } }
     riders.each { |rider| current_tagged_users << { user: rider, type: 'rider' } }
+
+    # Legacy single associations
+    current_tagged_users << { user: filmer_user, type: 'filmer' } if filmer_user.present?
+    current_tagged_users << { user: company_user, type: 'company' } if company_user.present?
+    current_tagged_users << { user: editor_user, type: 'editor' } if editor_user.present?
 
     # Remove approvals for users no longer tagged
     existing_approvals = film_approvals.to_a
@@ -166,10 +271,13 @@ class Film < ApplicationRecord
     current_tagged_users.each do |tag|
       next if film_approvals.exists?(approver: tag[:user], approval_type: tag[:type])
 
+      # Auto-approve if user is tagging themselves
+      status = (tag[:user].id == self.user_id) ? 'approved' : 'pending'
+
       film_approvals.create!(
         approver: tag[:user],
         approval_type: tag[:type],
-        status: 'pending'
+        status: status
       )
     end
   rescue => e

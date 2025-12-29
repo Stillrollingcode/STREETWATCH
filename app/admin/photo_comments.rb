@@ -1,5 +1,5 @@
 ActiveAdmin.register PhotoComment do
-  menu parent: "Content", priority: 5, label: "Photo Comments"
+  menu parent: "Photos", priority: 2, label: "Comments"
 
   permit_params :user_id, :photo_id, :body, :parent_id
 

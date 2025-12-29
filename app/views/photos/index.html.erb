@@ -30,6 +30,7 @@
   <div class="group-by-buttons">
     <%= link_to "All Photos", photos_path, class: "group-btn #{'active' unless params[:group_by].present?}" %>
     <%= link_to "By Photographer", photos_path(group_by: 'photographer'), class: "group-btn #{'active' if params[:group_by] == 'photographer'}" %>
+    <%= link_to "Albums", photos_path(group_by: 'albums'), class: "group-btn #{'active' if params[:group_by] == 'albums'}" %>
   </div>
 
   <div class="filters-bar">
@@ -58,7 +59,28 @@
     </div>
   </div>
 
-  <% if @grouped_photos %>
+  <% if @albums %>
+    <div class="content-grid">
+      <% @albums.each do |album| %>
+        <%= link_to album_path(album), class: "card", style: "text-decoration: none;" do %>
+          <% if album.photos.any? && album.photos.first.image.attached? %>
+            <%= image_tag url_for(album.photos.first.image),
+              class: 'card-thumbnail',
+              alt: album.title,
+              loading: 'lazy' %>
+          <% else %>
+            <div class="card-thumbnail-empty">
+              No Photos
+            </div>
+          <% end %>
+          <div class="card-info">
+            <h3 class="card-title"><%= album.title %></h3>
+            <p class="card-subtitle"><%= pluralize(album.photos.count, 'photo') %> • <%= album.user.username %></p>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+  <% elsif @grouped_photos %>
     <% @grouped_photos.each do |photographer_name, photos| %>
       <div class="content-group">
         <h2><%= photographer_name %></h2>
@@ -111,3 +133,42 @@
     <% end %>
   <% end %>
 </div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // Reset to page 1 when searching
+    const searchForm = document.querySelector('.search-box form');
+    if (searchForm) {
+      searchForm.addEventListener('submit', (e) => {
+        const pageInput = searchForm.querySelector('input[name="page"]');
+        if (pageInput) {
+          pageInput.remove();
+        }
+      });
+    }
+
+    // Reset to page 1 when changing sort
+    const sortForm = document.querySelector('.sort-controls form');
+    if (sortForm) {
+      const sortSelect = sortForm.querySelector('.sort-select');
+      if (sortSelect) {
+        sortSelect.addEventListener('change', () => {
+          const pageInput = sortForm.querySelector('input[name="page"]');
+          if (pageInput) {
+            pageInput.remove();
+          }
+        });
+      }
+    }
+
+    // Reset to page 1 when changing group by
+    const groupByLinks = document.querySelectorAll('.group-by-buttons a');
+    groupByLinks.forEach(link => {
+      link.addEventListener('click', (e) => {
+        const url = new URL(link.href);
+        url.searchParams.delete('page');
+        link.href = url.toString();
+      });
+    });
+  });
+</script>

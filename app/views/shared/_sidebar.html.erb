@@ -383,7 +383,8 @@
 </div>
 
 <script>
-  function toggleSidebar() {
+  // Wrap in function scope to avoid Turbo const conflicts
+  window.toggleSidebar = function() {
     const sidebar = document.getElementById('sidebar');
     const toggle = document.getElementById('sidebarToggle');
     const overlay = document.getElementById('sidebarOverlay');
@@ -393,7 +394,7 @@
     overlay.classList.toggle('open');
   }
 
-  function toggleSubmenu(menuId) {
+  window.toggleSubmenu = function(menuId) {
     const menu = document.getElementById(menuId);
     const chevronId = menuId.replace('Menu', 'Chevron');
     const chevron = document.getElementById(chevronId);
@@ -402,10 +403,13 @@
     chevron.classList.toggle('open');
   }
 
-  // Global search functionality
-  const searchInput = document.getElementById('globalSearch');
-  const searchResults = document.getElementById('searchResults');
-  let searchTimeout;
+  // Global search functionality - runs on turbo:load
+  function initSidebarSearch() {
+    const searchInput = document.getElementById('globalSearch');
+    const searchResults = document.getElementById('searchResults');
+    if (!searchInput || !searchResults) return;
+
+    let searchTimeout;
 
   searchInput.addEventListener('input', function(e) {
     clearTimeout(searchTimeout);
@@ -482,14 +486,15 @@
     searchResults.classList.add('show');
   }
 
-  // Close search results when clicking outside
-  document.addEventListener('click', function(event) {
-    if (!searchInput.contains(event.target) && !searchResults.contains(event.target)) {
-      searchResults.classList.remove('show');
-    }
-  });
+    // Close search results when clicking outside
+    document.addEventListener('click', function(event) {
+      if (!searchInput.contains(event.target) && !searchResults.contains(event.target)) {
+        searchResults.classList.remove('show');
+      }
+    });
+  }
 
-  // Close sidebar on escape key
+  // Close sidebar on escape key (global, not part of search init)
   document.addEventListener('keydown', function(event) {
     if (event.key === 'Escape') {
       const sidebar = document.getElementById('sidebar');
@@ -503,4 +508,8 @@
       }
     }
   });
+
+  // Initialize search on page load
+  document.addEventListener('DOMContentLoaded', initSidebarSearch);
+  document.addEventListener('turbo:load', initSidebarSearch);
 </script>

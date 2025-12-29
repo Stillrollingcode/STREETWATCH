@@ -1,0 +1,7 @@
+<%# This creates instant skeleton loaders that show during page transitions %>
+<%# JavaScript for skeleton is in layouts/application.html.erb %>
+<div id="page-skeleton" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999; background: var(--bg); overflow-y: auto; padding-top: 60px;">
+  <div id="skeleton-content">
+    <%= render 'shared/skeleton_loader', type: local_assigns[:type] || 'films' %>
+  </div>
+</div>

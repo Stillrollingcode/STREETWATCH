@@ -3,6 +3,13 @@ class UserPreference < ApplicationRecord
 
   validates :theme, inclusion: { in: %w[light dark] }
   validates :accent_hue, numericality: { only_integer: true, greater_than_or_equal_to: 0, less_than_or_equal_to: 360 }
+  validates :content_tab_order, format: { with: /\A(films|photos|articles)(,(films|photos|articles)){2}\z/, message: "must be a valid comma-separated order of films, photos, and articles" }, allow_blank: true
+
+  # Get ordered content tabs based on user preference
+  def ordered_tabs
+    return ["films", "photos", "articles"] if content_tab_order.blank?
+    content_tab_order.split(",").map(&:strip)
+  end
 
   # Generate CSS color values from hue
   def accent_color

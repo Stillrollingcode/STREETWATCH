@@ -1,11 +1,11 @@
 ActiveAdmin.register Album do
-  menu parent: "Content", priority: 2
+  menu parent: "Photos", priority: 4
 
   permit_params :title, :description, :date, :user_id
 
   index do
     selectable_column
-    id_column
+    column "ID", :friendly_id
     column :title
     column :user
     column "Photos" do |album|
@@ -21,9 +21,16 @@ ActiveAdmin.register Album do
   filter :date
   filter :created_at
 
+  controller do
+    def find_resource
+      Album.find_by_friendly_or_id(params[:id])
+    end
+  end
+
   show do
     attributes_table do
-      row :id
+      row :friendly_id
+      row "Database ID", :id
       row :title
       row :description
       row :date

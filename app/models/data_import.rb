@@ -102,9 +102,9 @@ class DataImport < ApplicationRecord
   end
 
   def import_user(data)
-    # Check for duplicate username
+    # Skip if duplicate username exists
     if data['username'].present? && User.exists?(username: data['username'])
-      raise "Username '#{data['username']}' already exists"
+      raise "Skipped: Username '#{data['username']}' already exists"
     end
 
     # Check for duplicate email (unless it's a placeholder)
@@ -112,7 +112,7 @@ class DataImport < ApplicationRecord
     if email.blank?
       email = "temp_#{SecureRandom.hex(8)}@streetwatch.placeholder"
     elsif User.exists?(email: email)
-      raise "Email '#{email}' already exists"
+      raise "Skipped: Email '#{email}' already exists"
     end
 
     # Create admin-created user profile
@@ -133,6 +133,11 @@ class DataImport < ApplicationRecord
   end
 
   def import_film(data)
+    # Skip if duplicate title exists
+    if data['title'].present? && Film.exists?(title: data['title'])
+      raise "Skipped: Film with title '#{data['title']}' already exists"
+    end
+
     # Create film with associations
     film = Film.new(
       title: data['title'],
@@ -148,13 +153,13 @@ class DataImport < ApplicationRecord
       film.user = owner if owner
     end
 
-    # Find company by username
+    # Handle legacy single company (backwards compatibility)
     if data['company_username']
       company = User.find_by(username: data['company_username'], profile_type: 'company')
       film.company_user = company if company
     end
 
-    # Find filmer by username
+    # Handle legacy single filmer (backwards compatibility)
     if data['filmer_username']
       filmer = User.find_by(username: data['filmer_username'])
       film.filmer_user = filmer if filmer
@@ -168,12 +173,69 @@ class DataImport < ApplicationRecord
 
     film.save!
 
-    # Add riders
+    # Add filmers (multiple, comma-separated)
+    if data['filmer_usernames']
+      usernames = data['filmer_usernames'].split(',').map(&:strip)
+      Rails.logger.info "[IMPORT] Film '#{film.title}' - Processing #{usernames.count} filmers: #{usernames.inspect}"
+
+      usernames.each do |username|
+        next if username.blank? # Skip empty strings
+
+        filmer = User.find_by(username: username)
+        if filmer
+          if !film.filmers.include?(filmer)
+            film.filmers << filmer
+            Rails.logger.info "[IMPORT] Added filmer '#{username}' to film '#{film.title}'"
+          else
+            Rails.logger.info "[IMPORT] Filmer '#{username}' already associated with film '#{film.title}'"
+          end
+        else
+          Rails.logger.warn "[IMPORT] Filmer user '#{username}' not found"
+        end
+      end
+    end
+
+    # Add companies (multiple, comma-separated)
+    if data['company_usernames']
+      usernames = data['company_usernames'].split(',').map(&:strip)
+      Rails.logger.info "[IMPORT] Film '#{film.title}' - Processing #{usernames.count} companies: #{usernames.inspect}"
+
+      usernames.each do |username|
+        next if username.blank? # Skip empty strings
+
+        company = User.find_by(username: username, profile_type: 'company')
+        if company
+          if !film.companies.include?(company)
+            film.companies << company
+            Rails.logger.info "[IMPORT] Added company '#{username}' to film '#{film.title}'"
+          else
+            Rails.logger.info "[IMPORT] Company '#{username}' already associated with film '#{film.title}'"
+          end
+        else
+          Rails.logger.warn "[IMPORT] Company user '#{username}' not found or not a company profile"
+        end
+      end
+    end
+
+    # Add riders (multiple, comma-separated)
     if data['rider_usernames']
       usernames = data['rider_usernames'].split(',').map(&:strip)
+      Rails.logger.info "[IMPORT] Film '#{film.title}' - Processing #{usernames.count} riders: #{usernames.inspect}"
+
       usernames.each do |username|
+        next if username.blank? # Skip empty strings
+
         rider = User.find_by(username: username)
-        film.riders << rider if rider && !film.riders.include?(rider)
+        if rider
+          if !film.riders.include?(rider)
+            film.riders << rider
+            Rails.logger.info "[IMPORT] Added rider '#{username}' to film '#{film.title}'"
+          else
+            Rails.logger.info "[IMPORT] Rider '#{username}' already associated with film '#{film.title}'"
+          end
+        else
+          Rails.logger.warn "[IMPORT] Rider user '#{username}' not found"
+        end
       end
     end
   end

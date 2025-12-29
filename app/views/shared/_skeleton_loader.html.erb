@@ -1,0 +1,371 @@
+<style>
+  .skeleton-loader {
+    animation: skeleton-pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes skeleton-pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.4;
+    }
+  }
+
+  @keyframes skeleton-shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+
+  .skeleton-logo {
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 0 18px;
+    display: flex;
+    justify-content: center;
+  }
+
+  .skeleton-logo svg {
+    width: 120px;
+    height: auto;
+    opacity: 0.3;
+  }
+
+  .skeleton-toolbar {
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 0 18px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .skeleton-button {
+    height: 36px;
+    width: 100px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+  }
+
+  .skeleton-search {
+    flex: 1;
+    min-width: 200px;
+    height: 36px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+  }
+
+  .skeleton-grid {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 18px 40px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 12px;
+  }
+
+  .skeleton-dvd-disc {
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background:
+      radial-gradient(circle at center, transparent 20%, rgba(255,255,255,0.02) 20%, rgba(255,255,255,0.02) 22%, transparent 22%),
+      linear-gradient(90deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.02) 100%);
+    background-size: 100% 100%, 200% 100%;
+    animation: skeleton-shimmer 1.5s ease-in-out infinite;
+    border: 1px solid var(--border);
+    position: relative;
+  }
+
+  .skeleton-dvd-disc::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 20%;
+    height: 20%;
+    border-radius: 50%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+  }
+
+  .skeleton-film-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .skeleton-film-info {
+    padding: 12px;
+  }
+
+  .skeleton-title {
+    height: 16px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 4px;
+    margin-bottom: 8px;
+    width: 70%;
+  }
+
+  .skeleton-meta {
+    height: 12px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 4px;
+    width: 50%;
+  }
+
+  .skeleton-photo-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .skeleton-photo-thumbnail {
+    width: 100%;
+    aspect-ratio: 16/10;
+    background: linear-gradient(
+      90deg,
+      rgba(255,255,255,0.02) 0%,
+      rgba(255,255,255,0.08) 50%,
+      rgba(255,255,255,0.02) 100%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.5s ease-in-out infinite;
+  }
+
+  .skeleton-user-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    gap: 16px;
+    align-items: center;
+  }
+
+  .skeleton-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(
+      90deg,
+      rgba(255,255,255,0.02) 0%,
+      rgba(255,255,255,0.08) 50%,
+      rgba(255,255,255,0.02) 100%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.5s ease-in-out infinite;
+    flex-shrink: 0;
+  }
+
+  .skeleton-profile-header {
+    max-width: 900px;
+    margin: 20px auto;
+    padding: 0 18px;
+  }
+
+  .skeleton-profile-card {
+    background: rgba(255,255,255,0.04);
+    border: 2px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    display: flex;
+    gap: 20px;
+    align-items: center;
+  }
+
+  .skeleton-profile-avatar {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: linear-gradient(
+      90deg,
+      rgba(255,255,255,0.02) 0%,
+      rgba(255,255,255,0.08) 50%,
+      rgba(255,255,255,0.02) 100%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.5s ease-in-out infinite;
+    flex-shrink: 0;
+  }
+
+  .skeleton-username {
+    height: 28px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 6px;
+    width: 200px;
+    margin-bottom: 12px;
+  }
+
+  .skeleton-bio {
+    height: 14px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 4px;
+    width: 100%;
+    max-width: 400px;
+  }
+
+  .skeleton-tabs {
+    max-width: 900px;
+    margin: 0 auto 20px;
+    padding: 0 18px;
+    display: flex;
+    gap: 8px;
+  }
+
+  .skeleton-tab {
+    height: 40px;
+    width: 120px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+</style>
+
+<% case type
+   when "films" %>
+  <!-- Logo -->
+  <div class="skeleton-logo">
+    <svg viewBox="0 0 200 60" fill="currentColor">
+      <text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" font-size="24" font-weight="bold">STREETWATCH</text>
+    </svg>
+  </div>
+
+  <!-- Toolbar with buttons -->
+  <div class="skeleton-toolbar">
+    <div class="skeleton-search skeleton-loader"></div>
+    <div class="skeleton-button skeleton-loader"></div>
+    <div class="skeleton-button skeleton-loader"></div>
+    <div class="skeleton-button skeleton-loader"></div>
+    <div class="skeleton-button skeleton-loader"></div>
+  </div>
+
+  <!-- DVD disc grid -->
+  <div class="skeleton-grid">
+    <% 12.times do %>
+      <div class="skeleton-film-card">
+        <div class="skeleton-dvd-disc skeleton-loader"></div>
+        <div class="skeleton-film-info">
+          <div class="skeleton-title skeleton-loader"></div>
+          <div class="skeleton-meta skeleton-loader"></div>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+<% when "photos" %>
+  <!-- Logo -->
+  <div class="skeleton-logo">
+    <svg viewBox="0 0 200 60" fill="currentColor">
+      <text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" font-size="24" font-weight="bold">STREETWATCH</text>
+    </svg>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="skeleton-toolbar">
+    <div class="skeleton-search skeleton-loader"></div>
+    <div class="skeleton-button skeleton-loader"></div>
+    <div class="skeleton-button skeleton-loader"></div>
+    <div class="skeleton-button skeleton-loader"></div>
+  </div>
+
+  <!-- Photo grid -->
+  <div class="skeleton-grid">
+    <% 12.times do %>
+      <div class="skeleton-photo-card">
+        <div class="skeleton-photo-thumbnail skeleton-loader"></div>
+        <div class="skeleton-film-info">
+          <div class="skeleton-title skeleton-loader"></div>
+          <div class="skeleton-meta skeleton-loader"></div>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+<% when "users" %>
+  <!-- Logo -->
+  <div class="skeleton-logo">
+    <svg viewBox="0 0 200 60" fill="currentColor">
+      <text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" font-size="24" font-weight="bold">STREETWATCH</text>
+    </svg>
+  </div>
+
+  <!-- Search bar -->
+  <div class="skeleton-toolbar" style="justify-content: center;">
+    <div class="skeleton-search skeleton-loader" style="max-width: 600px;"></div>
+  </div>
+
+  <!-- User profile cards -->
+  <div class="skeleton-grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); max-width: 900px;">
+    <% 8.times do %>
+      <div style="background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 12px; padding: 24px; display: flex; flex-direction: column; align-items: center; gap: 12px;">
+        <!-- Large circular avatar -->
+        <div style="width: 100px; height: 100px; border-radius: 50%; background: linear-gradient(90deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.02) 100%); background-size: 200% 100%; animation: skeleton-shimmer 1.5s ease-in-out infinite; border: 2px solid var(--border);"></div>
+        <!-- Username -->
+        <div class="skeleton-title skeleton-loader" style="width: 140px; height: 18px;"></div>
+        <!-- Profile type badge -->
+        <div class="skeleton-meta skeleton-loader" style="width: 80px; height: 24px; border-radius: 12px;"></div>
+        <!-- Stats row -->
+        <div style="display: flex; gap: 16px; margin-top: 8px;">
+          <div style="text-align: center;">
+            <div class="skeleton-meta skeleton-loader" style="width: 40px; height: 14px; margin-bottom: 4px;"></div>
+            <div class="skeleton-meta skeleton-loader" style="width: 50px; height: 10px;"></div>
+          </div>
+          <div style="text-align: center;">
+            <div class="skeleton-meta skeleton-loader" style="width: 40px; height: 14px; margin-bottom: 4px;"></div>
+            <div class="skeleton-meta skeleton-loader" style="width: 50px; height: 10px;"></div>
+          </div>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+<% when "user_profile" %>
+  <!-- Logo -->
+  <div class="skeleton-logo">
+    <svg viewBox="0 0 200 60" fill="currentColor">
+      <text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" font-size="24" font-weight="bold">STREETWATCH</text>
+    </svg>
+  </div>
+
+  <!-- Profile header -->
+  <div class="skeleton-profile-header">
+    <div class="skeleton-profile-card skeleton-loader">
+      <div class="skeleton-profile-avatar"></div>
+      <div style="flex: 1;">
+        <div class="skeleton-username skeleton-loader"></div>
+        <div class="skeleton-bio skeleton-loader"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="skeleton-tabs">
+    <% 4.times do %>
+      <div class="skeleton-tab skeleton-loader"></div>
+    <% end %>
+  </div>
+
+  <!-- Content grid -->
+  <div class="skeleton-grid" style="max-width: 900px;">
+    <% 9.times do %>
+      <div class="skeleton-film-card">
+        <div class="skeleton-dvd-disc skeleton-loader"></div>
+        <div class="skeleton-film-info">
+          <div class="skeleton-title skeleton-loader"></div>
+          <div class="skeleton-meta skeleton-loader"></div>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+<% end %>

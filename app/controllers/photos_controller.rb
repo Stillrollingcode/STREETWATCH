@@ -1,42 +1,69 @@
 class PhotosController < ApplicationController
-  before_action :set_photo, only: [:show, :edit, :update, :destroy, :remove_tag]
+  before_action :set_photo, only: [:show, :edit, :update, :destroy, :remove_tag, :hide_from_profile, :unhide_from_profile]
   before_action :authenticate_user!, except: [:index, :show]
 
   def index
-    @photos = Photo.includes(:album, :user, :photographer_user, :riders, :photo_approvals, image_attachment: :blob)
+    # Set cache headers for CDN (5 minutes for logged-out users)
+    expires_in 5.minutes, public: true unless user_signed_in?
 
-    # Filter by approval status - only show approved photos or user's own photos
-    @photos = @photos.select do |photo|
-      photo.user == current_user || photo.all_approved?
+    @photos = Photo.includes(:album, :user, :photographer_user, :riders, image_attachment: :blob)
+
+    # Filter by approval status - only show fully approved photos or user's own photos
+    # Use SQL for performance instead of loading all records
+    if user_signed_in?
+      @photos = @photos.where(
+        "photos.user_id = ? OR NOT EXISTS (
+          SELECT 1 FROM photo_approvals
+          WHERE photo_approvals.photo_id = photos.id
+          AND photo_approvals.status = 'pending'
+        )",
+        current_user.id
+      )
+    else
+      @photos = @photos.where(
+        "NOT EXISTS (
+          SELECT 1 FROM photo_approvals
+          WHERE photo_approvals.photo_id = photos.id
+          AND photo_approvals.status = 'pending'
+        )"
+      )
     end
 
-    # Search
+    # Search using SQL
     if params[:search].present?
-      @photos = @photos.select do |photo|
-        photo.title&.downcase&.include?(params[:search].downcase) ||
-        photo.description&.downcase&.include?(params[:search].downcase)
-      end
+      search_term = "%#{params[:search]}%"
+      @photos = @photos.where(
+        "photos.title ILIKE ? OR photos.description ILIKE ?",
+        search_term, search_term
+      )
     end
 
-    # Group by photographer
+    # Group by photographer or albums
     if params[:group_by] == 'photographer'
-      @grouped_photos = @photos.group_by(&:photographer_name)
+      # Limit for performance
+      @grouped_photos = @photos.limit(200).to_a.group_by(&:photographer_name)
+    elsif params[:group_by] == 'albums'
+      # Show all public albums plus user's own albums
+      @albums = Album.includes(:user, photos: :image_attachment)
+      if user_signed_in?
+        @albums = @albums.where('is_public = ? OR user_id = ?', true, current_user.id)
+      else
+        @albums = @albums.where(is_public: true)
+      end
+      @albums = @albums.recent.limit(100)
     end
 
-    # Sort
-    @photos = case params[:sort]
-    when 'oldest' then @photos.sort_by(&:created_at)
-    when 'alphabetical' then @photos.sort_by(&:title)
-    when 'by_date' then @photos.select { |p| p.date_taken.present? }.sort_by(&:date_taken).reverse + @photos.select { |p| p.date_taken.blank? }
-    else @photos.sort_by(&:created_at).reverse
-    end
+    # Sort using SQL when possible
+    unless params[:group_by] == 'photographer'
+      @photos = case params[:sort]
+      when 'oldest' then @photos.order(created_at: :asc)
+      when 'alphabetical' then @photos.order(Arel.sql('LOWER(title) ASC'))
+      when 'by_date' then @photos.order(Arel.sql('date_taken DESC NULLS LAST'))
+      else @photos.order(created_at: :desc)
+      end
 
-    # Paginate manually since we're working with an array
-    unless params[:group_by]
-      page = (params[:page] || 1).to_i
-      per_page = 30
-      total_count = @photos.count
-      @photos = Kaminari.paginate_array(@photos, total_count: total_count).page(page).per(per_page)
+      # Paginate to 18 photos per page (3 columns × 6 rows)
+      @photos = @photos.page(params[:page]).per(18)
     end
   end
 
@@ -193,6 +220,22 @@ class PhotosController < ApplicationController
     end
   end
 
+  def hide_from_profile
+    current_user.hide_photo_from_profile(@photo)
+    respond_to do |format|
+      format.html { redirect_to user_path(current_user), notice: "Photo hidden from your profile." }
+      format.turbo_stream
+    end
+  end
+
+  def unhide_from_profile
+    current_user.unhide_photo_from_profile(@photo)
+    respond_to do |format|
+      format.html { redirect_to user_path(current_user), notice: "Photo restored to your profile." }
+      format.turbo_stream
+    end
+  end
+
   private
 
   def set_photo
@@ -208,7 +251,7 @@ class PhotosController < ApplicationController
   end
 
   def album_params
-    params.require(:album).permit(:title, :description, :date)
+    params.require(:album).permit(:title, :description, :date, :is_public)
   end
 
   def authorize_photo!

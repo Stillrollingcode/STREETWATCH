@@ -2,7 +2,55 @@ ActiveAdmin.register Film do
   permit_params :title, :description, :release_date, :custom_filmer_name, :custom_editor_name,
                 :company, :company_user_id, :runtime, :music_featured, :film_type, :parent_film_title,
                 :filmer_user_id, :editor_user_id, :custom_riders, :aspect_ratio, :youtube_url,
-                :thumbnail, :video, :user_id, rider_ids: []
+                :thumbnail, :video, :user_id, rider_ids: [], filmer_ids: [], company_ids: []
+
+  # Add custom action item for search bar
+  action_item :search, only: :index do
+    text_node %{
+      <div style="display: flex; align-items: center; margin-top: 15px;">
+        <form action="#{admin_films_path}" method="get" accept-charset="UTF-8" style="display: flex; gap: 8px; align-items: center;">
+          <input
+            name="q[title_or_description_or_company_or_filmer_user_username_or_editor_user_username_or_riders_username_cont]"
+            type="text"
+            placeholder="Search films..."
+            value="#{params.dig(:q, :title_or_description_or_company_or_filmer_user_username_or_editor_user_username_or_riders_username_cont)}"
+            style="width: 300px; padding: 6px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px;" />
+          <input type="submit" value="Search" style="padding: 6px 16px; background: #5E6469; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; white-space: nowrap;" />
+          #{params[:q].present? ? '<a href="' + admin_films_path + '" style="padding: 6px 16px; background: #999; color: white; text-decoration: none; border-radius: 4px; display: inline-block; font-size: 13px; white-space: nowrap;">Clear</a>' : ''}
+        </form>
+      </div>
+    }.html_safe
+  end
+
+  # Add "Select All" action across all pages
+  batch_action :bulk_edit_all,
+               if: proc { params[:select_all].blank? },
+               form: -> {
+                 {
+                   film_type: Film::FILM_TYPES,
+                   company: :text,
+                   release_date: :datepicker
+                 }
+               } do |ids, inputs|
+    # This handles the actual bulk edit
+    films = Film.where(id: ids)
+
+    films.each do |film|
+      film.update(film_type: inputs[:film_type]) if inputs[:film_type].present?
+      film.update(company: inputs[:company]) if inputs[:company].present?
+      film.update(release_date: inputs[:release_date]) if inputs[:release_date].present?
+    end
+
+    redirect_to collection_path, notice: "Updated #{films.count} films"
+  end
+
+  action_item :select_all_films, only: :index do
+    link_to "Select All #{collection.total_count} Films",
+            admin_films_path(params.to_unsafe_h.merge(select_all: 'true')),
+            class: 'button',
+            style: 'background: #ff9800; color: white;',
+            data: { confirm: "This will select all #{collection.total_count} films across all pages. Continue?" }
+  end
 
   index do
     selectable_column
@@ -25,6 +73,92 @@ ActiveAdmin.register Film do
     actions
   end
 
+  controller do
+    after_action :add_select_all_script, only: :index
+
+    def find_resource
+      Film.find_by_friendly_or_id(params[:id])
+    end
+
+    def index
+      super do |format|
+        format.html do
+          if params[:select_all] == 'true'
+            # Get all film IDs matching current filters
+            @all_film_ids = @films.pluck(:id)
+          end
+        end
+      end
+    end
+
+    def add_select_all_script
+      return unless @all_film_ids.present?
+
+      response.body = response.body.sub(
+        '</body>',
+        <<~HTML + '</body>'
+          <script type="text/javascript">
+            (function() {
+              const allIds = #{@all_film_ids.to_json};
+              console.log('[SELECT ALL] Script loaded with', allIds.length, 'film IDs');
+
+              function selectAllFilms() {
+                console.log('[SELECT ALL] Running selectAllFilms function');
+
+                // Find all checkboxes
+                const checkboxes = document.querySelectorAll('.paginated_collection tbody input[type="checkbox"]');
+                console.log('[SELECT ALL] Found', checkboxes.length, 'checkboxes');
+
+                let checkedCount = 0;
+                checkboxes.forEach(function(checkbox) {
+                  const value = parseInt(checkbox.value);
+                  if (allIds.includes(value)) {
+                    checkbox.checked = true;
+                    checkedCount++;
+
+                    // Manually trigger change event for ActiveAdmin
+                    const event = new Event('change', { bubbles: true });
+                    checkbox.dispatchEvent(event);
+                  }
+                });
+
+                console.log('[SELECT ALL] Checked', checkedCount, 'checkboxes');
+
+                // Check master checkbox
+                const masterCheckbox = document.querySelector('.paginated_collection thead input[type="checkbox"]');
+                if (masterCheckbox) {
+                  masterCheckbox.checked = true;
+                  console.log('[SELECT ALL] Checked master checkbox');
+                }
+
+                // Show notification
+                const notice = document.createElement('div');
+                notice.className = 'flash flash_notice';
+                notice.textContent = 'Selected all ' + allIds.length + ' films across all pages. Choose a batch action from the dropdown.';
+                notice.style.cssText = 'position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 10000; padding: 15px 30px; background: #6dd27f; color: white; border-radius: 4px; box-shadow: 0 2px 10px rgba(0,0,0,0.2);';
+                document.body.appendChild(notice);
+
+                setTimeout(function() {
+                  notice.remove();
+                }, 5000);
+              }
+
+              // Try multiple times to ensure DOM is ready
+              setTimeout(selectAllFilms, 100);
+              setTimeout(selectAllFilms, 500);
+              setTimeout(selectAllFilms, 1000);
+            })();
+          </script>
+        HTML
+      )
+    end
+  end
+
+  # Search bar - searches across title, description, company, and associated users
+  filter :title_or_description_or_company_or_filmer_user_username_or_editor_user_username_or_riders_username_cont,
+         as: :string,
+         label: 'Search'
+
   filter :title
   filter :film_type, as: :select, collection: Film::FILM_TYPES
   filter :company
@@ -32,12 +166,6 @@ ActiveAdmin.register Film do
   filter :filmer_user, collection: -> { User.order(:username) }
   filter :editor_user, collection: -> { User.order(:username) }
   filter :created_at
-
-  controller do
-    def find_resource
-      Film.find_by_friendly_or_id(params[:id])
-    end
-  end
 
   show do
     attributes_table do
@@ -47,14 +175,11 @@ ActiveAdmin.register Film do
       row :description
       row :film_type
 
-      row "Company" do |film|
-        if film.company_user
-          link_to film.company_user.username, admin_user_path(film.company_user)
-        elsif film.company.present?
-          film.company
-        else
-          status_tag("empty", class: "warning")
-        end
+      row "Companies" do |film|
+        company_links = film.companies.map { |c| link_to c.username, admin_user_path(c) }
+        company_links << link_to(film.company_user.username, admin_user_path(film.company_user)) if film.company_user
+        company_links << film.company if film.company.present?
+        company_links.any? ? company_links.join(", ").html_safe : status_tag("empty", class: "warning")
       end
 
       row :release_date
@@ -62,12 +187,11 @@ ActiveAdmin.register Film do
       row :aspect_ratio
       row :parent_film_title
 
-      row "Filmer" do |film|
-        if film.filmer_user
-          link_to film.filmer_user.username, admin_user_path(film.filmer_user)
-        else
-          film.custom_filmer_name
-        end
+      row "Filmers" do |film|
+        filmer_links = film.filmers.map { |f| link_to f.username, admin_user_path(f) }
+        filmer_links << link_to(film.filmer_user.username, admin_user_path(film.filmer_user)) if film.filmer_user
+        filmer_links << film.custom_filmer_name if film.custom_filmer_name.present?
+        filmer_links.any? ? filmer_links.join(", ").html_safe : status_tag("empty", class: "warning")
       end
 
       row "Editor" do |film|
@@ -181,20 +305,21 @@ ActiveAdmin.register Film do
         }.html_safe
       end
 
-      # Company autocomplete
+      # Companies multi-select autocomplete
       li class: 'input' do
         text_node %{
-          <label class="label">Company</label>
+          <label class="label">Companies</label>
           <div class="autocomplete-wrapper">
-            <input type="text" class="autocomplete-input" id="company-search-input" placeholder="Search for company profile..." value="#{f.object.company_display_name}" autocomplete="off" />
-            <div class="autocomplete-results" id="company-results"></div>
-            <input type="hidden" name="film[company_user_id]" id="film_company_user_id" value="#{f.object.company_user_id}" />
+            <input type="text" class="autocomplete-input" id="companies-search-input" placeholder="Search for companies..." autocomplete="off" />
+            <div class="autocomplete-results" id="companies-results"></div>
           </div>
-          <p class="inline-hints">Select a company profile or use custom name below</p>
+          <div id="selected-companies-list" class="selected-riders-list"></div>
+          <div id="companies-hidden-fields"></div>
+          <p class="inline-hints">Search and select registered company profiles</p>
         }.html_safe
       end
 
-      f.input :company, hint: "Only if company is not a registered user profile"
+      f.input :company, hint: "Custom company names (comma-separated) for non-registered companies"
       f.input :release_date, as: :datepicker
       f.input :runtime, hint: "Runtime in minutes"
       f.input :aspect_ratio, hint: "e.g., 16:9, 4:3, 21:9"
@@ -202,20 +327,21 @@ ActiveAdmin.register Film do
     end
 
     f.inputs "Credits" do
-      # Filmer autocomplete
+      # Filmers multi-select autocomplete
       li class: 'input' do
         text_node %{
-          <label class="label">Filmer</label>
+          <label class="label">Filmers</label>
           <div class="autocomplete-wrapper">
-            <input type="text" class="autocomplete-input" id="filmer-search-input" placeholder="Search for filmer..." value="#{f.object.filmer_display_name}" autocomplete="off" />
-            <div class="autocomplete-results" id="filmer-results"></div>
-            <input type="hidden" name="film[filmer_user_id]" id="film_filmer_user_id" value="#{f.object.filmer_user_id}" />
+            <input type="text" class="autocomplete-input" id="filmers-search-input" placeholder="Search for filmers..." autocomplete="off" />
+            <div class="autocomplete-results" id="filmers-results"></div>
           </div>
-          <p class="inline-hints">Select a user or use custom name below</p>
+          <div id="selected-filmers-list" class="selected-riders-list"></div>
+          <div id="filmers-hidden-fields"></div>
+          <p class="inline-hints">Search and select registered user profiles</p>
         }.html_safe
       end
 
-      f.input :custom_filmer_name, hint: "Only if filmer is not a registered user"
+      f.input :custom_filmer_name, hint: "Custom filmer names (comma-separated) for non-registered filmers"
 
       # Editor autocomplete
       li class: 'input' do
@@ -267,7 +393,9 @@ ActiveAdmin.register Film do
         { id: u.id, username: u.username, profile_type: u.profile_type }
       }
       rider_ids = f.object.rider_ids rescue []
-      film_data = { users: users_data, existingRiderIds: rider_ids }
+      filmer_ids = f.object.filmer_ids rescue []
+      company_ids = f.object.company_ids rescue []
+      film_data = { users: users_data, existingRiderIds: rider_ids, existingFilmerIds: filmer_ids, existingCompanyIds: company_ids }
 
       text_node <<~HTML.html_safe
         <script type='text/javascript'>window.filmFormData = #{film_data.to_json};</script>
@@ -389,14 +517,14 @@ ActiveAdmin.register Film do
               initialized = true;
               console.log('Initializing admin autocomplete...');
 
-              // Initialize single-select autocomplete for owner, company, filmer, editor
+              // Initialize single-select autocomplete for owner and editor
               initSingleAutocomplete('owner', users, 'film_user_id');
-              initSingleAutocomplete('company', companyUsers, 'film_company_user_id');
-              initSingleAutocomplete('filmer', users, 'film_filmer_user_id');
               initSingleAutocomplete('editor', users, 'film_editor_user_id');
 
-              // Initialize multi-select autocomplete for riders
+              // Initialize multi-select autocomplete for riders, filmers, and companies
               initRidersAutocomplete();
+              initFilmersAutocomplete();
+              initCompaniesAutocomplete();
             }
 
             function initSingleAutocomplete(fieldName, userList, hiddenFieldId) {
@@ -694,6 +822,304 @@ ActiveAdmin.register Film do
               });
             }
 
+            function initFilmersAutocomplete() {
+              const searchInput = document.getElementById('filmers-search-input');
+              const resultsDiv = document.getElementById('filmers-results');
+              const selectedList = document.getElementById('selected-filmers-list');
+              const hiddenFieldsContainer = document.getElementById('filmers-hidden-fields');
+
+              if (!searchInput || !resultsDiv || !selectedList) {
+                console.warn('Missing elements for filmers autocomplete');
+                return;
+              }
+
+              const selectedFilmers = new Map();
+              let currentFocus = -1;
+
+              // Load existing filmers from window object
+              const existingFilmerIds = window.filmFormData?.existingFilmerIds || [];
+              if (existingFilmerIds && existingFilmerIds.length > 0) {
+                existingFilmerIds.forEach(filmerId => {
+                  const filmer = users.find(u => u.id === filmerId);
+                  if (filmer) {
+                    selectedFilmers.set(filmer.id, filmer);
+                  }
+                });
+                renderSelectedFilmers();
+              }
+
+              searchInput.addEventListener('focus', function() {
+                if (this.value.trim().length > 0) {
+                  showResults(this.value);
+                }
+              });
+
+              searchInput.addEventListener('input', function() {
+                const value = this.value.trim();
+                if (value.length === 0) {
+                  hideResults();
+                  return;
+                }
+                showResults(value);
+              });
+
+              searchInput.addEventListener('keydown', function(e) {
+                const items = resultsDiv.querySelectorAll('.autocomplete-item:not(.no-results)');
+                if (e.key === 'ArrowDown') {
+                  e.preventDefault();
+                  currentFocus++;
+                  addActive(items);
+                } else if (e.key === 'ArrowUp') {
+                  e.preventDefault();
+                  currentFocus--;
+                  addActive(items);
+                } else if (e.key === 'Enter') {
+                  e.preventDefault();
+                  if (currentFocus > -1 && items[currentFocus]) {
+                    items[currentFocus].click();
+                  } else {
+                    hideResults();
+                  }
+                } else if (e.key === 'Escape') {
+                  hideResults();
+                }
+              });
+
+              function showResults(searchTerm) {
+                const filtered = users.filter(u =>
+                  u.username && u.username.toLowerCase().includes(searchTerm.toLowerCase()) &&
+                  !selectedFilmers.has(u.id)
+                );
+                resultsDiv.innerHTML = '';
+                currentFocus = -1;
+                if (filtered.length === 0) {
+                  resultsDiv.innerHTML = '<div class="autocomplete-item no-results">No filmers found</div>';
+                } else {
+                  filtered.slice(0, 10).forEach(user => {
+                    const div = document.createElement('div');
+                    div.className = 'autocomplete-item';
+                    div.textContent = user.username;
+                    div.addEventListener('click', function() {
+                      addFilmer(user);
+                    });
+                    resultsDiv.appendChild(div);
+                  });
+                }
+                resultsDiv.classList.add('show');
+              }
+
+              function hideResults() {
+                resultsDiv.classList.remove('show');
+                currentFocus = -1;
+              }
+
+              function addFilmer(filmer) {
+                selectedFilmers.set(filmer.id, filmer);
+                renderSelectedFilmers();
+                searchInput.value = '';
+                hideResults();
+                searchInput.focus();
+              }
+
+              function removeFilmer(filmerId) {
+                selectedFilmers.delete(filmerId);
+                renderSelectedFilmers();
+              }
+
+              function renderSelectedFilmers() {
+                selectedList.innerHTML = '';
+                selectedFilmers.forEach((filmer, id) => {
+                  const tag = document.createElement('div');
+                  tag.className = 'selected-rider-tag';
+                  tag.innerHTML = '<span>' + filmer.username + '</span><button type="button" class="remove-filmer-btn" data-filmer-id="' + id + '">×</button>';
+                  selectedList.appendChild(tag);
+                });
+
+                hiddenFieldsContainer.innerHTML = '';
+                selectedFilmers.forEach((filmer, id) => {
+                  const input = document.createElement('input');
+                  input.type = 'hidden';
+                  input.name = 'film[filmer_ids][]';
+                  input.value = id;
+                  hiddenFieldsContainer.appendChild(input);
+                });
+
+                selectedList.querySelectorAll('.remove-filmer-btn').forEach(btn => {
+                  btn.addEventListener('click', function() {
+                    const filmerId = parseInt(this.getAttribute('data-filmer-id'));
+                    removeFilmer(filmerId);
+                  });
+                });
+              }
+
+              function addActive(items) {
+                if (!items || items.length === 0) return;
+                removeActive(items);
+                if (currentFocus >= items.length) currentFocus = 0;
+                if (currentFocus < 0) currentFocus = items.length - 1;
+                items[currentFocus].classList.add('selected');
+              }
+
+              function removeActive(items) {
+                items.forEach(item => item.classList.remove('selected'));
+              }
+
+              document.addEventListener('click', function(e) {
+                if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {
+                  hideResults();
+                }
+              });
+            }
+
+            function initCompaniesAutocomplete() {
+              const searchInput = document.getElementById('companies-search-input');
+              const resultsDiv = document.getElementById('companies-results');
+              const selectedList = document.getElementById('selected-companies-list');
+              const hiddenFieldsContainer = document.getElementById('companies-hidden-fields');
+
+              if (!searchInput || !resultsDiv || !selectedList) {
+                console.warn('Missing elements for companies autocomplete');
+                return;
+              }
+
+              const selectedCompanies = new Map();
+              let currentFocus = -1;
+
+              // Load existing companies from window object
+              const existingCompanyIds = window.filmFormData?.existingCompanyIds || [];
+              if (existingCompanyIds && existingCompanyIds.length > 0) {
+                existingCompanyIds.forEach(companyId => {
+                  const company = users.find(u => u.id === companyId);
+                  if (company) {
+                    selectedCompanies.set(company.id, company);
+                  }
+                });
+                renderSelectedCompanies();
+              }
+
+              searchInput.addEventListener('focus', function() {
+                if (this.value.trim().length > 0) {
+                  showResults(this.value);
+                }
+              });
+
+              searchInput.addEventListener('input', function() {
+                const value = this.value.trim();
+                if (value.length === 0) {
+                  hideResults();
+                  return;
+                }
+                showResults(value);
+              });
+
+              searchInput.addEventListener('keydown', function(e) {
+                const items = resultsDiv.querySelectorAll('.autocomplete-item:not(.no-results)');
+                if (e.key === 'ArrowDown') {
+                  e.preventDefault();
+                  currentFocus++;
+                  addActive(items);
+                } else if (e.key === 'ArrowUp') {
+                  e.preventDefault();
+                  currentFocus--;
+                  addActive(items);
+                } else if (e.key === 'Enter') {
+                  e.preventDefault();
+                  if (currentFocus > -1 && items[currentFocus]) {
+                    items[currentFocus].click();
+                  } else {
+                    hideResults();
+                  }
+                } else if (e.key === 'Escape') {
+                  hideResults();
+                }
+              });
+
+              function showResults(searchTerm) {
+                const filtered = companyUsers.filter(u =>
+                  u.username && u.username.toLowerCase().includes(searchTerm.toLowerCase()) &&
+                  !selectedCompanies.has(u.id)
+                );
+                resultsDiv.innerHTML = '';
+                currentFocus = -1;
+                if (filtered.length === 0) {
+                  resultsDiv.innerHTML = '<div class="autocomplete-item no-results">No companies found</div>';
+                } else {
+                  filtered.slice(0, 10).forEach(user => {
+                    const div = document.createElement('div');
+                    div.className = 'autocomplete-item';
+                    div.textContent = user.username;
+                    div.addEventListener('click', function() {
+                      addCompany(user);
+                    });
+                    resultsDiv.appendChild(div);
+                  });
+                }
+                resultsDiv.classList.add('show');
+              }
+
+              function hideResults() {
+                resultsDiv.classList.remove('show');
+                currentFocus = -1;
+              }
+
+              function addCompany(company) {
+                selectedCompanies.set(company.id, company);
+                renderSelectedCompanies();
+                searchInput.value = '';
+                hideResults();
+                searchInput.focus();
+              }
+
+              function removeCompany(companyId) {
+                selectedCompanies.delete(companyId);
+                renderSelectedCompanies();
+              }
+
+              function renderSelectedCompanies() {
+                selectedList.innerHTML = '';
+                selectedCompanies.forEach((company, id) => {
+                  const tag = document.createElement('div');
+                  tag.className = 'selected-rider-tag';
+                  tag.innerHTML = '<span>' + company.username + '</span><button type="button" class="remove-company-btn" data-company-id="' + id + '">×</button>';
+                  selectedList.appendChild(tag);
+                });
+
+                hiddenFieldsContainer.innerHTML = '';
+                selectedCompanies.forEach((company, id) => {
+                  const input = document.createElement('input');
+                  input.type = 'hidden';
+                  input.name = 'film[company_ids][]';
+                  input.value = id;
+                  hiddenFieldsContainer.appendChild(input);
+                });
+
+                selectedList.querySelectorAll('.remove-company-btn').forEach(btn => {
+                  btn.addEventListener('click', function() {
+                    const companyId = parseInt(this.getAttribute('data-company-id'));
+                    removeCompany(companyId);
+                  });
+                });
+              }
+
+              function addActive(items) {
+                if (!items || items.length === 0) return;
+                removeActive(items);
+                if (currentFocus >= items.length) currentFocus = 0;
+                if (currentFocus < 0) currentFocus = items.length - 1;
+                items[currentFocus].classList.add('selected');
+              }
+
+              function removeActive(items) {
+                items.forEach(item => item.classList.remove('selected'));
+              }
+
+              document.addEventListener('click', function(e) {
+                if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {
+                  hideResults();
+                }
+              });
+            }
+
             // Initialize on DOM ready
             if (document.readyState === 'loading') {
               document.addEventListener('DOMContentLoaded', initAdminAutocomplete);
@@ -705,6 +1131,7 @@ ActiveAdmin.register Film do
             setTimeout(initAdminAutocomplete, 100);
           })();
         </script>
+
       HTML
     end
   end

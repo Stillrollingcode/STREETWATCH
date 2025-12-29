@@ -218,7 +218,7 @@
 
       <div class="field">
         <%= f.label :profile_type, "Account Type" %>
-        <div style="display: flex; gap: 16px; margin-top: 8px;">
+        <div style="display: flex; gap: 16px; margin-top: 8px; flex-wrap: wrap;">
           <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
             <%= f.radio_button :profile_type, 'individual', checked: true, style: "width: auto;" %>
             <span>Individual</span>
@@ -226,6 +226,10 @@
           <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
             <%= f.radio_button :profile_type, 'company', style: "width: auto;" %>
             <span>Company</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+            <%= f.radio_button :profile_type, 'crew', style: "width: auto;" %>
+            <span>Crew</span>
           </label>
         </div>
       </div>

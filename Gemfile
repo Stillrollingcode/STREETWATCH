@@ -94,3 +94,6 @@ gem "arctic_admin" # Modern theme for ActiveAdmin (optional but recommended)
 # Excel/CSV import
 gem "roo" # Read Excel and CSV files
 gem "roo-xls" # Support for .xls files
+
+# Pagination
+gem "kaminari" # Pagination for user listings

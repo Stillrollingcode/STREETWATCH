@@ -8,17 +8,35 @@ class User < ApplicationRecord
          :recoverable, :rememberable, :validatable, :confirmable,
          :omniauthable, omniauth_providers: [:google_oauth2]
 
-  enum :profile_type, { individual: 'individual', company: 'company' }, default: :individual
+  enum :profile_type, { individual: 'individual', company: 'company', crew: 'crew' }, default: :individual
+
+  # Check if user is a company-type account (company or crew)
+  def company_type?
+    company? || crew?
+  end
 
   has_one_attached :avatar
   has_many :film_riders, dependent: :destroy
   has_many :rider_films, through: :film_riders, source: :film
+
+  # Multi-select filmer associations
+  has_many :film_filmers, dependent: :destroy
+  has_many :filmer_films, through: :film_filmers, source: :film
+
+  # Multi-select company associations
+  has_many :film_companies, dependent: :destroy
+  has_many :multi_company_films, through: :film_companies, source: :film
+
+  # Legacy single associations (backwards compatibility)
   has_many :filmed_films, class_name: 'Film', foreign_key: 'filmer_user_id'
   has_many :edited_films, class_name: 'Film', foreign_key: 'editor_user_id'
   has_many :company_films, class_name: 'Film', foreign_key: 'company_user_id'
 
   # Film approvals
   has_many :film_approvals, foreign_key: 'approver_id', dependent: :destroy
+
+  # Tag requests (users requesting to be tagged in films)
+  has_many :tag_requests, foreign_key: 'requester_id', dependent: :destroy
 
   # Photos and albums
   has_many :albums, dependent: :destroy
@@ -46,18 +64,54 @@ class User < ApplicationRecord
 
   # Profile notification settings
   has_many :profile_notification_settings, dependent: :destroy
+  has_many :watched_by_notification_settings, class_name: 'ProfileNotificationSetting', foreign_key: :target_user_id, dependent: :destroy
   has_many :watching_notifications_for, through: :profile_notification_settings, source: :target_user
 
   # Notifications
   has_many :notifications, dependent: :destroy
   has_many :sent_notifications, class_name: 'Notification', foreign_key: 'actor_id', dependent: :destroy
 
+  # Sponsor approvals
+  has_many :sponsor_approvals, dependent: :destroy
+  has_many :sponsored_by_approvals, class_name: 'SponsorApproval', foreign_key: 'sponsor_id', dependent: :destroy
+  has_many :approved_sponsors, -> { where(sponsor_approvals: { status: 'approved' }) }, through: :sponsor_approvals, source: :sponsor
+  has_many :sponsored_users, -> { where(sponsor_approvals: { status: 'approved' }) }, through: :sponsored_by_approvals, source: :user
+
+  # Hidden content from profile
+  has_many :hidden_profile_films, dependent: :destroy
+  has_many :hidden_films, through: :hidden_profile_films, source: :film
+  has_many :hidden_profile_photos, dependent: :destroy
+  has_many :hidden_photos, through: :hidden_profile_photos, source: :photo
+
   validates :username, presence: true, uniqueness: { case_sensitive: false }, format: { with: /\A[a-zA-Z0-9_.]+\z/, message: "letters, numbers, underscore, and dot only" }
   validates :name, presence: true
 
   # Get all films associated with this user (as rider, filmer, editor, or company)
-  def all_films
-    Film.where(id: (rider_films.pluck(:id) + filmed_films.pluck(:id) + edited_films.pluck(:id) + company_films.pluck(:id)).uniq)
+  # Always filters out hidden films - hidden films only appear in the "Hidden" tab
+  def all_films(viewing_user: nil)
+    film_ids = (
+      rider_films.pluck(:id) +
+      filmer_films.pluck(:id) +
+      filmed_films.pluck(:id) +
+      edited_films.pluck(:id) +
+      multi_company_films.pluck(:id) +
+      company_films.pluck(:id)
+    ).uniq
+
+    # Always filter out films hidden by this user from their profile
+    hidden_film_ids = hidden_profile_films.pluck(:film_id)
+    film_ids -= hidden_film_ids
+
+    Film.published
+        .where(id: film_ids)
+        .includes(thumbnail_attachment: :blob)
+        .recent
+  end
+
+  # Get films hidden from profile (only for own profile)
+  def hidden_films_from_profile
+    Film.published
+        .where(id: hidden_profile_films.pluck(:film_id))
         .includes(thumbnail_attachment: :blob)
         .recent
   end
@@ -65,16 +119,34 @@ class User < ApplicationRecord
   # Get roles for a specific film
   def film_roles(film)
     roles = []
-    roles << 'Filmer' if film.filmer_user_id == id
+    # Check both multi-select and legacy single associations for filmers
+    roles << 'Filmer' if film.filmers.include?(self) || film.filmer_user_id == id
     roles << 'Editor' if film.editor_user_id == id
     roles << 'Rider' if film.riders.include?(self)
-    roles << 'Company' if film.company_user_id == id
+    # Check both multi-select and legacy single associations for companies
+    roles << 'Company' if film.companies.include?(self) || film.company_user_id == id
     roles
   end
 
   # Get all photos associated with this user (as rider, photographer, or company)
-  def all_photos
-    Photo.where(id: (photos_featured_in.pluck(:id) + photographed_photos.pluck(:id) + photo_company_photos.pluck(:id)).uniq)
+  # Always filters out hidden photos - hidden photos only appear in the "Hidden" tab
+  def all_photos(viewing_user: nil)
+    photo_ids = (photos_featured_in.pluck(:id) + photographed_photos.pluck(:id) + photo_company_photos.pluck(:id)).uniq
+
+    # Always filter out photos hidden by this user from their profile
+    hidden_photo_ids = hidden_profile_photos.pluck(:photo_id)
+    photo_ids -= hidden_photo_ids
+
+    Photo.published
+         .where(id: photo_ids)
+         .includes(image_attachment: :blob)
+         .recent
+  end
+
+  # Get photos hidden from profile (only for own profile)
+  def hidden_photos_from_profile
+    Photo.published
+         .where(id: hidden_profile_photos.pluck(:photo_id))
          .includes(image_attachment: :blob)
          .recent
   end
@@ -115,6 +187,36 @@ class User < ApplicationRecord
     setting&.muted || false
   end
 
+  # Hide a film from profile
+  def hide_film_from_profile(film)
+    hidden_profile_films.find_or_create_by(film: film)
+  end
+
+  # Unhide a film from profile
+  def unhide_film_from_profile(film)
+    hidden_profile_films.find_by(film: film)&.destroy
+  end
+
+  # Check if film is hidden from profile
+  def film_hidden_from_profile?(film)
+    hidden_profile_films.exists?(film: film)
+  end
+
+  # Hide a photo from profile
+  def hide_photo_from_profile(photo)
+    hidden_profile_photos.find_or_create_by(photo: photo)
+  end
+
+  # Unhide a photo from profile
+  def unhide_photo_from_profile(photo)
+    hidden_profile_photos.find_by(photo: photo)&.destroy
+  end
+
+  # Check if photo is hidden from profile
+  def photo_hidden_from_profile?(photo)
+    hidden_profile_photos.exists?(photo: photo)
+  end
+
   # Mute a user
   def mute(other_user)
     return false if self == other_user
@@ -134,6 +236,7 @@ class User < ApplicationRecord
   before_validation :normalize_username
   before_create :generate_claim_token, if: :admin_created?
   before_create :skip_confirmation_for_admin_created, if: :admin_created?
+  before_destroy :nullify_direct_content_roles
 
   # Admin-created profile methods
   def generate_claim_token
@@ -200,5 +303,17 @@ class User < ApplicationRecord
     end
 
     candidate
+  end
+
+  def nullify_direct_content_roles
+    # Detach authored/role references to avoid FK errors on destroy
+    Film.where(filmer_user_id: id).update_all(filmer_user_id: nil)
+    Film.where(editor_user_id: id).update_all(editor_user_id: nil)
+    Film.where(company_user_id: id).update_all(company_user_id: nil)
+    Film.where(user_id: id).update_all(user_id: nil)
+
+    Photo.where(photographer_user_id: id).update_all(photographer_user_id: nil)
+    Photo.where(company_user_id: id).update_all(company_user_id: nil)
+    Photo.where(user_id: id).update_all(user_id: nil)
   end
 end

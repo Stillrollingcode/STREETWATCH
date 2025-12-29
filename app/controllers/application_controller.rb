@@ -12,7 +12,8 @@ class ApplicationController < ActionController::Base
       :notify_on_new_follower,
       :notify_on_comment,
       :notify_on_mention,
-      :notify_on_favorite
+      :notify_on_favorite,
+      :content_tab_order
     ]
 
     allowed_keys = [
@@ -23,7 +24,8 @@ class ApplicationController < ActionController::Base
       :sponsor_requests,
       :profile_type,
       :email_visible,
-      { preference_attributes: preference_keys }
+      { preference_attributes: preference_keys },
+      { sponsor_ids: [] }
     ]
 
     devise_parameter_sanitizer.permit(:sign_up, keys: allowed_keys)

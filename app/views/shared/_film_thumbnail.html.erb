@@ -1,0 +1,25 @@
+<% show_pending = local_assigns.fetch(:show_pending, false) %>
+<% unique_id = local_assigns.fetch(:unique_id, film.id) %>
+
+<div class="film-thumbnail <%= 'pending-film' if show_pending %>">
+  <% if film.thumbnail.attached? %>
+    <%= image_tag film.thumbnail, alt: film.title %>
+  <% elsif film.youtube_thumbnail_url %>
+    <%= image_tag film.youtube_thumbnail_url, alt: film.title %>
+  <% else %>
+    <div class="placeholder">🎬</div>
+  <% end %>
+  <div class="inner-ring"></div>
+  <% if show_pending %>
+    <svg class="pending-arc-text" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <path id="pending-arc-<%= unique_id %>" d="M 50,70 A 50,50 0 0,1 150,70" fill="transparent"/>
+      </defs>
+      <text font-size="13" font-weight="900" fill="#ffa500" letter-spacing="8">
+        <textPath href="#pending-arc-<%= unique_id %>" startOffset="50%" text-anchor="middle">
+          PENDING
+        </textPath>
+      </text>
+    </svg>
+  <% end %>
+</div>

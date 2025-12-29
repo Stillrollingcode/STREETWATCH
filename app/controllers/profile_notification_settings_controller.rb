@@ -32,7 +32,7 @@ class ProfileNotificationSettingsController < ApplicationController
   private
 
   def set_target_user
-    @target_user = User.find(params[:user_id])
+    @target_user = User.find_by_friendly_or_id(params[:user_id])
   end
 
   def notification_setting_params

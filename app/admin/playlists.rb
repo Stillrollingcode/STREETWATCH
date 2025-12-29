@@ -1,4 +1,6 @@
 ActiveAdmin.register Playlist do
+  menu parent: "Films", priority: 4
+
   permit_params :user_id, :name, :description
 
   index do

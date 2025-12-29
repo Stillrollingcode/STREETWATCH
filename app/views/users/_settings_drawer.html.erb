@@ -1,0 +1,1033 @@
+<% resource ||= current_user %>
+<% preference = resource.preference || resource.build_preference %>
+<% mapping = Devise.mappings[:user] %>
+
+<% content_for :head do %>
+  <style>
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      backdrop-filter: blur(6px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1200;
+      padding: 18px;
+    }
+    .modal-backdrop.open { display: flex; }
+    .settings-drawer {
+      width: min(640px, 100%);
+      max-height: 80vh;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: <%= user_theme_styles[:theme_name] == 'light' ? '#ffffff' : '#111015' %>;
+      padding: 18px;
+      display: grid;
+      gap: 12px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+      position: relative;
+    }
+    .modal-close {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      font-size: 20px;
+      cursor: pointer;
+    }
+    .settings-drawer label {
+      color: var(--muted);
+      font-size: 14px;
+      display: block;
+      margin-bottom: 6px;
+      margin-top: 0;
+    }
+    .settings-drawer input,
+    .settings-drawer textarea {
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: <%= user_theme_styles[:theme_name] == 'light' ? 'rgba(0,0,0,0.04)' : '#0d0d0f' %>;
+      color: var(--text);
+      font-size: 15px;
+      margin-bottom: 0;
+    }
+    .settings-drawer textarea { min-height: 90px; resize: vertical; }
+    .settings-drawer .muted-note {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 6px;
+      margin-bottom: 4px;
+    }
+    .settings-drawer > div {
+      margin-bottom: 8px;
+      padding-bottom: 0;
+      margin-top: 0;
+    }
+    .settings-drawer > div:not(:first-of-type) {
+      padding-top: 28px;
+    }
+    .settings-drawer > div:first-of-type {
+      padding-top: 0;
+    }
+    .avatar-preview-container {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-top: 12px;
+    }
+    .avatar-preview {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 50%, transparent), color-mix(in srgb, var(--accent-2) 50%, transparent));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      border: 2px solid rgba(255,255,255,0.1);
+    }
+    .avatar-preview img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .avatar-controls-wrapper {
+      display: none;
+      margin-top: 12px;
+    }
+    .avatar-controls-wrapper.active {
+      display: block;
+    }
+    .avatar-controls-toggle {
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.12s ease;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .avatar-controls-toggle:hover {
+      background: rgba(255,255,255,0.1);
+    }
+    .avatar-controls-toggle-icon {
+      transition: transform 0.2s ease;
+      font-size: 10px;
+    }
+    .avatar-controls-toggle.open .avatar-controls-toggle-icon {
+      transform: rotate(180deg);
+    }
+    .avatar-controls {
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 12px;
+      padding: 12px;
+      background: rgba(0,0,0,0.2);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    .avatar-controls.open {
+      display: flex;
+    }
+    .avatar-controls-section {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .avatar-controls-section-title {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 4px;
+    }
+    .avatar-controls-row {
+      display: flex;
+      gap: 6px;
+    }
+    .avatar-controls button {
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.12s ease;
+      white-space: nowrap;
+    }
+    .avatar-controls button:hover {
+      background: rgba(255,255,255,0.1);
+    }
+    .direction-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
+      max-width: 120px;
+    }
+    .direction-btn {
+      padding: 8px !important;
+      font-size: 14px !important;
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .direction-btn.center {
+      opacity: 0.3;
+      cursor: default;
+      pointer-events: none;
+    }
+    .settings-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-start;
+      margin-top: 1em;
+      margin-bottom: 1em;
+    }
+    .pill-btn {
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.12s ease;
+    }
+    .pill-btn.primary {
+      background: linear-gradient(120deg, var(--accent), var(--accent-2));
+      color: #0b0b0d;
+      border: none;
+    }
+    .danger-btn {
+      background: transparent;
+      color: #ff8f8f;
+      border: 1px solid rgba(255,143,143,0.4);
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.12s ease;
+    }
+    .danger-btn:hover { background: rgba(255,143,143,0.1); }
+    .preference-section {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: rgba(255,255,255,0.03);
+      padding: 14px;
+      margin-top: 4px;
+    }
+    .preference-section h3 {
+      margin: 0 0 6px;
+      font-size: 15px;
+      color: var(--text);
+      letter-spacing: 0.01em;
+    }
+    .preference-subtitle {
+      margin: 0 0 12px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+    .notification-toggle {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 10px;
+      transition: all 0.12s ease;
+    }
+    .notification-toggle:hover {
+      background: rgba(255,255,255,0.05);
+      border-color: rgba(255,255,255,0.15);
+    }
+    .notification-toggle input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+      accent-color: var(--accent);
+      margin: 0;
+    }
+    .notification-toggle label {
+      flex: 1;
+      cursor: pointer;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 600;
+      margin: 0;
+    }
+    .notification-subsection {
+      margin-left: 28px;
+      padding-left: 10px;
+      border-left: 2px solid var(--border);
+    }
+    .sponsors-search-field {
+      width: 100%;
+      padding: 12px 16px;
+      background: <%= user_theme_styles[:theme_name] == 'light' ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.04)' %>;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-size: 15px;
+      transition: all 0.2s ease;
+    }
+    .sponsors-search-field:focus {
+      outline: none;
+      border-color: var(--accent);
+      background: <%= user_theme_styles[:theme_name] == 'light' ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)' %>;
+    }
+    .sponsors-search-wrapper .autocomplete-results {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: <%= user_theme_styles[:theme_name] == 'light' ? '#ffffff' : '#111015' %>;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-top: 4px;
+      max-height: 250px;
+      overflow-y: auto;
+      z-index: 1000;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.4);
+      display: none;
+    }
+    .selected-sponsors-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+      min-height: 40px;
+      padding: 8px;
+      border-radius: 10px;
+      background: <%= user_theme_styles[:theme_name] == 'light' ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)' %>;
+      border: 1px solid var(--border);
+    }
+  </style>
+<% end %>
+
+<div class="modal-backdrop" id="settings-backdrop">
+  <div class="settings-drawer" id="settings-drawer">
+    <button class="modal-close" id="close-settings" aria-label="Close settings">×</button>
+    <%= form_for(resource, as: :user, url: registration_path(:user), html: { method: :put, multipart: true }) do |f| %>
+      <%= render "devise/shared/error_messages", resource: resource %>
+
+      <div>
+        <%= f.label :avatar, "Profile picture" %>
+        <%= f.file_field :avatar, direct_upload: true, id: "avatar-upload", accept: "image/*" %>
+        <div class="avatar-preview-container">
+          <div class="avatar-preview" id="avatar-preview">
+            <% if resource.avatar.attached? %>
+              <img src="<%= url_for(resource.avatar) %>" alt="Avatar preview" id="avatar-img">
+            <% else %>
+              <span id="avatar-placeholder"><%= (resource.username || resource.email).first&.upcase %></span>
+            <% end %>
+          </div>
+        </div>
+        <div class="avatar-controls-wrapper" id="avatar-controls-wrapper">
+          <button type="button" class="avatar-controls-toggle" id="avatar-controls-toggle">
+            <span>Edit Position & Zoom</span>
+            <span class="avatar-controls-toggle-icon">▼</span>
+          </button>
+          <div class="avatar-controls" id="avatar-controls">
+            <div class="avatar-controls-section">
+              <div class="avatar-controls-section-title">Zoom</div>
+              <div class="avatar-controls-row">
+                <button type="button" id="zoom-in">Zoom In</button>
+                <button type="button" id="zoom-out">Zoom Out</button>
+              </div>
+            </div>
+            <div class="avatar-controls-section">
+              <div class="avatar-controls-section-title">Position</div>
+              <div class="direction-grid">
+                <button type="button" class="direction-btn" id="move-up-left">↖</button>
+                <button type="button" class="direction-btn" id="move-up">↑</button>
+                <button type="button" class="direction-btn" id="move-up-right">↗</button>
+                <button type="button" class="direction-btn" id="move-left">←</button>
+                <button type="button" class="direction-btn center">•</button>
+                <button type="button" class="direction-btn" id="move-right">→</button>
+                <button type="button" class="direction-btn" id="move-down-left">↙</button>
+                <button type="button" class="direction-btn" id="move-down">↓</button>
+                <button type="button" class="direction-btn" id="move-down-right">↘</button>
+              </div>
+            </div>
+            <button type="button" id="reset-zoom" style="width: 100%;">Reset All</button>
+          </div>
+        </div>
+        <div class="muted-note">Upload a profile picture. You can zoom and position it after selecting.</div>
+      </div>
+
+      <div>
+        <%= f.label :name %>
+        <%= f.text_field :name, autocomplete: "name" %>
+      </div>
+
+      <div>
+        <%= f.label :username %>
+        <%= f.text_field :username, autocomplete: "username" %>
+      </div>
+
+      <div>
+        <%= f.label :bio %>
+        <%= f.text_area :bio, placeholder: "Short rider bio, sponsors, crew..." %>
+      </div>
+
+      <div>
+        <%= f.label :profile_type, "Account Type" %>
+        <div style="display: flex; gap: 16px; margin-top: 8px; flex-wrap: wrap;">
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+            <%= f.radio_button :profile_type, 'individual', style: "width: auto;" %>
+            <span>Individual</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+            <%= f.radio_button :profile_type, 'company', style: "width: auto;" %>
+            <span>Company</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+            <%= f.radio_button :profile_type, 'crew', style: "width: auto;" %>
+            <span>Crew</span>
+          </label>
+        </div>
+      </div>
+
+      <div>
+        <%= f.label :email %>
+        <%= f.email_field :email, autocomplete: "email" %>
+        <div style="margin-top: 8px;">
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+            <%= f.check_box :email_visible, style: "width: auto; margin: 0;" %>
+            <span style="color: var(--muted); font-size: 14px;">Show email address on my profile</span>
+          </label>
+        </div>
+      </div>
+
+      <% if mapping.confirmable? && resource.pending_reconfirmation? %>
+        <div class="muted-note">Waiting confirmation for: <%= resource.unconfirmed_email %></div>
+      <% end %>
+
+      <%= f.fields_for :preference, preference do |pref| %>
+        <div class="preference-section">
+          <h3>Notifications</h3>
+          <p class="preference-subtitle">Choose which emails you want to receive for activity on your profile.</p>
+
+          <div class="notification-toggle">
+            <%= pref.check_box :email_notifications_enabled, id: "pref_email_notifications_modal" %>
+            <%= pref.label :email_notifications_enabled, "Enable Email Notifications", for: "pref_email_notifications_modal" %>
+          </div>
+
+          <div class="notification-subsection">
+            <div class="notification-toggle">
+              <%= pref.check_box :notify_on_new_follower, id: "pref_notify_new_follower_modal" %>
+              <%= pref.label :notify_on_new_follower, "New Followers", for: "pref_notify_new_follower_modal" %>
+            </div>
+            <div class="notification-toggle">
+              <%= pref.check_box :notify_on_comment, id: "pref_notify_comment_modal" %>
+              <%= pref.label :notify_on_comment, "Comments on Your Films", for: "pref_notify_comment_modal" %>
+            </div>
+            <div class="notification-toggle">
+              <%= pref.check_box :notify_on_mention, id: "pref_notify_mention_modal" %>
+              <%= pref.label :notify_on_mention, "Mentions", for: "pref_notify_mention_modal" %>
+            </div>
+            <div class="notification-toggle">
+              <%= pref.check_box :notify_on_favorite, id: "pref_notify_favorite_modal" %>
+              <%= pref.label :notify_on_favorite, "Favorites on Your Films", for: "pref_notify_favorite_modal" %>
+            </div>
+          </div>
+        </div>
+
+        <div class="preference-section" style="margin-top: 16px;">
+          <h3>Profile Tab Order</h3>
+          <p class="preference-subtitle">Drag to reorder the Films, Photos, and Articles tabs on your profile.</p>
+          <%= pref.hidden_field :content_tab_order, id: "content_tab_order_field" %>
+          <div id="tab-order-list" style="display: flex; flex-direction: column; gap: 8px;">
+            <%
+              current_order = preference.ordered_tabs
+              tab_info = { "films" => "🎬 Films", "photos" => "📷 Photos", "articles" => "📝 Articles" }
+            %>
+            <% current_order.each do |tab| %>
+              <div class="tab-order-item" data-tab="<%= tab %>" draggable="true" style="padding: 12px; background: rgba(255,255,255,0.06); border: 1px solid var(--border); border-radius: 8px; cursor: grab; display: flex; align-items: center; gap: 10px; transition: all 0.2s ease;">
+                <span style="color: var(--muted); font-size: 16px;">⋮⋮</span>
+                <span style="flex: 1; font-weight: 600;"><%= tab_info[tab] %></span>
+              </div>
+            <% end %>
+          </div>
+          <div class="muted-note" style="margin-top: 8px;">Changes will be applied after saving.</div>
+        </div>
+      <% end %>
+
+      <div>
+        <%= f.label :password %>
+        <%= f.password_field :password, autocomplete: "new-password" %>
+        <% if @minimum_password_length %>
+          <div class="muted-note"><%= @minimum_password_length %> characters minimum</div>
+        <% end %>
+      </div>
+
+      <div>
+        <%= f.label :password_confirmation %>
+        <%= f.password_field :password_confirmation, autocomplete: "new-password" %>
+      </div>
+
+      <div>
+        <%= f.label :current_password %>
+        <%= f.password_field :current_password, autocomplete: "current-password" %>
+        <div class="muted-note">Needed to confirm changes</div>
+      </div>
+
+      <div>
+        <label>Add Sponsors</label>
+        <div class="sponsors-search-wrapper" style="position: relative;">
+          <input type="text"
+                 id="sponsors-search-input"
+                 class="sponsors-search-field"
+                 placeholder="Search for company profiles to add as sponsors..."
+                 autocomplete="off">
+          <div class="autocomplete-results" id="sponsors-results"></div>
+        </div>
+        <div id="selected-sponsors-list" class="selected-sponsors-list"></div>
+        <div id="sponsors-hidden-fields"></div>
+        <div class="muted-note">Search for company profiles. They will be asked to approve sponsoring you before appearing on your profile.</div>
+      </div>
+
+      <div class="settings-actions">
+        <%= f.submit "Save changes", class: "pill-btn primary" %>
+      </div>
+    <% end %>
+
+    <div class="settings-actions">
+      <%= button_to "Cancel my account", registration_path(:user), method: :delete,
+            class: "danger-btn",
+            form: { id: "cancel-account-form" },
+            data: { confirm: "This will permanently delete your account. Are you absolutely sure?", turbo_confirm: "This will permanently delete your account. Are you absolutely sure?" } %>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener("turbo:load", settingsModalInit);
+  document.addEventListener("DOMContentLoaded", settingsModalInit);
+
+  function settingsModalInit() {
+    const toggle = document.getElementById("toggle-settings");
+    const backdrop = document.getElementById("settings-backdrop");
+    const closeBtn = document.getElementById("close-settings");
+
+    if (toggle && backdrop && !toggle.hasAttribute('data-settings-bound')) {
+      toggle.setAttribute('data-settings-bound', 'true');
+      toggle.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        backdrop.classList.add("open");
+      }, { capture: true });
+    }
+
+    if (closeBtn && backdrop && !closeBtn.hasAttribute('data-settings-bound')) {
+      closeBtn.setAttribute('data-settings-bound', 'true');
+      closeBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        backdrop.classList.remove("open");
+      });
+    }
+
+    if (backdrop && !backdrop.hasAttribute('data-settings-bound')) {
+      backdrop.setAttribute('data-settings-bound', 'true');
+      backdrop.addEventListener("click", (e) => {
+        if (e.target === backdrop) {
+          e.preventDefault();
+          backdrop.classList.remove("open");
+        }
+      });
+    }
+
+    const avatarUpload = document.getElementById("avatar-upload");
+    const avatarPreview = document.getElementById("avatar-preview");
+    const avatarImg = document.getElementById("avatar-img");
+    const avatarPlaceholder = document.getElementById("avatar-placeholder");
+    const avatarControlsWrapper = document.getElementById("avatar-controls-wrapper");
+    const avatarControlsToggle = document.getElementById("avatar-controls-toggle");
+    const avatarControls = document.getElementById("avatar-controls");
+    const zoomInBtn = document.getElementById("zoom-in");
+    const zoomOutBtn = document.getElementById("zoom-out");
+    const resetBtn = document.getElementById("reset-zoom");
+
+    let currentZoom = 1;
+    let currentX = 0;
+    let currentY = 0;
+    let isDragging = false;
+    let startX, startY;
+
+    if (avatarUpload) {
+      avatarUpload.addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (file && file.type.startsWith("image/")) {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            let img = document.getElementById("avatar-img");
+            if (!img) {
+              img = document.createElement("img");
+              img.id = "avatar-img";
+              img.alt = "Avatar preview";
+              avatarPreview.innerHTML = "";
+              avatarPreview.appendChild(img);
+            }
+            img.src = event.target.result;
+
+            currentZoom = 1;
+            currentX = 0;
+            currentY = 0;
+            updateImageTransform();
+
+            avatarControlsWrapper.classList.add("active");
+          };
+          reader.readAsDataURL(file);
+        }
+      });
+    }
+
+    if (avatarControlsToggle && avatarControls) {
+      avatarControlsToggle.addEventListener("click", (e) => {
+        e.preventDefault();
+        avatarControlsToggle.classList.toggle("open");
+        avatarControls.classList.toggle("open");
+      });
+    }
+
+    function updateImageTransform() {
+      const img = document.getElementById("avatar-img");
+      if (img) {
+        img.style.transform = `translate(${currentX}px, ${currentY}px) scale(${currentZoom})`;
+      }
+    }
+
+    if (zoomInBtn) {
+      zoomInBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        currentZoom = Math.min(currentZoom + 0.1, 3);
+        updateImageTransform();
+      });
+    }
+
+    if (zoomOutBtn) {
+      zoomOutBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        currentZoom = Math.max(currentZoom - 0.1, 0.5);
+        updateImageTransform();
+      });
+    }
+
+    if (resetBtn) {
+      resetBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        currentZoom = 1;
+        currentX = 0;
+        currentY = 0;
+        updateImageTransform();
+      });
+    }
+
+    const moveStep = 10;
+    const moveUpBtn = document.getElementById("move-up");
+    const moveDownBtn = document.getElementById("move-down");
+    const moveLeftBtn = document.getElementById("move-left");
+    const moveRightBtn = document.getElementById("move-right");
+    const moveUpLeftBtn = document.getElementById("move-up-left");
+    const moveUpRightBtn = document.getElementById("move-up-right");
+    const moveDownLeftBtn = document.getElementById("move-down-left");
+    const moveDownRightBtn = document.getElementById("move-down-right");
+
+    if (moveUpBtn) {
+      moveUpBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        currentY -= moveStep;
+        updateImageTransform();
+      });
+    }
+    if (moveDownBtn) {
+      moveDownBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        currentY += moveStep;
+        updateImageTransform();
+      });
+    }
+    if (moveLeftBtn) {
+      moveLeftBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        currentX -= moveStep;
+        updateImageTransform();
+      });
+    }
+    if (moveRightBtn) {
+      moveRightBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        currentX += moveStep;
+        updateImageTransform();
+      });
+    }
+    if (moveUpLeftBtn) {
+      moveUpLeftBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        currentX -= moveStep;
+        currentY -= moveStep;
+        updateImageTransform();
+      });
+    }
+    if (moveUpRightBtn) {
+      moveUpRightBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        currentX += moveStep;
+        currentY -= moveStep;
+        updateImageTransform();
+      });
+    }
+    if (moveDownLeftBtn) {
+      moveDownLeftBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        currentX -= moveStep;
+        currentY += moveStep;
+        updateImageTransform();
+      });
+    }
+    if (moveDownRightBtn) {
+      moveDownRightBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        currentX += moveStep;
+        currentY += moveStep;
+        updateImageTransform();
+      });
+    }
+
+    if (avatarPreview) {
+      avatarPreview.addEventListener("mousedown", (e) => {
+        const img = document.getElementById("avatar-img");
+        if (img && currentZoom > 1) {
+          isDragging = true;
+          startX = e.clientX - currentX;
+          startY = e.clientY - currentY;
+          avatarPreview.style.cursor = "grabbing";
+        }
+      });
+
+      document.addEventListener("mousemove", (e) => {
+        if (isDragging) {
+          currentX = e.clientX - startX;
+          currentY = e.clientY - startY;
+          updateImageTransform();
+        }
+      });
+
+      document.addEventListener("mouseup", () => {
+        if (isDragging) {
+          isDragging = false;
+          avatarPreview.style.cursor = "grab";
+        }
+      });
+    }
+
+    if (avatarImg) {
+      avatarControlsWrapper.classList.add("active");
+      avatarPreview.style.cursor = "grab";
+    }
+
+    // Tab order drag and drop functionality
+    const tabOrderList = document.getElementById("tab-order-list");
+    const tabOrderField = document.getElementById("content_tab_order_field");
+    let draggedItem = null;
+
+    if (tabOrderList) {
+      const items = tabOrderList.querySelectorAll(".tab-order-item");
+
+      items.forEach(item => {
+        item.addEventListener("dragstart", (e) => {
+          draggedItem = item;
+          item.style.opacity = "0.5";
+          item.style.cursor = "grabbing";
+        });
+
+        item.addEventListener("dragend", (e) => {
+          item.style.opacity = "1";
+          item.style.cursor = "grab";
+          updateTabOrder();
+        });
+
+        item.addEventListener("dragover", (e) => {
+          e.preventDefault();
+          const afterElement = getDragAfterElement(tabOrderList, e.clientY);
+          if (afterElement == null) {
+            tabOrderList.appendChild(draggedItem);
+          } else {
+            tabOrderList.insertBefore(draggedItem, afterElement);
+          }
+        });
+      });
+
+      function getDragAfterElement(container, y) {
+        const draggableElements = [...container.querySelectorAll(".tab-order-item:not(.dragging)")];
+
+        return draggableElements.reduce((closest, child) => {
+          const box = child.getBoundingClientRect();
+          const offset = y - box.top - box.height / 2;
+
+          if (offset < 0 && offset > closest.offset) {
+            return { offset: offset, element: child };
+          } else {
+            return closest;
+          }
+        }, { offset: Number.NEGATIVE_INFINITY }).element;
+      }
+
+      function updateTabOrder() {
+        const items = tabOrderList.querySelectorAll(".tab-order-item");
+        const order = Array.from(items).map(item => item.dataset.tab);
+        tabOrderField.value = order.join(",");
+      }
+    }
+
+    // Explicit confirmation for account cancel
+    const cancelForm = document.getElementById("cancel-account-form");
+    if (cancelForm && !cancelForm.hasAttribute("data-confirm-bound")) {
+      cancelForm.setAttribute("data-confirm-bound", "true");
+      cancelForm.addEventListener("submit", function(e) {
+        const msg = "This will permanently delete your account. Are you absolutely sure?";
+        if (!window.confirm(msg)) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      });
+    }
+
+    // Initialize sponsor search
+    initSponsorsSearch();
+  }
+
+  // Sponsors search functionality
+  function initSponsorsSearch() {
+    const searchInput = document.getElementById('sponsors-search-input');
+    const resultsDiv = document.getElementById('sponsors-results');
+    const selectedList = document.getElementById('selected-sponsors-list');
+    const hiddenFieldsContainer = document.getElementById('sponsors-hidden-fields');
+
+    if (!searchInput || !resultsDiv || !selectedList) {
+      return;
+    }
+
+    // Fetch company users for sponsor search
+    let companyUsers = [];
+    fetch('/users.json')
+      .then(response => response.json())
+      .then(data => {
+        companyUsers = data.filter(u => u.profile_type === 'company' || u.profile_type === 'crew');
+      })
+      .catch(error => console.error('Error fetching users:', error));
+
+    const selectedSponsors = new Map(); // Map of id -> {id, username, status}
+    let currentFocus = -1;
+
+    // Load existing sponsor approvals (pending and approved)
+    <% if resource.respond_to?(:sponsor_approvals) && resource.sponsor_approvals.any? %>
+      <% resource.sponsor_approvals.where(status: ['pending', 'approved']).each do |approval| %>
+        selectedSponsors.set(<%= approval.sponsor_id %>, {
+          id: <%= approval.sponsor_id %>,
+          username: '<%= j approval.sponsor.username %>',
+          status: '<%= approval.status %>'
+        });
+      <% end %>
+    <% end %>
+    renderSelectedSponsors();
+
+    // Show results on focus
+    searchInput.addEventListener('focus', function() {
+      if (this.value.trim().length > 0) {
+        showResults(this.value);
+      }
+    });
+
+    // Filter as user types
+    searchInput.addEventListener('input', function() {
+      const value = this.value.trim();
+
+      if (value.length === 0) {
+        hideResults();
+        return;
+      }
+
+      showResults(value);
+    });
+
+    // Keyboard navigation
+    searchInput.addEventListener('keydown', function(e) {
+      const items = resultsDiv.querySelectorAll('.autocomplete-item:not(.no-results)');
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        currentFocus++;
+        addActive(items);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        currentFocus--;
+        addActive(items);
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (currentFocus > -1 && items[currentFocus]) {
+          items[currentFocus].click();
+        } else {
+          hideResults();
+        }
+      } else if (e.key === 'Escape') {
+        hideResults();
+      }
+    });
+
+    function showResults(searchTerm) {
+      if (!companyUsers || companyUsers.length === 0) {
+        resultsDiv.innerHTML = '<div class="autocomplete-item no-results" style="padding: 10px 12px; color: var(--muted); text-align: center;">Loading companies...</div>';
+        resultsDiv.style.display = 'block';
+        return;
+      }
+
+      const filtered = companyUsers.filter(u =>
+        u.username && u.username.toLowerCase().includes(searchTerm.toLowerCase()) &&
+        !selectedSponsors.has(u.id)
+      );
+
+      resultsDiv.innerHTML = '';
+      currentFocus = -1;
+
+      if (filtered.length === 0) {
+        resultsDiv.innerHTML = '<div class="autocomplete-item no-results" style="padding: 10px 12px; color: var(--muted); cursor: default; text-align: center;">No company profiles found</div>';
+      } else {
+        filtered.slice(0, 10).forEach(user => {
+          const div = document.createElement('div');
+          div.className = 'autocomplete-item';
+          div.style.cssText = 'padding: 10px 12px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.1s ease;';
+          div.textContent = user.username;
+          div.addEventListener('mouseover', function() {
+            this.style.background = 'color-mix(in srgb, var(--accent) 20%, transparent)';
+          });
+          div.addEventListener('mouseout', function() {
+            this.style.background = '';
+          });
+          div.addEventListener('click', function() {
+            addSponsor(user);
+          });
+          resultsDiv.appendChild(div);
+        });
+      }
+
+      resultsDiv.style.display = 'block';
+    }
+
+    function hideResults() {
+      resultsDiv.style.display = 'none';
+      currentFocus = -1;
+    }
+
+    function addSponsor(sponsor) {
+      selectedSponsors.set(sponsor.id, {
+        id: sponsor.id,
+        username: sponsor.username,
+        status: 'new'
+      });
+      renderSelectedSponsors();
+      searchInput.value = '';
+      hideResults();
+      searchInput.focus();
+    }
+
+    function removeSponsor(sponsorId) {
+      selectedSponsors.delete(sponsorId);
+      renderSelectedSponsors();
+    }
+
+    function renderSelectedSponsors() {
+      // Update visual list
+      selectedList.innerHTML = '';
+      if (selectedSponsors.size === 0) {
+        selectedList.innerHTML = '<span style="color: var(--muted); font-size: 13px; font-style: italic;">No sponsors selected yet</span>';
+      } else {
+        selectedSponsors.forEach((sponsor, id) => {
+          const tag = document.createElement('div');
+          tag.className = 'selected-rider-tag';
+
+          // Determine status display and styling
+          let statusText = '';
+          let statusStyle = '';
+          if (sponsor.status === 'pending') {
+            statusText = '<span style="color: #ffa500; font-size: 11px; font-weight: 500; margin-left: 4px;">(pending)</span>';
+          } else if (sponsor.status === 'approved') {
+            statusText = '<span style="color: #4ade80; font-size: 11px; font-weight: 500; margin-left: 4px;">(approved)</span>';
+          }
+
+          tag.style.cssText = 'display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; background: color-mix(in srgb, var(--accent) 20%, transparent); border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); border-radius: 8px; font-size: 13px; font-weight: 600; color: var(--text);';
+          tag.innerHTML = `
+            <span>${sponsor.username}${statusText}</span>
+            <button type="button" class="remove-rider-btn" data-sponsor-id="${id}" style="background: none; border: none; color: var(--muted); cursor: pointer; padding: 0; font-size: 16px; line-height: 1; transition: color 0.15s ease;">×</button>
+          `;
+          selectedList.appendChild(tag);
+        });
+      }
+
+      // Update hidden fields for form submission
+      hiddenFieldsContainer.innerHTML = '';
+      selectedSponsors.forEach((sponsor, id) => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'user[sponsor_ids][]';
+        input.value = id;
+        hiddenFieldsContainer.appendChild(input);
+      });
+
+      // Add event listeners to remove buttons
+      selectedList.querySelectorAll('.remove-rider-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const sponsorId = parseInt(this.getAttribute('data-sponsor-id'));
+          removeSponsor(sponsorId);
+        });
+        btn.addEventListener('mouseover', function() {
+          this.style.color = '#ff6b6b';
+        });
+        btn.addEventListener('mouseout', function() {
+          this.style.color = 'var(--muted)';
+        });
+      });
+    }
+
+    function addActive(items) {
+      if (!items || items.length === 0) return;
+      removeActive(items);
+      if (currentFocus >= items.length) currentFocus = 0;
+      if (currentFocus < 0) currentFocus = items.length - 1;
+      if (items[currentFocus]) {
+        items[currentFocus].style.background = 'color-mix(in srgb, var(--accent) 20%, transparent)';
+      }
+    }
+
+    function removeActive(items) {
+      items.forEach(item => item.style.background = '');
+    }
+
+    // Close results when clicking outside
+    document.addEventListener('click', function(e) {
+      if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {
+        hideResults();
+      }
+    });
+  }
+</script>

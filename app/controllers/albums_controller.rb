@@ -1,9 +1,10 @@
 class AlbumsController < ApplicationController
   before_action :set_album, only: [:show, :edit, :update, :destroy]
-  before_action :authenticate_user!, except: [:index, :show]
+  before_action :authenticate_user!
 
   def index
-    @albums = Album.includes(:user, photos: :image_attachment)
+    # Show only current user's albums (requires authentication)
+    @albums = current_user.albums.includes(:user, photos: :image_attachment)
 
     # Search
     if params[:search].present?
@@ -67,7 +68,7 @@ class AlbumsController < ApplicationController
   end
 
   def album_params
-    params.require(:album).permit(:title, :description, :date)
+    params.require(:album).permit(:title, :description, :date, :is_public)
   end
 
   def authorize_album!

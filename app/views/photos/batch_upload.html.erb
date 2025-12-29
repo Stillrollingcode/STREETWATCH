@@ -413,6 +413,12 @@
             <%= date_field_tag 'album[date]', nil %>
           </div>
         </div>
+        <div class="form-row">
+          <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+            <%= check_box_tag 'album[is_public]', '1', true, id: 'album_is_public' %>
+            <label for="album_is_public" style="margin: 0; cursor: pointer;">Make this album public (visible to others)</label>
+          </div>
+        </div>
       </div>
     </div>
 

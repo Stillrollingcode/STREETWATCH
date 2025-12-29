@@ -1,0 +1,47 @@
+<%
+  # Get the first notification for basic info
+  first_notification = group[:notifications].first
+  notification_count = group[:notifications].size
+  actors = group[:notifications].map(&:actor).uniq
+
+  # Build the message based on grouping
+  if notification_count > 1
+    first_actor = actors.first.username
+    others_count = actors.size - 1
+
+    if group[:action] == 'favorited'
+      title = "Film Favorited"
+      if others_count > 0
+        message = "#{first_actor} and #{others_count} #{'other'.pluralize(others_count)} favorited your film"
+      else
+        message = "#{first_actor} favorited your film"
+      end
+    elsif group[:action] == 'commented'
+      title = "New #{'Comment'.pluralize(notification_count)}"
+      if others_count > 0
+        message = "#{first_actor} and #{others_count} #{'other'.pluralize(others_count)} commented on your film"
+      else
+        message = "#{first_actor} commented on your film"
+      end
+    end
+
+    # Get target path from notifiable
+    if group[:notifiable_type] == 'Film' && group[:notifiable]
+      target_path = film_path(group[:notifiable])
+    else
+      target_path = first_notification.target_path
+    end
+  else
+    # Single notification - use regular display
+    title = first_notification.title
+    message = first_notification.message
+    target_path = first_notification.target_path
+  end
+%>
+
+<%= link_to target_path, class: "activity-item #{is_unread ? 'unread' : ''}" do %>
+  <div class="activity-type-badge notification">Notification</div>
+  <div class="activity-item-title"><%= title %></div>
+  <div class="activity-item-desc"><%= message %></div>
+  <div class="activity-item-time"><%= time_ago_in_words(group[:latest_created_at]) %> ago</div>
+<% end %>

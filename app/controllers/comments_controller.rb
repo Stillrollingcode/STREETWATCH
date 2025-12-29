@@ -39,11 +39,4 @@ class CommentsController < ApplicationController
   def comment_params
     params.require(:comment).permit(:body, :parent_id)
   end
-
-  def can_delete_comment?(user, film, comment)
-    # Check if current user is the film uploader
-    # For now, we'll check if user created the film (created_by could be added as a field)
-    # or if the film's filmer_user is the current user
-    film.filmer_user == user || film.editor_user == user
-  end
 end

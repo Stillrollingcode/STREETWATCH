@@ -4,7 +4,54 @@ ActiveAdmin.register Photo do
                 :custom_photographer_name, :custom_riders, :image,
                 rider_ids: []
 
+  # Add custom action item for search bar
+  action_item :search, only: :index do
+    text_node %{
+      <div style="display: flex; align-items: center; margin-top: 15px;">
+        <form action="#{admin_photos_path}" method="get" accept-charset="UTF-8" style="display: flex; gap: 8px; align-items: center;">
+          <input
+            name="q[title_or_description_or_photographer_user_username_or_user_username_or_riders_username_cont]"
+            type="text"
+            placeholder="Search photos..."
+            value="#{params.dig(:q, :title_or_description_or_photographer_user_username_or_user_username_or_riders_username_cont)}"
+            style="width: 300px; padding: 6px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px;" />
+          <input type="submit" value="Search" style="padding: 6px 16px; background: #5E6469; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; white-space: nowrap;" />
+          #{params[:q].present? ? '<a href="' + admin_photos_path + '" style="padding: 6px 16px; background: #999; color: white; text-decoration: none; border-radius: 4px; display: inline-block; font-size: 13px; white-space: nowrap;">Clear</a>' : ''}
+        </form>
+      </div>
+    }.html_safe
+  end
+
+  # Add "Select All" action across all pages
+  batch_action :bulk_edit_all,
+               if: proc { params[:select_all].blank? },
+               form: -> {
+                 {
+                   album_id: Album.all.map { |a| [a.title, a.id] },
+                   date_taken: :datepicker
+                 }
+               } do |ids, inputs|
+    # This handles the actual bulk edit
+    photos = Photo.where(id: ids)
+
+    photos.each do |photo|
+      photo.update(album_id: inputs[:album_id]) if inputs[:album_id].present?
+      photo.update(date_taken: inputs[:date_taken]) if inputs[:date_taken].present?
+    end
+
+    redirect_to collection_path, notice: "Updated #{photos.count} photos"
+  end
+
+  action_item :select_all_photos, only: :index do
+    link_to "Select All #{collection.total_count} Photos",
+            admin_photos_path(params.to_unsafe_h.merge(select_all: 'true')),
+            class: 'button',
+            style: 'background: #ff9800; color: white;',
+            data: { confirm: "This will select all #{collection.total_count} photos across all pages. Continue?" }
+  end
+
   index do
+
     selectable_column
     column "ID", :friendly_id
     column "Image" do |photo|
@@ -20,6 +67,11 @@ ActiveAdmin.register Photo do
     actions
   end
 
+  # Search bar - searches across title, description, photographer, and riders
+  filter :title_or_description_or_photographer_user_username_or_user_username_or_riders_username_cont,
+         as: :string,
+         label: 'Search'
+
   filter :title
   filter :album
   filter :photographer_user, label: 'Photographer'
@@ -28,8 +80,83 @@ ActiveAdmin.register Photo do
   filter :created_at
 
   controller do
+    after_action :add_select_all_script, only: :index
+
     def find_resource
       Photo.find_by_friendly_or_id(params[:id])
+    end
+
+    def index
+      super do |format|
+        format.html do
+          if params[:select_all] == 'true'
+            # Get all photo IDs matching current filters
+            @all_photo_ids = @photos.pluck(:id)
+          end
+        end
+      end
+    end
+
+    def add_select_all_script
+      return unless @all_photo_ids.present?
+
+      response.body = response.body.sub(
+        '</body>',
+        <<~HTML + '</body>'
+          <script type="text/javascript">
+            (function() {
+              const allIds = #{@all_photo_ids.to_json};
+              console.log('[SELECT ALL] Script loaded with', allIds.length, 'photo IDs');
+
+              function selectAllPhotos() {
+                console.log('[SELECT ALL] Running selectAllPhotos function');
+
+                // Find all checkboxes
+                const checkboxes = document.querySelectorAll('.paginated_collection tbody input[type="checkbox"]');
+                console.log('[SELECT ALL] Found', checkboxes.length, 'checkboxes');
+
+                let checkedCount = 0;
+                checkboxes.forEach(function(checkbox) {
+                  const value = parseInt(checkbox.value);
+                  if (allIds.includes(value)) {
+                    checkbox.checked = true;
+                    checkedCount++;
+
+                    // Manually trigger change event for ActiveAdmin
+                    const event = new Event('change', { bubbles: true });
+                    checkbox.dispatchEvent(event);
+                  }
+                });
+
+                console.log('[SELECT ALL] Checked', checkedCount, 'checkboxes');
+
+                // Check master checkbox
+                const masterCheckbox = document.querySelector('.paginated_collection thead input[type="checkbox"]');
+                if (masterCheckbox) {
+                  masterCheckbox.checked = true;
+                  console.log('[SELECT ALL] Checked master checkbox');
+                }
+
+                // Show notification
+                const notice = document.createElement('div');
+                notice.className = 'flash flash_notice';
+                notice.textContent = 'Selected all ' + allIds.length + ' photos across all pages. Choose a batch action from the dropdown.';
+                notice.style.cssText = 'position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 10000; padding: 15px 30px; background: #6dd27f; color: white; border-radius: 4px; box-shadow: 0 2px 10px rgba(0,0,0,0.2);';
+                document.body.appendChild(notice);
+
+                setTimeout(function() {
+                  notice.remove();
+                }, 5000);
+              }
+
+              // Try multiple times to ensure DOM is ready
+              setTimeout(selectAllPhotos, 100);
+              setTimeout(selectAllPhotos, 500);
+              setTimeout(selectAllPhotos, 1000);
+            })();
+          </script>
+        HTML
+      )
     end
   end
 
@@ -552,6 +679,7 @@ ActiveAdmin.register Photo do
             setTimeout(initAdminAutocomplete, 100);
           })();
         </script>
+
       HTML
     end
   end

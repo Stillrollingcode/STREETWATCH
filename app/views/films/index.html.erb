@@ -121,36 +121,184 @@
     }
     .films-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 20px;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 30px;
+    }
+    .films-grid > a {
+      display: flex;
+      text-decoration: none;
+      color: inherit;
+      border: none;
+      outline: none;
+    }
+
+    @media (max-width: 900px) {
+      .films-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 600px) {
+      .films-grid {
+        grid-template-columns: 1fr;
+      }
     }
     .film-card {
-      background: rgba(255,255,255,0.04);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      overflow: hidden;
+      background: transparent;
+      border: none;
+      overflow: visible;
       transition: all 0.2s ease;
       display: flex;
       flex-direction: column;
+      align-items: center;
+      height: 100%;
+      filter:
+        drop-shadow(0 0 8px <%= "hsla(#{user_theme_styles[:accent_hue] || 145}, 70%, 60%, 0.15)" %>)
+        drop-shadow(0 0 16px <%= "hsla(#{user_theme_styles[:accent_hue] || 145}, 70%, 60%, 0.08)" %>)
+        drop-shadow(0 18px 40px rgba(0,0,0,.55));
     }
     .film-card:hover {
-      transform: translateY(-2px);
-      border-color: rgba(255,255,255,0.2);
-      box-shadow: 0 12px 30px rgba(0,0,0,0.4);
+      transform: translateY(-4px);
+      filter:
+        drop-shadow(0 0 12px <%= "hsla(#{user_theme_styles[:accent_hue] || 145}, 70%, 60%, 0.25)" %>)
+        drop-shadow(0 0 24px <%= "hsla(#{user_theme_styles[:accent_hue] || 145}, 70%, 60%, 0.15)" %>)
+        drop-shadow(0 22px 50px rgba(0,0,0,.65));
     }
+    .film-card:hover .film-thumbnail {
+      box-shadow:
+        inset 0 0 0 2px rgba(255,255,255,.12),
+        inset 0 -14px 30px rgba(0,0,0,.35);
+    }
+
+    /* DVD disc made from film thumbnail */
     .film-thumbnail {
-      width: 100%;
-      background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 20%, transparent), color-mix(in srgb, var(--accent-2) 20%, transparent));
+      /* controls */
+      --size: 260px;
+      --hole: 18%;
+      --inner-ring: 28%;
+      --bg: var(--bg);
+
+      width: var(--size);
+      aspect-ratio: 1 / 1;
+      border-radius: 50%;
+      position: relative;
+      overflow: visible;
+
+      /* depth */
+      box-shadow:
+        inset 0 0 0 2px rgba(255,255,255,.10),
+        inset 0 -14px 30px rgba(0,0,0,.35);
+      transform: translateZ(0);
+
+      /* punch the center hole (best support is WebKit) */
+      -webkit-mask-image: radial-gradient(
+        circle at 50% 50%,
+        transparent 0 calc(var(--hole) * 0.50),
+        #000      calc(var(--hole) * 0.52) 100%
+      );
+      mask-image: radial-gradient(
+        circle at 50% 50%,
+        transparent 0 calc(var(--hole) * 0.50),
+        #000      calc(var(--hole) * 0.52) 100%
+      );
+
       display: flex;
       align-items: center;
       justify-content: center;
-      position: relative;
-      overflow: hidden;
     }
+
+    /* Inner data ring circle - creates transparency for inner area like real DVDs */
+    .film-thumbnail .inner-ring {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 3;
+
+      /* Create uniform transparency overlay for inner area + visible ring border */
+      background:
+        /* Inner semi-transparent overlay (uniform opacity up to ring) */
+        radial-gradient(
+          circle at 50% 50%,
+          rgba(255, 255, 255, 0.20) 0 calc(var(--inner-ring) * 0.94),
+          rgba(255, 255, 255, 0.20) calc(var(--inner-ring) * 0.96),
+          transparent calc(var(--inner-ring) * 0.97),
+          transparent calc(var(--inner-ring) * 0.98),
+          /* The actual ring border */
+          rgba(180, 180, 200, 0.40) calc(var(--inner-ring) * 0.98),
+          rgba(220, 220, 235, 0.50) calc(var(--inner-ring) * 1.00),
+          rgba(180, 180, 200, 0.40) calc(var(--inner-ring) * 1.02),
+          transparent calc(var(--inner-ring) * 1.03) 100%
+        );
+    }
+
+    /* rim + bevel + subtle radial "plastic" shading */
+    .film-thumbnail::before {
+      content: "";
+      position: absolute;
+      inset: -2%;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 50% 50%,
+          rgba(255,255,255,.00) 48%,
+          rgba(255,255,255,.10) 58%,
+          rgba(0,0,0,.20) 72%,
+          rgba(255,255,255,.14) 86%,
+          rgba(0,0,0,.35) 100%
+        );
+      mix-blend-mode: overlay;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* glossy sweep + a faint "ring" texture */
+    .film-thumbnail::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background:
+        conic-gradient(from 220deg,
+          rgba(255,255,255,.00) 0 20%,
+          rgba(255,255,255,.18) 26%,
+          rgba(255,255,255,.00) 36% 100%
+        ),
+        repeating-radial-gradient(circle at 50% 50%,
+          rgba(255,255,255,.05) 0 2px,
+          rgba(0,0,0,.00) 2px 7px
+        );
+      opacity: .85;
+      mix-blend-mode: screen;
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    /* fallback hole for browsers that ignore mask-image */
+    @supports not (-webkit-mask-image: radial-gradient(circle, #000, transparent)) {
+      .film-thumbnail {
+        clip-path: circle(50% at 50% 50%);
+      }
+      .film-thumbnail::before {
+        /* keep rim; add a "fake" hole fill on top */
+        background:
+          radial-gradient(circle at 50% 50%,
+            var(--bg) 0 calc(var(--hole) * 0.50),
+            rgba(255,255,255,.00) calc(var(--hole) * 0.52) 100%
+          ),
+          radial-gradient(circle at 50% 50%,
+            rgba(255,255,255,.00) 48%,
+            rgba(255,255,255,.10) 58%,
+            rgba(0,0,0,.20) 72%,
+            rgba(255,255,255,.14) 86%,
+            rgba(0,0,0,.35) 100%
+          );
+      }
+    }
+
     .pending-approval-badge {
       position: absolute;
-      top: 8px;
-      right: 8px;
+      top: 12px;
+      right: 12px;
       background: linear-gradient(120deg, rgba(255, 165, 0, 0.9), rgba(255, 140, 0, 0.9));
       color: #0b0b0d;
       padding: 4px 10px;
@@ -160,21 +308,58 @@
       text-transform: uppercase;
       letter-spacing: 0.05em;
       box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-      z-index: 2;
+      z-index: 3;
     }
+    .pending-arc-text {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));
+      z-index: 4;
+    }
+
+    /* Add yellow hue to pending films */
+    .film-thumbnail.pending-film::after {
+      background:
+        conic-gradient(from 220deg,
+          rgba(255,255,255,.00) 0 20%,
+          rgba(255,255,255,.18) 26%,
+          rgba(255,255,255,.00) 36% 100%
+        ),
+        repeating-radial-gradient(circle at 50% 50%,
+          rgba(255,255,255,.05) 0 2px,
+          rgba(0,0,0,.00) 2px 7px
+        ),
+        radial-gradient(circle at 50% 50%,
+          rgba(255, 165, 0, 0.6) 0%,
+          rgba(255, 165, 0, 0.4) 100%
+        );
+      opacity: 1;
+    }
+
     .film-thumbnail img {
       width: 100%;
       height: 100%;
       object-fit: cover;
+      position: absolute;
+      inset: 0;
     }
+
     .film-thumbnail .placeholder {
       font-size: 48px;
       opacity: 0.3;
+      z-index: 0;
     }
     .film-info {
-      padding: 14px;
+      padding: 20px 14px 14px;
       display: grid;
       gap: 8px;
+      width: 100%;
+      max-width: 260px;
+      text-align: center;
     }
     .film-title {
       font-weight: 700;
@@ -187,11 +372,13 @@
       display: flex;
       flex-direction: column;
       gap: 4px;
+      align-items: center;
     }
     .film-meta-row {
       display: flex;
       align-items: center;
       gap: 6px;
+      justify-content: center;
     }
     .film-company {
       color: var(--accent);
@@ -202,6 +389,7 @@
       display: flex;
       flex-wrap: wrap;
       gap: 6px;
+      justify-content: center;
     }
     .rider-tag {
       background: rgba(255,255,255,0.08);
@@ -219,12 +407,63 @@
       margin: 0 0 10px;
       color: var(--text);
     }
+
+    .pagination {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      margin: 32px 0;
+    }
+
+    .pagination a,
+    .pagination .current,
+    .pagination .gap {
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      text-decoration: none;
+      font-size: 14px;
+      transition: all 0.15s ease;
+    }
+
+    .pagination a:hover {
+      background: rgba(255,255,255,0.08);
+      border-color: var(--accent);
+    }
+
+    .pagination .current {
+      background: color-mix(in srgb, var(--accent) 20%, transparent);
+      border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .pagination .gap {
+      border: none;
+      background: transparent;
+      color: var(--muted);
+    }
+
+    .pagination .first,
+    .pagination .prev,
+    .pagination .next,
+    .pagination .last {
+      font-weight: 600;
+    }
   </style>
 <% end %>
 
 <div class="films-shell">
   <div class="films-header">
     <h1>Films</h1>
+    <% if params[:film_type].present? && Film::FILM_TYPE_DESCRIPTIONS[params[:film_type]] %>
+      <p style="font-size: 15px; font-style: italic; color: var(--muted); margin: 8px auto 0; max-width: 600px;">
+        <%= Film::FILM_TYPE_DESCRIPTIONS[params[:film_type]] %>
+      </p>
+    <% end %>
   </div>
 
   <!-- Group By Buttons -->
@@ -239,9 +478,11 @@
   <div class="group-by-buttons" style="margin-top: 12px;">
     <%= link_to "All Types", films_path(group_by: params[:group_by], sort: params[:sort], q: params[:q]), class: "group-btn #{params[:film_type].blank? ? 'active' : ''}" %>
     <%= link_to "Full Length", films_path(film_type: 'full_length', group_by: params[:group_by], sort: params[:sort], q: params[:q]), class: "group-btn #{params[:film_type] == 'full_length' ? 'active' : ''}" %>
-    <%= link_to "Video Part", films_path(film_type: 'video_part', group_by: params[:group_by], sort: params[:sort], q: params[:q]), class: "group-btn #{params[:film_type] == 'video_part' ? 'active' : ''}" %>
+    <%= link_to "Rider Part", films_path(film_type: 'rider_part', group_by: params[:group_by], sort: params[:sort], q: params[:q]), class: "group-btn #{params[:film_type] == 'rider_part' ? 'active' : ''}" %>
     <%= link_to "Mixtape", films_path(film_type: 'mixtape', group_by: params[:group_by], sort: params[:sort], q: params[:q]), class: "group-btn #{params[:film_type] == 'mixtape' ? 'active' : ''}" %>
     <%= link_to "Series", films_path(film_type: 'series', group_by: params[:group_by], sort: params[:sort], q: params[:q]), class: "group-btn #{params[:film_type] == 'series' ? 'active' : ''}" %>
+    <%= link_to "B-Sides", films_path(film_type: 'b_sides', group_by: params[:group_by], sort: params[:sort], q: params[:q]), class: "group-btn #{params[:film_type] == 'b_sides' ? 'active' : ''}" %>
+    <%= link_to "All The Rest", films_path(film_type: 'all_the_rest', group_by: params[:group_by], sort: params[:sort], q: params[:q]), class: "group-btn #{params[:film_type] == 'all_the_rest' ? 'active' : ''}" %>
   </div>
 
   <!-- Filters Bar -->
@@ -268,6 +509,7 @@
     </div>
   </div>
 
+  <turbo-frame id="films-content" data-turbo-action="advance">
   <% if @films.any? %>
     <% if @grouped_films.present? %>
       <!-- Grouped Display -->
@@ -276,20 +518,9 @@
           <h2 class="group-header"><%= group_name || 'Unknown' %></h2>
           <div class="films-grid">
             <% films.each do |film| %>
-              <%= link_to film, style: "text-decoration: none; color: inherit;" do %>
+              <%= link_to film, style: "text-decoration: none; color: inherit;", data: { turbo_frame: "_top" } do %>
                 <div class="film-card">
-                  <div class="film-thumbnail" style="aspect-ratio: <%= film.aspect_ratio_css %>;">
-                    <% if user_signed_in? && !film.published? %>
-                      <div class="pending-approval-badge">⏳ Pending</div>
-                    <% end %>
-                    <% if film.thumbnail.attached? %>
-                      <%= image_tag film.thumbnail %>
-                    <% elsif film.youtube_thumbnail_url %>
-                      <%= image_tag film.youtube_thumbnail_url, alt: film.title %>
-                    <% else %>
-                      <div class="placeholder">🎬</div>
-                    <% end %>
-                  </div>
+                  <%= render 'shared/film_thumbnail', film: film, show_pending: (user_signed_in? && !film.published?), unique_id: "grouped-#{film.id}" %>
                   <div class="film-info">
                     <h3 class="film-title"><%= film.title %></h3>
                     <div class="film-meta">
@@ -318,20 +549,9 @@
       <!-- Normal Grid Display -->
       <div class="films-grid">
       <% @films.each do |film| %>
-        <%= link_to film, style: "text-decoration: none; color: inherit;" do %>
+        <%= link_to film, style: "text-decoration: none; color: inherit;", data: { turbo_frame: "_top" } do %>
           <div class="film-card">
-            <div class="film-thumbnail" style="aspect-ratio: <%= film.aspect_ratio_css %>;">
-              <% if user_signed_in? && !film.published? %>
-                <div class="pending-approval-badge">⏳ Pending</div>
-              <% end %>
-              <% if film.thumbnail.attached? %>
-                <%= image_tag film.thumbnail %>
-              <% elsif film.youtube_thumbnail_url %>
-                <%= image_tag film.youtube_thumbnail_url, alt: film.title %>
-              <% else %>
-                <div class="placeholder">🎬</div>
-              <% end %>
-            </div>
+            <%= render 'shared/film_thumbnail', film: film, show_pending: (user_signed_in? && !film.published?), unique_id: "normal-#{film.id}" %>
             <div class="film-info">
               <h3 class="film-title"><%= film.title %></h3>
               <div class="film-meta">
@@ -364,6 +584,11 @@
         <% end %>
       <% end %>
       </div>
+
+      <!-- Pagination (only show when not grouped) -->
+      <% if @films.respond_to?(:current_page) %>
+        <%= paginate @films %>
+      <% end %>
     <% end %>
   <% else %>
     <div class="empty-state">
@@ -371,6 +596,7 @@
       <p>Be the first to add a film to the archive.</p>
     </div>
   <% end %>
+  </turbo-frame>
 </div>
 
 <script>
@@ -407,6 +633,9 @@
       if (currentParams.get('film_type')) {
         params.set('film_type', currentParams.get('film_type'));
       }
+
+      // Reset to page 1 when searching or filtering
+      params.delete('page');
 
       // Store that we should refocus after reload
       sessionStorage.setItem('filmSearchFocus', 'true');

@@ -10,6 +10,8 @@
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
 
+    <%= javascript_importmap_tags %>
+
     <%= yield :head %>
 
     <%# Enable PWA manifest for installable apps (make sure to enable in config/routes.rb too!) %>
@@ -258,7 +260,7 @@
         transform: translateX(-50%);
         margin-top: 8px;
         min-width: 220px;
-        background: #111015;
+        background: <%= theme[:theme_name] == 'light' ? 'rgba(255,255,255,0.98)' : '#111015' %>;
         border: 1px solid var(--border);
         border-radius: 12px;
         box-shadow: 0 12px 30px rgba(0,0,0,0.4);
@@ -322,7 +324,7 @@
         top: calc(100% + 8px);
         min-width: 350px;
         max-width: 400px;
-        background: #111015;
+        background: <%= theme[:theme_name] == 'light' ? 'rgba(255,255,255,0.98)' : '#111015' %>;
         border: 1px solid var(--border);
         border-radius: 12px;
         box-shadow: 0 12px 30px rgba(0,0,0,0.4);
@@ -342,6 +344,24 @@
         padding: 8px 12px;
         border-bottom: 1px solid var(--border);
         margin-bottom: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .mark-read-btn {
+        background: rgba(255,255,255,0.1);
+        border: 1px solid var(--border);
+        color: var(--text);
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.15s ease;
+      }
+      .mark-read-btn:hover {
+        background: rgba(255,255,255,0.15);
+        border-color: var(--accent);
       }
       .activity-item {
         padding: 12px;
@@ -380,6 +400,30 @@
         padding: 40px 20px;
         color: var(--muted);
         font-size: 14px;
+      }
+      .expand-notifications-btn {
+        width: 100%;
+        padding: 10px;
+        margin-top: 8px;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        color: var(--text);
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .expand-notifications-btn:hover {
+        background: rgba(255,255,255,0.1);
+        border-color: var(--accent);
+      }
+      .activity-item.unread {
+        background: rgba(var(--accent-rgb), 0.08);
+        border-color: rgba(var(--accent-rgb), 0.2);
       }
       .activity-type-badge {
         display: inline-block;
@@ -465,10 +509,17 @@
           max-width: 320px;
         }
       }
+
+      /* Turbo Progress Bar - Hidden (using skeleton loader instead) */
+      .turbo-progress-bar {
+        display: none !important;
+      }
     </style>
   </head>
 
-  <body>
+  <body data-csrf-token="<%= form_authenticity_token %>">
+    <%= render 'shared/page_skeleton', type: 'films' %>
+
     <% if notice.present? || alert.present? %>
       <div id="flash-container" style="position: fixed; top: 12px; left: 0; right: 0; z-index: 1000; display: grid; gap: 8px; justify-content: center; pointer-events: none;">
         <% if notice.present? %>
@@ -531,34 +582,68 @@
                 <% end %>
               </button>
               <div class="activity-menu" id="activity-menu">
-                <div class="activity-header">Recent Activity</div>
-                <% if total_activity_count > 0 %>
-                  <% if pending_approvals_count > 0 %>
-                    <% current_user.film_approvals.pending.includes(:film).limit(5).each do |approval| %>
-                      <%= link_to film_path(approval.film), class: "activity-item" do %>
-                        <div class="activity-type-badge approval">Approval Needed</div>
-                        <div class="activity-item-title"><%= approval.film.title %></div>
-                        <div class="activity-item-desc">You've been tagged as <%= approval.approval_type.titleize %></div>
-                        <div class="activity-item-time"><%= time_ago_in_words(approval.created_at) %> ago</div>
-                      <% end %>
-                    <% end %>
-                  <% end %>
+                <div class="activity-header">
+                  <span>Recent Activity</span>
                   <% if unread_notifications_count > 0 %>
-                    <% current_user.notifications.where(read_at: nil).order(created_at: :desc).limit(5).each do |notification| %>
-                      <%= link_to notification.target_path, class: "activity-item" do %>
-                        <div class="activity-type-badge notification">Notification</div>
-                        <div class="activity-item-title"><%= notification.title %></div>
-                        <div class="activity-item-desc"><%= notification.message %></div>
-                        <div class="activity-item-time"><%= time_ago_in_words(notification.created_at) %> ago</div>
+                    <button type="button" class="mark-read-btn" id="mark-read-btn" onclick="markNotificationsAsRead()">
+                      Mark as Read
+                    </button>
+                  <% end %>
+                </div>
+                <%
+                  # Fetch notifications for grouping
+                  unread_notifications = current_user.notifications.where(read_at: nil).order(created_at: :desc).limit(5)
+                  all_notifications = current_user.notifications.order(created_at: :desc).limit(20)
+                  unread_grouped = group_notifications(unread_notifications)
+                  all_grouped = group_notifications(all_notifications)
+                  # Show expand button if there are any read notifications (not just unread)
+                  has_more_notifications = current_user.notifications.where.not(read_at: nil).exists? || current_user.notifications.count > 5
+                %>
+
+                <div class="activity-content-compact" id="activity-content-compact">
+                  <% if total_activity_count > 0 %>
+                    <% if pending_approvals_count > 0 %>
+                      <% current_user.film_approvals.pending.includes(:film).limit(5).each do |approval| %>
+                        <%= link_to film_path(approval.film), class: "activity-item" do %>
+                          <div class="activity-type-badge approval">Approval Needed</div>
+                          <div class="activity-item-title"><%= approval.film.title %></div>
+                          <div class="activity-item-desc">You've been tagged as <%= approval.approval_type.titleize %></div>
+                          <div class="activity-item-time"><%= time_ago_in_words(approval.created_at) %> ago</div>
+                        <% end %>
                       <% end %>
                     <% end %>
+                    <% unread_grouped.each do |group| %>
+                      <%= render partial: 'shared/notification_group', locals: { group: group, is_unread: true } %>
+                    <% end %>
+                  <% else %>
+                    <div class="activity-empty">
+                      <div style="font-size: 32px; margin-bottom: 8px; opacity: 0.3;">✓</div>
+                      <div>No new activity</div>
+                    </div>
                   <% end %>
-                <% else %>
-                  <div class="activity-empty">
-                    <div style="font-size: 32px; margin-bottom: 8px; opacity: 0.3;">✓</div>
-                    <div>No new activity</div>
-                  </div>
-                <% end %>
+
+                  <% if has_more_notifications %>
+                    <button type="button" class="expand-notifications-btn" id="expand-notifications-btn" onclick="toggleNotificationsExpand()">
+                      <span class="expand-text">Show All Notifications</span>
+                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-left: 4px;">
+                        <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                    </button>
+                  <% end %>
+                </div>
+
+                <div class="activity-content-expanded" id="activity-content-expanded" style="display: none;">
+                  <% all_grouped.each do |group| %>
+                    <%= render partial: 'shared/notification_group', locals: { group: group, is_unread: group[:notifications].any? { |n| n.read_at.nil? } } %>
+                  <% end %>
+
+                  <button type="button" class="expand-notifications-btn" onclick="toggleNotificationsExpand()">
+                    <span class="expand-text">Show Less</span>
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-left: 4px; transform: rotate(180deg);">
+                      <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                </div>
               </div>
             </div>
             <span style="color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em;"><%= current_user.username.presence || current_user.email %></span>
@@ -592,7 +677,7 @@
     <main class="shell">
       <% if controller_name == "pages" && action_name == "home" %>
         <section class="hero">
-          <% logo_file = theme[:theme_name] == 'light' ? '/SW-LOGO-2025-BLACK.svg' : '/SW-LOGO-2025-WHITE.svg' %>
+          <% logo_file = theme[:theme_name] == 'light' ? '/SW-LOGO-2025-full-BLK.svg' : '/SW-LOGO-2025-full-WHT.svg' %>
           <img src="<%= logo_file %>" alt="STREETWATCH" class="hero-logo">
           <p class="sub">Document. Create. Share. Support.</p>
           <div class="cta-row">
@@ -614,6 +699,8 @@
       <% end %>
     </main>
 
+    <%= render 'shared/footer' %>
+
     <script>
       function initActivityDropdown() {
         const activityBtn = document.getElementById('activity-btn');
@@ -623,13 +710,7 @@
 
         activityBtn.addEventListener('click', function(e) {
           e.stopPropagation();
-          const wasOpen = activityMenu.classList.contains('open');
           activityMenu.classList.toggle('open');
-
-          // Mark notifications as read when opening the dropdown
-          if (!wasOpen && activityMenu.classList.contains('open')) {
-            markNotificationsAsRead();
-          }
         });
 
         // Close dropdown when clicking outside
@@ -646,19 +727,55 @@
       }
 
       function markNotificationsAsRead() {
+        // Count notifications BEFORE removing them
+        const notificationItems = Array.from(document.querySelectorAll('.activity-item')).filter(item => {
+          return item.querySelector('.activity-type-badge.notification');
+        });
+        const notificationCount = notificationItems.length;
+
+        if (notificationCount === 0) {
+          return; // No notifications to mark as read
+        }
+
+        // Get CSRF token from body data attribute (most reliable for Turbo apps)
+        let csrfToken = document.body.getAttribute('data-csrf-token');
+
+        if (!csrfToken) {
+          // Fallback: Try meta tag in head
+          const metaTag = document.head?.querySelector('meta[name="csrf-token"]');
+          if (metaTag) {
+            csrfToken = metaTag.getAttribute('content');
+          }
+        }
+
+        if (!csrfToken) {
+          console.error('CSRF token not found');
+          return;
+        }
+
         fetch('/notifications/mark_as_read', {
           method: 'POST',
           headers: {
-            'X-CSRF-Token': document.querySelector('[name="csrf-token"]').content,
+            'X-CSRF-Token': csrfToken,
             'Content-Type': 'application/json'
           }
         }).then(response => {
           if (response.ok) {
-            // Update the badge count (only remove notification count, keep approval count)
+            // Remove notification items from the dropdown
+            notificationItems.forEach(item => {
+              item.remove();
+            });
+
+            // Hide the "Mark as Read" button
+            const markReadBtn = document.getElementById('mark-read-btn');
+            if (markReadBtn) {
+              markReadBtn.remove();
+            }
+
+            // Update the badge count (subtract notification count)
             const badge = document.querySelector('.activity-badge');
             if (badge) {
               const currentCount = parseInt(badge.textContent);
-              const notificationCount = document.querySelectorAll('.activity-type-badge.notification').length;
               const newCount = currentCount - notificationCount;
 
               if (newCount > 0) {
@@ -667,14 +784,94 @@
                 badge.remove();
               }
             }
+
+            // Check if activity menu is now empty
+            const activityMenu = document.querySelector('#activity-menu');
+            const remainingItems = activityMenu.querySelectorAll('.activity-item');
+
+            if (remainingItems.length === 0) {
+              // Find the content area (after the header) and show empty state
+              const header = activityMenu.querySelector('.activity-header');
+              if (header && header.nextElementSibling) {
+                // Remove everything after the header
+                while (header.nextElementSibling) {
+                  header.nextElementSibling.remove();
+                }
+              }
+              // Add empty state
+              const emptyState = document.createElement('div');
+              emptyState.className = 'activity-empty';
+              emptyState.innerHTML = '<div style="font-size: 32px; margin-bottom: 8px; opacity: 0.3;">✓</div><div>No new activity</div>';
+              activityMenu.appendChild(emptyState);
+            }
           }
         }).catch(error => {
           console.error('Error marking notifications as read:', error);
         });
       }
 
+      function toggleNotificationsExpand() {
+        const compactView = document.getElementById('activity-content-compact');
+        const expandedView = document.getElementById('activity-content-expanded');
+
+        if (compactView.style.display === 'none') {
+          // Show compact, hide expanded
+          compactView.style.display = 'block';
+          expandedView.style.display = 'none';
+        } else {
+          // Show expanded, hide compact
+          compactView.style.display = 'none';
+          expandedView.style.display = 'block';
+        }
+      }
+
       document.addEventListener('DOMContentLoaded', initActivityDropdown);
       document.addEventListener('turbo:load', initActivityDropdown);
+    </script>
+
+    <script>
+      // Skeleton loader for page transitions
+      (function() {
+        let navigationInProgress = false;
+
+        // Show skeleton immediately when a link is clicked
+        document.addEventListener('turbo:click', (event) => {
+          navigationInProgress = true;
+
+          // Find or create skeleton overlay
+          let skeleton = document.getElementById('page-skeleton');
+          if (skeleton) {
+            skeleton.style.display = 'block';
+          }
+        });
+
+        // Hide skeleton when new page content is about to render
+        document.addEventListener('turbo:before-render', () => {
+          navigationInProgress = false;
+          const skeleton = document.getElementById('page-skeleton');
+          if (skeleton) {
+            skeleton.style.display = 'none';
+          }
+        });
+
+        // Fallback: hide on render
+        document.addEventListener('turbo:render', () => {
+          const skeleton = document.getElementById('page-skeleton');
+          if (skeleton && skeleton.style.display === 'block') {
+            skeleton.style.display = 'none';
+            navigationInProgress = false;
+          }
+        });
+
+        // Clean up on errors
+        document.addEventListener('turbo:fetch-request-error', () => {
+          navigationInProgress = false;
+          const skeleton = document.getElementById('page-skeleton');
+          if (skeleton) {
+            skeleton.style.display = 'none';
+          }
+        });
+      })();
     </script>
   </body>
 </html>

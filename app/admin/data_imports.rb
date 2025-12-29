@@ -79,7 +79,8 @@ ActiveAdmin.register DataImport do
       ['username', 'name', 'email', 'bio', 'profile_type', 'password']
     when 'films'
       ['title', 'description', 'release_date', 'film_type', 'youtube_url',
-       'owner_username', 'company_username', 'filmer_username', 'editor_username', 'rider_usernames']
+       'owner_username', 'company_usernames', 'filmer_usernames', 'editor_username', 'rider_usernames']
+      # Valid film_type values: full_length, rider_part, mixtape, series, b_sides, all_the_rest
     when 'photos'
       ['title', 'description', 'photographer_username', 'photo_url']
     else
@@ -92,10 +93,14 @@ ActiveAdmin.register DataImport do
   # Custom action to save column mapping
   member_action :save_mapping, method: :post do
     @data_import = DataImport.find(params[:id])
-    mapping = params[:mapping] || {}
+    @headers = @data_import.extract_headers
 
-    # Remove empty mappings
-    mapping = mapping.reject { |k, v| v.blank? }
+    # Extract mapping from flattened parameters (Rails 8 compatible)
+    mapping = {}
+    @headers.each_with_index do |header, index|
+      field_value = params["mapping_#{index}"]
+      mapping[header] = field_value if field_value.present?
+    end
 
     @data_import.update(
       column_mapping: mapping,
@@ -121,6 +126,10 @@ ActiveAdmin.register DataImport do
   end
 
   controller do
+    def scoped_collection
+      super.includes(:admin_user)
+    end
+
     def create
       @data_import = DataImport.new(permitted_params[:data_import])
       @data_import.admin_user = current_admin_user

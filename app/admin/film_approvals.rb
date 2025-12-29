@@ -1,5 +1,5 @@
 ActiveAdmin.register FilmApproval do
-  menu label: "Film Approvals"
+  menu parent: "Films", priority: 3, label: "Approvals"
 
   permit_params :status, :rejection_reason
 
@@ -14,9 +14,15 @@ ActiveAdmin.register FilmApproval do
   filter :status, as: :select, collection: FilmApproval::STATUSES
   filter :created_at
 
+  controller do
+    def find_resource
+      FilmApproval.find_by_friendly_or_id(params[:id])
+    end
+  end
+
   index do
     selectable_column
-    id_column
+    column "ID", :friendly_id
     column "Film" do |approval|
       link_to approval.film.title, admin_film_path(approval.film)
     end
@@ -53,7 +59,8 @@ ActiveAdmin.register FilmApproval do
 
   show do
     attributes_table do
-      row :id
+      row :friendly_id
+      row "Database ID", :id
       row "Film" do |approval|
         link_to approval.film.title, admin_film_path(approval.film)
       end
@@ -97,7 +104,8 @@ ActiveAdmin.register FilmApproval do
     end
 
     panel "Quick Actions" do
-      if film_approval.status == 'pending'
+      case film_approval.status
+      when 'pending'
         para do
           link_to "✓ Approve This Tag", approve_admin_film_approval_path(film_approval),
                   method: :post,
@@ -115,8 +123,38 @@ ActiveAdmin.register FilmApproval do
                        data: { confirm: "Are you sure you want to reject this tag?" }
           end
         end
-      else
-        para "This approval has already been #{film_approval.status}.", style: "color: #999;"
+      when 'approved'
+        para "This approval was granted.", style: "color: #6dd27f; font-weight: bold;"
+        para do
+          link_to "Change to Rejected", reject_admin_film_approval_path(film_approval),
+                  method: :post,
+                  class: "button",
+                  style: "background: #ff7b7b; color: white;",
+                  data: { confirm: "Change this approval to rejected?" }
+        end
+        para do
+          link_to "Reset to Pending", reset_admin_film_approval_path(film_approval),
+                  method: :post,
+                  class: "button",
+                  style: "background: #ff9800; color: white; margin-top: 8px;",
+                  data: { confirm: "Reset this approval to pending?" }
+        end
+      when 'rejected'
+        para "This approval was rejected: #{film_approval.rejection_reason}", style: "color: #ff7b7b; font-weight: bold;"
+        para do
+          link_to "Change to Approved", approve_admin_film_approval_path(film_approval),
+                  method: :post,
+                  class: "button",
+                  style: "background: #6dd27f; color: white;",
+                  data: { confirm: "Change this approval to approved?" }
+        end
+        para do
+          link_to "Reset to Pending", reset_admin_film_approval_path(film_approval),
+                  method: :post,
+                  class: "button",
+                  style: "background: #ff9800; color: white; margin-top: 8px;",
+                  data: { confirm: "Reset this approval to pending?" }
+        end
       end
     end
   end
@@ -143,13 +181,23 @@ ActiveAdmin.register FilmApproval do
     redirect_to admin_film_approval_path(resource), notice: "Tag rejected."
   end
 
+  member_action :reset, method: :post do
+    resource.update!(status: 'pending', rejection_reason: nil)
+    redirect_to admin_film_approval_path(resource), notice: "Approval reset to pending."
+  end
+
   batch_action :approve do |ids|
-    FilmApproval.where(id: ids, status: 'pending').find_each(&:approve!)
+    FilmApproval.where(id: ids).find_each(&:approve!)
     redirect_to collection_path, notice: "#{ids.count} approvals granted."
   end
 
   batch_action :reject do |ids|
-    FilmApproval.where(id: ids, status: 'pending').find_each { |a| a.reject!("Batch rejected by admin") }
+    FilmApproval.where(id: ids).find_each { |a| a.reject!("Batch rejected by admin") }
     redirect_to collection_path, notice: "#{ids.count} approvals rejected."
+  end
+
+  batch_action :reset_to_pending, label: "Reset to Pending" do |ids|
+    count = FilmApproval.where(id: ids).update_all(status: 'pending', rejection_reason: nil)
+    redirect_to collection_path, notice: "#{count} film approval(s) reset to pending."
   end
 end

@@ -575,6 +575,7 @@ DEPENDENCIES
   importmap-rails
   jbuilder
   kamal
+  kaminari
   omniauth-google-oauth2
   pg
   propshaft

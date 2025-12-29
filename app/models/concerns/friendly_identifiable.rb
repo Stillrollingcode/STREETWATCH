@@ -17,12 +17,16 @@ module FriendlyIdentifiable
     return if friendly_id.present?
 
     prefix = self.class.friendly_id_prefix
-    max_id = self.class.where("friendly_id LIKE ?", "#{prefix}%")
-                      .maximum(:friendly_id)
 
-    if max_id
-      # Extract number from existing friendly_id and increment
-      number = max_id.gsub(/\D/, '').to_i + 1
+    # Get all existing friendly_ids for this model and extract numbers
+    existing_ids = self.class.where("friendly_id LIKE ?", "#{prefix}%")
+                             .pluck(:friendly_id)
+                             .map { |id| id.gsub(/\D/, '').to_i }
+                             .compact
+
+    # Find the highest number and increment
+    if existing_ids.any?
+      number = existing_ids.max + 1
     else
       # Start from 1
       number = 1

@@ -2,7 +2,7 @@ class FollowsController < ApplicationController
   before_action :authenticate_user!
 
   def create
-    @user = User.find(params[:id])
+    @user = User.find_by_friendly_or_id(params[:id])
     follow = current_user.follow(@user)
 
     # Create notification if user has notifications enabled
@@ -22,7 +22,7 @@ class FollowsController < ApplicationController
   end
 
   def destroy
-    @user = User.find(params[:id])
+    @user = User.find_by_friendly_or_id(params[:id])
     current_user.unfollow(@user)
 
     respond_to do |format|
@@ -34,11 +34,16 @@ class FollowsController < ApplicationController
   private
 
   def redirect_path
-    # If coming from users index, redirect back there
-    if request.referer&.include?('/users')
-      users_path
-    else
-      user_path(@user)
-    end
+    referer_path = safe_referer_path
+    return referer_path if referer_path.present? && referer_path == users_path
+
+    user_path(@user)
+  end
+
+  def safe_referer_path
+    return nil unless request.referer
+    URI.parse(request.referer).path
+  rescue URI::InvalidURIError
+    nil
   end
 end

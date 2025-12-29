@@ -40,9 +40,67 @@
   }
   .profiles-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
     gap: 12px;
     margin-bottom: 32px;
+  }
+
+  @media (max-width: 900px) {
+    .profiles-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 600px) {
+    .profiles-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin: 32px 0;
+  }
+
+  .pagination a,
+  .pagination .current,
+  .pagination .gap {
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.04);
+    color: var(--text);
+    text-decoration: none;
+    font-size: 14px;
+    transition: all 0.15s ease;
+  }
+
+  .pagination a:hover {
+    background: rgba(255,255,255,0.08);
+    border-color: var(--accent);
+  }
+
+  .pagination .current {
+    background: linear-gradient(120deg, var(--accent), var(--accent-2));
+    color: <%= theme[:theme_name] == 'light' ? 'white' : '#0b0b0d' %>;
+    border-color: transparent;
+    font-weight: 600;
+  }
+
+  .pagination .gap {
+    border: none;
+    background: transparent;
+    color: var(--muted);
+  }
+
+  .pagination .first,
+  .pagination .prev,
+  .pagination .next,
+  .pagination .last {
+    font-weight: 600;
   }
   .profile-card {
     border: 1px solid var(--border);
@@ -131,7 +189,7 @@
   }
   .support-btn.active {
     background: linear-gradient(120deg, var(--accent), var(--accent-2));
-    color: #0b0b0d;
+    color: <%= theme[:theme_name] == 'light' ? 'white' : '#0b0b0d' %>;
     border-color: transparent;
   }
 </style>
@@ -197,46 +255,84 @@
   <% end %>
 </div>
 
-<script>
-  document.addEventListener('DOMContentLoaded', () => {
-    const input = document.getElementById('profiles-search-input');
-    if (!input) return;
+<%= paginate @users %>
 
-    let timeout;
+<script>
+  let usersIndexSearchTimeout;
+
+  function initializeUsersSearch() {
+    const input = document.getElementById('profiles-search-input');
+    if (!input) {
+      console.log('[Users Index Search] Input not found');
+      return;
+    }
+
+    console.log('[Users Index Search] Initializing search');
+
+    // Remove existing event listeners by cloning
+    const newInput = input.cloneNode(true);
+    input.parentNode.replaceChild(newInput, input);
 
     // Refocus after page reload if we just searched
     if (sessionStorage.getItem('profilesSearchFocus') === 'true') {
       sessionStorage.removeItem('profilesSearchFocus');
       setTimeout(() => {
-        input.focus();
-        const len = input.value.length;
-        input.setSelectionRange(len, len);
+        newInput.focus();
+        const len = newInput.value.length;
+        newInput.setSelectionRange(len, len);
+        console.log('[Users Index Search] Auto-focused input');
       }, 60);
     }
 
     function navigateWithQuery() {
       const params = new URLSearchParams(window.location.search);
-      const value = input.value.trim();
+      const value = newInput.value.trim();
       if (value) {
         params.set('q', value);
       } else {
         params.delete('q');
       }
+      // Reset to page 1 when searching
+      params.delete('page');
       sessionStorage.setItem('profilesSearchFocus', 'true');
-      window.location = window.location.pathname + (params.toString() ? `?${params.toString()}` : '');
+      const newUrl = window.location.pathname + (params.toString() ? `?${params.toString()}` : '');
+      console.log('[Users Index Search] Navigating to:', newUrl);
+      window.location = newUrl;
     }
 
-    input.addEventListener('input', () => {
-      clearTimeout(timeout);
-      timeout = setTimeout(navigateWithQuery, 2000); // match films page behavior
+    newInput.addEventListener('input', function() {
+      console.log('[Users Index Search] Input changed:', this.value);
+      clearTimeout(usersIndexSearchTimeout);
+      usersIndexSearchTimeout = setTimeout(navigateWithQuery, 2000);
     });
 
-    input.addEventListener('keydown', (e) => {
+    newInput.addEventListener('keydown', function(e) {
       if (e.key === 'Enter') {
         e.preventDefault();
-        clearTimeout(timeout);
+        console.log('[Users Index Search] Enter key pressed');
+        clearTimeout(usersIndexSearchTimeout);
         navigateWithQuery();
       }
     });
+
+    console.log('[Users Index Search] Initialization complete');
+  }
+
+  // Initialize on DOMContentLoaded
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log('[Users Index Search] DOMContentLoaded fired');
+    initializeUsersSearch();
   });
+
+  // Also initialize on Turbo navigation
+  document.addEventListener('turbo:load', function() {
+    console.log('[Users Index Search] turbo:load fired');
+    initializeUsersSearch();
+  });
+
+  // Fallback initialization
+  setTimeout(function() {
+    console.log('[Users Index Search] Fallback initialization');
+    initializeUsersSearch();
+  }, 500);
 </script>

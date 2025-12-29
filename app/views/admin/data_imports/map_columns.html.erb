@@ -42,9 +42,10 @@
                   <% end %>
                 </td>
                 <td>
-                  <%= select_tag "mapping[#{header}]",
+                  <%= select_tag "mapping_#{index}",
                       options_for_select([["-- Don't Import --", ""]] + @available_fields.map { |f| [f.titleize, f] }),
-                      class: "select" %>
+                      class: "select",
+                      data: { column: header } %>
                 </td>
               </tr>
             <% end %>

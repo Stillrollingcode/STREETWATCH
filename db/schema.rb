@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_12_17_120004) do
+ActiveRecord::Schema[8.0].define(version: 2025_12_29_032717) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -61,6 +61,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_17_120004) do
     t.string "friendly_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.boolean "is_public", default: true, null: false
     t.index ["date"], name: "index_albums_on_date"
     t.index ["friendly_id"], name: "index_albums_on_friendly_id", unique: true
     t.index ["user_id"], name: "index_albums_on_user_id"
@@ -118,8 +119,30 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_17_120004) do
     t.string "friendly_id"
     t.index ["approver_id"], name: "index_film_approvals_on_approver_id"
     t.index ["film_id", "approver_id", "approval_type"], name: "index_film_approvals_unique", unique: true
+    t.index ["film_id", "status"], name: "index_film_approvals_on_film_id_and_status"
     t.index ["film_id"], name: "index_film_approvals_on_film_id"
     t.index ["friendly_id"], name: "index_film_approvals_on_friendly_id", unique: true
+    t.index ["status"], name: "index_film_approvals_on_status"
+  end
+
+  create_table "film_companies", force: :cascade do |t|
+    t.integer "film_id", null: false
+    t.integer "user_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["film_id", "user_id"], name: "index_film_companies_on_film_id_and_user_id", unique: true
+    t.index ["film_id"], name: "index_film_companies_on_film_id"
+    t.index ["user_id"], name: "index_film_companies_on_user_id"
+  end
+
+  create_table "film_filmers", force: :cascade do |t|
+    t.integer "film_id", null: false
+    t.integer "user_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["film_id", "user_id"], name: "index_film_filmers_on_film_id_and_user_id", unique: true
+    t.index ["film_id"], name: "index_film_filmers_on_film_id"
+    t.index ["user_id"], name: "index_film_filmers_on_user_id"
   end
 
   create_table "film_riders", force: :cascade do |t|
@@ -153,6 +176,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_17_120004) do
     t.integer "company_user_id"
     t.integer "user_id"
     t.string "friendly_id"
+    t.integer "views_count", default: 0, null: false
     t.index ["company_user_id"], name: "index_films_on_company_user_id"
     t.index ["editor_user_id"], name: "index_films_on_editor_user_id"
     t.index ["film_type"], name: "index_films_on_film_type"
@@ -170,6 +194,26 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_17_120004) do
     t.datetime "updated_at", null: false
     t.index ["followed_id"], name: "index_follows_on_followed_id"
     t.index ["follower_id", "followed_id"], name: "index_follows_on_follower_id_and_followed_id", unique: true
+  end
+
+  create_table "hidden_profile_films", force: :cascade do |t|
+    t.integer "user_id", null: false
+    t.integer "film_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["film_id"], name: "index_hidden_profile_films_on_film_id"
+    t.index ["user_id", "film_id"], name: "index_hidden_profile_films_on_user_id_and_film_id", unique: true
+    t.index ["user_id"], name: "index_hidden_profile_films_on_user_id"
+  end
+
+  create_table "hidden_profile_photos", force: :cascade do |t|
+    t.integer "user_id", null: false
+    t.integer "photo_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["photo_id"], name: "index_hidden_profile_photos_on_photo_id"
+    t.index ["user_id", "photo_id"], name: "index_hidden_profile_photos_on_user_id_and_photo_id", unique: true
+    t.index ["user_id"], name: "index_hidden_profile_photos_on_user_id"
   end
 
   create_table "notifications", force: :cascade do |t|
@@ -266,6 +310,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_17_120004) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "friendly_id"
+    t.boolean "is_public", default: true, null: false
     t.index ["friendly_id"], name: "index_playlists_on_friendly_id", unique: true
     t.index ["user_id", "name"], name: "index_playlists_on_user_id_and_name"
     t.index ["user_id"], name: "index_playlists_on_user_id"
@@ -287,6 +332,33 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_17_120004) do
     t.index ["user_id", "target_user_id"], name: "index_profile_notifications_on_user_and_target", unique: true
   end
 
+  create_table "sponsor_approvals", force: :cascade do |t|
+    t.integer "user_id", null: false
+    t.integer "sponsor_id", null: false
+    t.string "status", default: "pending", null: false
+    t.text "rejection_reason"
+    t.string "friendly_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["friendly_id"], name: "index_sponsor_approvals_on_friendly_id", unique: true
+    t.index ["sponsor_id"], name: "index_sponsor_approvals_on_sponsor_id"
+    t.index ["user_id", "sponsor_id"], name: "index_sponsor_approvals_on_user_id_and_sponsor_id", unique: true
+    t.index ["user_id"], name: "index_sponsor_approvals_on_user_id"
+  end
+
+  create_table "tag_requests", force: :cascade do |t|
+    t.integer "film_id", null: false
+    t.integer "requester_id", null: false
+    t.string "role", null: false
+    t.string "status", default: "pending", null: false
+    t.text "message"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["film_id", "requester_id", "role"], name: "index_tag_requests_unique", unique: true
+    t.index ["film_id"], name: "index_tag_requests_on_film_id"
+    t.index ["requester_id"], name: "index_tag_requests_on_requester_id"
+  end
+
   create_table "user_preferences", force: :cascade do |t|
     t.integer "user_id", null: false
     t.string "theme", default: "dark"
@@ -298,6 +370,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_17_120004) do
     t.boolean "notify_on_comment", default: true
     t.boolean "notify_on_mention", default: true
     t.boolean "notify_on_favorite", default: true
+    t.string "content_tab_order", default: "films,photos,articles"
     t.index ["user_id"], name: "index_user_preferences_on_user_id", unique: true
   end
 
@@ -343,6 +416,10 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_17_120004) do
   add_foreign_key "favorites", "users"
   add_foreign_key "film_approvals", "films"
   add_foreign_key "film_approvals", "users", column: "approver_id"
+  add_foreign_key "film_companies", "films"
+  add_foreign_key "film_companies", "users"
+  add_foreign_key "film_filmers", "films"
+  add_foreign_key "film_filmers", "users"
   add_foreign_key "film_riders", "films"
   add_foreign_key "film_riders", "users"
   add_foreign_key "films", "users"
@@ -350,6 +427,10 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_17_120004) do
   add_foreign_key "films", "users", column: "filmer_user_id"
   add_foreign_key "follows", "users", column: "followed_id"
   add_foreign_key "follows", "users", column: "follower_id"
+  add_foreign_key "hidden_profile_films", "films"
+  add_foreign_key "hidden_profile_films", "users"
+  add_foreign_key "hidden_profile_photos", "photos"
+  add_foreign_key "hidden_profile_photos", "users"
   add_foreign_key "notifications", "users"
   add_foreign_key "notifications", "users", column: "actor_id"
   add_foreign_key "photo_approvals", "photos"
@@ -368,5 +449,9 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_17_120004) do
   add_foreign_key "playlists", "users"
   add_foreign_key "profile_notification_settings", "users"
   add_foreign_key "profile_notification_settings", "users", column: "target_user_id"
+  add_foreign_key "sponsor_approvals", "users"
+  add_foreign_key "sponsor_approvals", "users", column: "sponsor_id"
+  add_foreign_key "tag_requests", "films"
+  add_foreign_key "tag_requests", "users", column: "requester_id"
   add_foreign_key "user_preferences", "users"
 end

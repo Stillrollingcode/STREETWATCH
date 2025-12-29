@@ -306,7 +306,7 @@
       border: 1px solid var(--border);
     }
     .selected-riders-list:empty::before {
-      content: 'No riders selected yet';
+      content: 'No profiles selected yet';
       color: var(--muted);
       font-size: 13px;
       font-style: italic;
@@ -416,7 +416,7 @@
       <div class="form-group">
         <%= f.label :thumbnail %>
         <%= f.file_field :thumbnail, direct_upload: true %>
-        <div class="help-text">Optional: Auto-generated from video or fetched from YouTube if not provided.</div>
+        <div class="help-text">Optional: Auto-downloaded and stored from YouTube URL, or auto-generated from uploaded video if not provided.</div>
       </div>
 
       <div class="form-group">
@@ -437,11 +437,16 @@
 
       <div class="form-group">
         <%= f.label :film_type, "Film Type" %>
-        <div style="display: grid; gap: 10px; margin-top: 8px;">
+        <div style="display: grid; gap: 12px; margin-top: 8px;">
           <% Film::FILM_TYPES.each do |type| %>
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-              <%= f.radio_button :film_type, type, checked: film.film_type == type || (film.new_record? && type == 'full_length'), class: "film-type-radio" %>
-              <span><%= type.titleize.gsub('_', ' ') %></span>
+            <label style="display: flex; flex-direction: column; gap: 4px; cursor: pointer; padding: 10px; border: 1px solid var(--border); border-radius: 8px; transition: all 0.2s;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <%= f.radio_button :film_type, type, checked: film.film_type == type || (film.new_record? && type == 'full_length'), class: "film-type-radio" %>
+                <span style="font-weight: 600;"><%= type.titleize.gsub('_', ' ') %></span>
+              </div>
+              <div style="font-size: 13px; font-style: italic; color: var(--muted); margin-left: 28px;">
+                <%= Film::FILM_TYPE_DESCRIPTIONS[type] %>
+              </div>
             </label>
           <% end %>
         </div>
@@ -454,20 +459,26 @@
       </div>
 
       <div class="field-group">
-        <h3 class="field-group-title">Company</h3>
+        <h3 class="field-group-title">Companies</h3>
         <div class="form-group">
-          <%= f.label :company_user_id, "Search for company profile or enter custom name" %>
-          <div class="autocomplete-wrapper" data-autocomplete-for="company">
+          <%= f.label :company_ids, "Search and select company profiles" %>
+          <div class="riders-search-wrapper">
             <input type="text"
-                   class="autocomplete-input"
-                   placeholder="Type to search company profiles or enter custom name..."
-                   data-field="company"
-                   value="<%= @film.company_display_name %>">
-            <div class="autocomplete-results"></div>
+                   id="companies-search-input"
+                   class="riders-search-input"
+                   placeholder="Type to search for companies..."
+                   autocomplete="off">
+            <div class="autocomplete-results" id="companies-results"></div>
           </div>
-          <%= f.hidden_field :company_user_id, class: "hidden-field" %>
-          <%= f.hidden_field :company, class: "hidden-field" %>
-          <div class="help-text">Search for a company profile or enter a custom name</div>
+          <div id="selected-companies-list" class="selected-riders-list"></div>
+          <div id="companies-hidden-fields"></div>
+          <div class="help-text">Search and click to add companies to your film</div>
+        </div>
+
+        <div class="form-group">
+          <%= f.label :company, "Or enter custom company names" %>
+          <%= f.text_field :company, placeholder: "Enter custom company names (comma-separated) for non-registered companies..." %>
+          <div class="help-text">Comma-separated names for companies who don't have user profiles</div>
         </div>
       </div>
 
@@ -477,20 +488,26 @@
       </div>
 
       <div class="field-group">
-        <h3 class="field-group-title">Filmer</h3>
+        <h3 class="field-group-title">Filmers</h3>
         <div class="form-group">
-          <%= f.label :filmer_user_id, "Search for profile or enter custom name" %>
-          <div class="autocomplete-wrapper" data-autocomplete-for="filmer">
+          <%= f.label :filmer_ids, "Search and select user profiles" %>
+          <div class="riders-search-wrapper">
             <input type="text"
-                   class="autocomplete-input"
-                   placeholder="Type to search profiles or enter custom name..."
-                   data-field="filmer"
-                   value="<%= @film.filmer_display_name %>">
-            <div class="autocomplete-results"></div>
+                   id="filmers-search-input"
+                   class="riders-search-input"
+                   placeholder="Type to search for filmers..."
+                   autocomplete="off">
+            <div class="autocomplete-results" id="filmers-results"></div>
           </div>
-          <%= f.hidden_field :filmer_user_id, class: "hidden-field" %>
-          <%= f.hidden_field :custom_filmer_name, class: "hidden-field" %>
-          <div class="help-text">Search for a user profile or enter a custom name</div>
+          <div id="selected-filmers-list" class="selected-riders-list"></div>
+          <div id="filmers-hidden-fields"></div>
+          <div class="help-text">Search and click to add filmers to your film</div>
+        </div>
+
+        <div class="form-group">
+          <%= f.label :custom_filmer_name, "Or enter custom filmer names" %>
+          <%= f.text_field :custom_filmer_name, placeholder: "Enter custom filmer names (comma-separated) for non-registered filmers..." %>
+          <div class="help-text">Comma-separated names for filmers who don't have user profiles</div>
         </div>
       </div>
 
@@ -561,7 +578,7 @@
 
     function toggleParentFilmField() {
       const selectedType = document.querySelector('.film-type-radio:checked')?.value;
-      if (selectedType === 'video_part') {
+      if (selectedType === 'rider_part' || selectedType === 'mixtape' || selectedType === 'b_sides') {
         parentFilmField.style.display = 'block';
       } else {
         parentFilmField.style.display = 'none';
@@ -573,11 +590,13 @@
     });
     toggleParentFilmField();
 
-    // Initialize autocomplete for filmer and editor
+    // Initialize autocomplete for editor only (filmers and companies now use multi-select)
     initAutocomplete();
 
-    // Initialize riders search
+    // Initialize multi-select search for riders, filmers, and companies
     initRidersSearch();
+    initFilmersSearch();
+    initCompaniesSearch();
 
     // Initialize mutual exclusivity for video upload and YouTube URL
     initVideoSourceExclusivity();
@@ -648,10 +667,22 @@
       if (!wrapper) return;
 
       const resultsDiv = wrapper.querySelector('.autocomplete-results');
-      const userIdField = wrapper.parentElement.querySelector(`#film_${field}_user_id`);
+      const userIdField = document.querySelector(`#film_${field}_user_id`);
       // For company, the custom field is just company, not custom_company_name
       const customFieldName = field === 'company' ? `#film_company` : `#film_custom_${field}_name`;
-      const customNameField = wrapper.parentElement.querySelector(customFieldName);
+      const customNameField = document.querySelector(customFieldName);
+
+      // Debug logging
+      console.log(`[Editor Autocomplete] Initializing for field: ${field}`);
+      console.log(`[Editor Autocomplete] userIdField found:`, !!userIdField);
+      console.log(`[Editor Autocomplete] customNameField found:`, !!customNameField);
+      console.log(`[Editor Autocomplete] users array length:`, users.length);
+
+      // Safety check: skip if required fields not found
+      if (!userIdField || !customNameField) {
+        console.error(`[Editor Autocomplete] Missing required fields for ${field}`);
+        return;
+      }
 
       let selectedUserId = userIdField.value;
       let currentFocus = -1;
@@ -927,6 +958,304 @@
     }
 
     // Close results when clicking outside
+    document.addEventListener('click', function(e) {
+      if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {
+        hideResults();
+      }
+    });
+  }
+
+  // Initialize filmers search with tag-based selection
+  function initFilmersSearch() {
+    const searchInput = document.getElementById('filmers-search-input');
+    const resultsDiv = document.getElementById('filmers-results');
+    const selectedList = document.getElementById('selected-filmers-list');
+    const hiddenFieldsContainer = document.getElementById('filmers-hidden-fields');
+
+    if (!searchInput || !resultsDiv || !selectedList) {
+      return;
+    }
+
+    const selectedFilmers = new Map();
+    let currentFocus = -1;
+
+    // Load existing selected filmers from the film data
+    const existingFilmerIds = <%= (@film.persisted? ? @film.filmer_ids : []).to_json.html_safe %>;
+    existingFilmerIds.forEach(filmerId => {
+      const filmer = users.find(u => u.id === filmerId);
+      if (filmer) {
+        selectedFilmers.set(filmer.id, filmer);
+      }
+    });
+    if (selectedFilmers.size > 0) {
+      renderSelectedFilmers();
+    }
+
+    searchInput.addEventListener('focus', function() {
+      if (this.value.trim().length > 0) {
+        showResults(this.value);
+      }
+    });
+
+    searchInput.addEventListener('input', function() {
+      const value = this.value.trim();
+      if (value.length === 0) {
+        hideResults();
+        return;
+      }
+      showResults(value);
+    });
+
+    searchInput.addEventListener('keydown', function(e) {
+      const items = resultsDiv.querySelectorAll('.autocomplete-item:not(.no-results)');
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        currentFocus++;
+        addActive(items);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        currentFocus--;
+        addActive(items);
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (currentFocus > -1 && items[currentFocus]) {
+          items[currentFocus].click();
+        } else {
+          hideResults();
+        }
+      } else if (e.key === 'Escape') {
+        hideResults();
+      }
+    });
+
+    function showResults(searchTerm) {
+      const filtered = users.filter(u =>
+        u.username && u.username.toLowerCase().includes(searchTerm.toLowerCase()) &&
+        !selectedFilmers.has(u.id)
+      );
+      resultsDiv.innerHTML = '';
+      currentFocus = -1;
+      if (filtered.length === 0) {
+        resultsDiv.innerHTML = '<div class="autocomplete-item no-results">No filmers found</div>';
+      } else {
+        filtered.slice(0, 10).forEach(user => {
+          const div = document.createElement('div');
+          div.className = 'autocomplete-item';
+          div.textContent = user.username;
+          div.addEventListener('click', function() {
+            addFilmer(user);
+          });
+          resultsDiv.appendChild(div);
+        });
+      }
+      resultsDiv.classList.add('show');
+    }
+
+    function hideResults() {
+      resultsDiv.classList.remove('show');
+      currentFocus = -1;
+    }
+
+    function addFilmer(filmer) {
+      selectedFilmers.set(filmer.id, filmer);
+      renderSelectedFilmers();
+      searchInput.value = '';
+      hideResults();
+      searchInput.focus();
+    }
+
+    function removeFilmer(filmerId) {
+      selectedFilmers.delete(filmerId);
+      renderSelectedFilmers();
+    }
+
+    function renderSelectedFilmers() {
+      selectedList.innerHTML = '';
+      selectedFilmers.forEach((filmer, id) => {
+        const tag = document.createElement('div');
+        tag.className = 'selected-rider-tag';
+        tag.innerHTML = `<span>${filmer.username}</span><button type="button" class="remove-filmer-btn" data-filmer-id="${id}">×</button>`;
+        selectedList.appendChild(tag);
+      });
+
+      hiddenFieldsContainer.innerHTML = '';
+      selectedFilmers.forEach((filmer, id) => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'film[filmer_ids][]';
+        input.value = id;
+        hiddenFieldsContainer.appendChild(input);
+      });
+
+      selectedList.querySelectorAll('.remove-filmer-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const filmerId = parseInt(this.getAttribute('data-filmer-id'));
+          removeFilmer(filmerId);
+        });
+      });
+    }
+
+    function addActive(items) {
+      if (!items || items.length === 0) return;
+      removeActive(items);
+      if (currentFocus >= items.length) currentFocus = 0;
+      if (currentFocus < 0) currentFocus = items.length - 1;
+      items[currentFocus].classList.add('selected');
+    }
+
+    function removeActive(items) {
+      items.forEach(item => item.classList.remove('selected'));
+    }
+
+    document.addEventListener('click', function(e) {
+      if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {
+        hideResults();
+      }
+    });
+  }
+
+  // Initialize companies search with tag-based selection
+  function initCompaniesSearch() {
+    const searchInput = document.getElementById('companies-search-input');
+    const resultsDiv = document.getElementById('companies-results');
+    const selectedList = document.getElementById('selected-companies-list');
+    const hiddenFieldsContainer = document.getElementById('companies-hidden-fields');
+
+    if (!searchInput || !resultsDiv || !selectedList) {
+      return;
+    }
+
+    const selectedCompanies = new Map();
+    let currentFocus = -1;
+
+    // Load existing selected companies from the film data
+    const existingCompanyIds = <%= (@film.persisted? ? @film.company_ids : []).to_json.html_safe %>;
+    existingCompanyIds.forEach(companyId => {
+      const company = users.find(u => u.id === companyId);
+      if (company) {
+        selectedCompanies.set(company.id, company);
+      }
+    });
+    if (selectedCompanies.size > 0) {
+      renderSelectedCompanies();
+    }
+
+    searchInput.addEventListener('focus', function() {
+      if (this.value.trim().length > 0) {
+        showResults(this.value);
+      }
+    });
+
+    searchInput.addEventListener('input', function() {
+      const value = this.value.trim();
+      if (value.length === 0) {
+        hideResults();
+        return;
+      }
+      showResults(value);
+    });
+
+    searchInput.addEventListener('keydown', function(e) {
+      const items = resultsDiv.querySelectorAll('.autocomplete-item:not(.no-results)');
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        currentFocus++;
+        addActive(items);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        currentFocus--;
+        addActive(items);
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (currentFocus > -1 && items[currentFocus]) {
+          items[currentFocus].click();
+        } else {
+          hideResults();
+        }
+      } else if (e.key === 'Escape') {
+        hideResults();
+      }
+    });
+
+    function showResults(searchTerm) {
+      const filtered = companyUsers.filter(u =>
+        u.username && u.username.toLowerCase().includes(searchTerm.toLowerCase()) &&
+        !selectedCompanies.has(u.id)
+      );
+      resultsDiv.innerHTML = '';
+      currentFocus = -1;
+      if (filtered.length === 0) {
+        resultsDiv.innerHTML = '<div class="autocomplete-item no-results">No companies found</div>';
+      } else {
+        filtered.slice(0, 10).forEach(user => {
+          const div = document.createElement('div');
+          div.className = 'autocomplete-item';
+          div.textContent = user.username;
+          div.addEventListener('click', function() {
+            addCompany(user);
+          });
+          resultsDiv.appendChild(div);
+        });
+      }
+      resultsDiv.classList.add('show');
+    }
+
+    function hideResults() {
+      resultsDiv.classList.remove('show');
+      currentFocus = -1;
+    }
+
+    function addCompany(company) {
+      selectedCompanies.set(company.id, company);
+      renderSelectedCompanies();
+      searchInput.value = '';
+      hideResults();
+      searchInput.focus();
+    }
+
+    function removeCompany(companyId) {
+      selectedCompanies.delete(companyId);
+      renderSelectedCompanies();
+    }
+
+    function renderSelectedCompanies() {
+      selectedList.innerHTML = '';
+      selectedCompanies.forEach((company, id) => {
+        const tag = document.createElement('div');
+        tag.className = 'selected-rider-tag';
+        tag.innerHTML = `<span>${company.username}</span><button type="button" class="remove-company-btn" data-company-id="${id}">×</button>`;
+        selectedList.appendChild(tag);
+      });
+
+      hiddenFieldsContainer.innerHTML = '';
+      selectedCompanies.forEach((company, id) => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'film[company_ids][]';
+        input.value = id;
+        hiddenFieldsContainer.appendChild(input);
+      });
+
+      selectedList.querySelectorAll('.remove-company-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const companyId = parseInt(this.getAttribute('data-company-id'));
+          removeCompany(companyId);
+        });
+      });
+    }
+
+    function addActive(items) {
+      if (!items || items.length === 0) return;
+      removeActive(items);
+      if (currentFocus >= items.length) currentFocus = 0;
+      if (currentFocus < 0) currentFocus = items.length - 1;
+      items[currentFocus].classList.add('selected');
+    }
+
+    function removeActive(items) {
+      items.forEach(item => item.classList.remove('selected'));
+    }
+
     document.addEventListener('click', function(e) {
       if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {
         hideResults();

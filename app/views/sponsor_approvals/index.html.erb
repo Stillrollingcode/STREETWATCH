@@ -1,0 +1,367 @@
+<% content_for :head do %>
+<style>
+  .approvals-page {
+    max-width: 1200px;
+    margin: 20px auto 60px;
+    padding: 0 18px;
+    color: var(--text);
+  }
+  .approvals-header {
+    margin-bottom: 32px;
+  }
+  .approvals-header h1 {
+    font-size: 32px;
+    font-weight: 800;
+    margin: 0 0 8px;
+  }
+  .approvals-subtitle {
+    color: var(--muted);
+    font-size: 16px;
+  }
+  .approvals-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+    border-bottom: 2px solid var(--border);
+  }
+  .approval-tab {
+    padding: 12px 20px;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--muted);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    margin-bottom: -2px;
+  }
+  .approval-tab:hover {
+    color: var(--text);
+  }
+  .approval-tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+  .approval-section {
+    display: none;
+  }
+  .approval-section.active {
+    display: block;
+  }
+  .approval-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+    display: flex;
+    gap: 20px;
+    align-items: center;
+  }
+  .approval-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 50%, transparent), color-mix(in srgb, var(--accent-2) 50%, transparent));
+    flex-shrink: 0;
+  }
+  .approval-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .approval-content {
+    flex: 1;
+  }
+  .approval-user-name {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    color: var(--text);
+  }
+  .approval-user-name a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .approval-user-name a:hover {
+    text-decoration: underline;
+  }
+  .approval-bio {
+    font-size: 14px;
+    color: var(--muted);
+    margin-bottom: 12px;
+    max-height: 60px;
+    overflow: hidden;
+  }
+  .approval-uploader {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+  .approval-uploader a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .approval-uploader a:hover {
+    text-decoration: underline;
+  }
+  .approval-status {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+  .approval-status.pending {
+    background: rgba(255, 165, 0, 0.15);
+    color: #ffa500;
+    border: 1px solid rgba(255, 165, 0, 0.3);
+  }
+  .approval-status.approved {
+    background: rgba(74, 222, 128, 0.15);
+    color: #4ade80;
+    border: 1px solid rgba(74, 222, 128, 0.3);
+  }
+  .approval-status.rejected {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+  }
+  .approval-actions {
+    display: flex;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  .approval-btn {
+    padding: 10px 18px;
+    border-radius: 8px;
+    border: none;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .approve-btn {
+    background: linear-gradient(120deg, var(--accent), var(--accent-2));
+    color: #0b0b0d;
+  }
+  .approve-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  }
+  .reject-btn {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+  }
+  .reject-btn:hover {
+    background: rgba(239, 68, 68, 0.25);
+  }
+  .reset-btn {
+    background: rgba(255,255,255,0.1);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .reset-btn:hover {
+    background: rgba(255,255,255,0.15);
+  }
+  .rejection-reason {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-top: 10px;
+    font-size: 13px;
+    color: #ef4444;
+  }
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--muted);
+  }
+  .empty-state-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+  }
+  .empty-state h3 {
+    font-size: 20px;
+    margin: 0 0 8px;
+    color: var(--text);
+  }
+  .empty-state p {
+    font-size: 14px;
+    margin: 0;
+  }
+</style>
+<% end %>
+
+<div class="approvals-page">
+  <div class="approvals-header">
+    <h1>Sponsorship Requests</h1>
+    <p class="approvals-subtitle">Manage sponsorship requests from users</p>
+  </div>
+
+  <div class="approvals-tabs">
+    <button class="approval-tab active" data-section="pending">
+      Pending (<%= @pending_approvals.count %>)
+    </button>
+    <button class="approval-tab" data-section="approved">
+      Approved (<%= @approved_approvals.count %>)
+    </button>
+    <button class="approval-tab" data-section="rejected">
+      Rejected (<%= @rejected_approvals.count %>)
+    </button>
+  </div>
+
+  <!-- Pending Approvals -->
+  <div class="approval-section active" id="pending-section">
+    <% if @pending_approvals.any? %>
+      <% @pending_approvals.each do |approval| %>
+        <div class="approval-card">
+          <div class="approval-avatar">
+            <% if approval.user.avatar.attached? %>
+              <%= image_tag approval.user.avatar %>
+            <% else %>
+              <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: 700; color: rgba(255,255,255,0.7);">
+                <%= approval.user.username.first.upcase %>
+              </div>
+            <% end %>
+          </div>
+
+          <div class="approval-content">
+            <div class="approval-user-name">
+              <%= link_to approval.user.username, user_path(approval.user) %>
+            </div>
+            <div class="approval-status pending">Pending</div>
+            <% if approval.user.bio.present? %>
+              <div class="approval-bio"><%= truncate(approval.user.bio, length: 150) %></div>
+            <% end %>
+          </div>
+
+          <div class="approval-actions">
+            <%= button_to "Approve", approve_sponsor_approval_path(approval), method: :post, class: "approval-btn approve-btn" %>
+            <%= button_to "Reject", reject_sponsor_approval_path(approval), method: :post, class: "approval-btn reject-btn", data: { turbo_confirm: "Are you sure you want to reject this sponsorship request?" } %>
+          </div>
+        </div>
+      <% end %>
+    <% else %>
+      <div class="empty-state">
+        <div class="empty-state-icon">✓</div>
+        <h3>No pending requests</h3>
+        <p>You don't have any pending sponsorship requests to review.</p>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- Approved Approvals -->
+  <div class="approval-section" id="approved-section">
+    <% if @approved_approvals.any? %>
+      <% @approved_approvals.each do |approval| %>
+        <div class="approval-card">
+          <div class="approval-avatar">
+            <% if approval.user.avatar.attached? %>
+              <%= image_tag approval.user.avatar %>
+            <% else %>
+              <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: 700; color: rgba(255,255,255,0.7);">
+                <%= approval.user.username.first.upcase %>
+              </div>
+            <% end %>
+          </div>
+
+          <div class="approval-content">
+            <div class="approval-user-name">
+              <%= link_to approval.user.username, user_path(approval.user) %>
+            </div>
+            <div class="approval-status approved">Approved</div>
+            <% if approval.user.bio.present? %>
+              <div class="approval-bio"><%= truncate(approval.user.bio, length: 150) %></div>
+            <% end %>
+          </div>
+
+          <div class="approval-actions">
+            <%= button_to "Reset", reset_sponsor_approval_path(approval), method: :patch, class: "approval-btn reset-btn" %>
+          </div>
+        </div>
+      <% end %>
+    <% else %>
+      <div class="empty-state">
+        <div class="empty-state-icon">✓</div>
+        <h3>No approved sponsorships</h3>
+        <p>You haven't approved any sponsorship requests yet.</p>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- Rejected Approvals -->
+  <div class="approval-section" id="rejected-section">
+    <% if @rejected_approvals.any? %>
+      <% @rejected_approvals.each do |approval| %>
+        <div class="approval-card">
+          <div class="approval-avatar">
+            <% if approval.user.avatar.attached? %>
+              <%= image_tag approval.user.avatar %>
+            <% else %>
+              <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: 700; color: rgba(255,255,255,0.7);">
+                <%= approval.user.username.first.upcase %>
+              </div>
+            <% end %>
+          </div>
+
+          <div class="approval-content">
+            <div class="approval-user-name">
+              <%= link_to approval.user.username, user_path(approval.user) %>
+            </div>
+            <div class="approval-status rejected">Rejected</div>
+            <% if approval.user.bio.present? %>
+              <div class="approval-bio"><%= truncate(approval.user.bio, length: 150) %></div>
+            <% end %>
+            <% if approval.rejection_reason.present? %>
+              <div class="rejection-reason">
+                <strong>Reason:</strong> <%= approval.rejection_reason %>
+              </div>
+            <% end %>
+          </div>
+
+          <div class="approval-actions">
+            <%= button_to "Reset", reset_sponsor_approval_path(approval), method: :patch, class: "approval-btn reset-btn" %>
+          </div>
+        </div>
+      <% end %>
+    <% else %>
+      <div class="empty-state">
+        <div class="empty-state-icon">✓</div>
+        <h3>No rejected sponsorships</h3>
+        <p>You haven't rejected any sponsorship requests.</p>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<script>
+  function initializeTabs() {
+    const tabs = document.querySelectorAll('.approval-tab');
+    const sections = document.querySelectorAll('.approval-section');
+
+    tabs.forEach(tab => {
+      tab.addEventListener('click', function() {
+        // Remove active class from all tabs and sections
+        tabs.forEach(t => t.classList.remove('active'));
+        sections.forEach(s => s.classList.remove('active'));
+
+        // Add active class to clicked tab
+        this.classList.add('active');
+
+        // Show corresponding section
+        const sectionId = this.getAttribute('data-section') + '-section';
+        document.getElementById(sectionId).classList.add('active');
+      });
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', initializeTabs);
+  document.addEventListener('turbo:load', initializeTabs);
+</script>
