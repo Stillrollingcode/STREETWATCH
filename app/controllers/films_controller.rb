@@ -6,40 +6,14 @@ class FilmsController < ApplicationController
 
   def index
     # Set cache headers for CDN (5 minutes for logged-out users)
-    expires_in 5.minutes, public: true unless user_signed_in?
+    unless user_signed_in?
+      expires_in 5.minutes, public: true
+      response.headers['Cache-Control'] = 'public, max-age=300, must-revalidate'
+    end
 
     begin
-      @films = Film.includes(:riders, :filmers, :companies, :filmer_user, :editor_user, :company_user, thumbnail_attachment: :blob)
-
-      # Only show published films to non-authenticated users
-      # Authenticated users can see films they're tagged in or pending their approval
-      if user_signed_in?
-        # Show published films + films user is tagged in
-        @films = @films.where(
-          "films.id NOT IN (
-            SELECT film_id FROM film_approvals
-            WHERE film_approvals.status = 'pending'
-            GROUP BY film_id
-          )
-          OR films.id IN (SELECT film_id FROM film_riders WHERE user_id = ?)",
-          current_user.id
-        ).distinct
-      else
-        # Only published films for non-authenticated users
-        @films = @films.where(
-          "films.id NOT IN (
-            SELECT film_id FROM film_approvals
-            WHERE film_approvals.status = 'pending'
-            GROUP BY film_id
-          )"
-        )
-      end
-
-
-
-
-
-
+      # Start with base query and default sorting (newest release date first)
+      @films = Film.order(Arel.sql('COALESCE(films.release_date, films.created_at) DESC'))
 
       # Apply film type filter
       if params[:film_type].present?
@@ -103,30 +77,26 @@ class FilmsController < ApplicationController
         )
       end
 
-      # Apply sorting
-      case params[:sort]
-      when 'date_asc'
-        @films = @films.select('films.*, COALESCE(films.release_date, films.created_at) AS sort_date')
-                       .order(Arel.sql('sort_date ASC'))
-                       .distinct
-      when 'date_desc', nil
-        @films = @films.select('films.*, COALESCE(films.release_date, films.created_at) AS sort_date')
-                       .order(Arel.sql('sort_date DESC'))
-                       .distinct
-      when 'alpha_asc'
-        @films = @films.select('films.*, LOWER(films.title) AS sort_title')
-                       .order(Arel.sql('sort_title ASC'))
-                       .distinct
-      when 'alpha_desc'
-        @films = @films.select('films.*, LOWER(films.title) AS sort_title')
-                       .order(Arel.sql('sort_title DESC'))
-                       .distinct
+      # Apply sorting (override default if specified)
+      if params[:sort].present?
+        case params[:sort]
+        when 'date_asc'
+          @films = @films.reorder(Arel.sql('COALESCE(films.release_date, films.created_at) ASC'))
+        when 'date_desc'
+          @films = @films.reorder(Arel.sql('COALESCE(films.release_date, films.created_at) DESC'))
+        when 'alpha_asc'
+          @films = @films.reorder(Arel.sql('LOWER(films.title) ASC'))
+        when 'alpha_desc'
+          @films = @films.reorder(Arel.sql('LOWER(films.title) DESC'))
+        end
       end
 
-      # Apply grouping (limit to 200 records for performance)
+      # Apply grouping or pagination
       if params[:group_by].present?
-        # Limit results before grouping to improve performance
-        films_to_group = @films.limit(200).to_a
+        # Limit to 200 records before grouping, then eager load
+        films_to_group = @films.limit(200)
+                               .includes(:riders, :filmers, :companies, :filmer_user, :editor_user, :company_user, thumbnail_attachment: :blob)
+                               .to_a
 
         # Determine group sort order (A-Z or Z-A)
         reverse_groups = params[:sort] == 'alpha_desc'
@@ -146,7 +116,6 @@ class FilmsController < ApplicationController
           @grouped_films = @grouped_films.sort_by { |k, _| k.to_s.downcase }
           @grouped_films.reverse! if reverse_groups
           @grouped_films = @grouped_films.to_h
-          # Sort films within each group by release date (newest first)
           @grouped_films.each { |_, films| films.sort_by! { |f| [f.release_date || Date.new(1900), f.created_at] }.reverse! }
         when 'filmer'
           # Group by filmer, handling multiple filmers per film
@@ -171,16 +140,18 @@ class FilmsController < ApplicationController
           @grouped_films.each { |_, films| films.sort_by! { |f| [f.release_date || Date.new(1900), f.created_at] }.reverse! }
         end
       else
-        # Paginate to 18 films per page (3 columns × 6 rows) when not grouping
+        # Paginate first, then eager load only the 18 films needed
         @films = @films.page(params[:page]).per(18)
+                       .includes(:riders, :company_user, thumbnail_attachment: :blob)
       end
     rescue => e
       Rails.logger.error "Films index error: #{e.class} - #{e.message}"
       Rails.logger.error e.backtrace.join("\n")
 
       # Fallback to simple query
-      @films = Film.includes(thumbnail_attachment: :blob)
-                   .order(Arel.sql('COALESCE(films.release_date, films.created_at) DESC'))
+      @films = Film.order(created_at: :desc)
+                   .page(params[:page]).per(18)
+                   .includes(thumbnail_attachment: :blob)
 
       flash.now[:alert] = "There was an error with your search. Showing all films instead."
     end
@@ -245,7 +216,12 @@ class FilmsController < ApplicationController
   private
 
   def set_film
-    @film = Film.find_by_friendly_or_id(params[:id])
+    @film = Film.includes(
+      :riders, :filmers, :companies, :filmer_user, :editor_user, :company_user,
+      :film_approvals, :comments, :favorites,
+      thumbnail_attachment: :blob,
+      video_attachment: :blob
+    ).find_by_friendly_or_id(params[:id])
   end
 
   def can_view_unpublished?(film)
@@ -264,7 +240,7 @@ class FilmsController < ApplicationController
   end
 
   def film_params
-    params.require(:film).permit(
+    permitted_params = params.require(:film).permit(
       :title,
       :description,
       :release_date,
@@ -287,6 +263,16 @@ class FilmsController < ApplicationController
       filmer_ids: [],
       company_ids: []
     )
+
+    # Clean up arrays - remove empty strings and ensure proper format
+    # When form sends [""] to clear associations, convert to []
+    [:rider_ids, :filmer_ids, :company_ids].each do |key|
+      if permitted_params[key].present?
+        permitted_params[key] = permitted_params[key].reject(&:blank?).map(&:to_i)
+      end
+    end
+
+    permitted_params
   end
 
   def increment_views

@@ -838,28 +838,25 @@
         document.addEventListener('turbo:click', (event) => {
           navigationInProgress = true;
 
-          // Find or create skeleton overlay
-          let skeleton = document.getElementById('page-skeleton');
-          if (skeleton) {
-            skeleton.style.display = 'block';
+          // Check if we're on a page with a profile loading overlay
+          const profileLoadingOverlay = document.getElementById('profile-loading-overlay');
+
+          // Only show skeleton if we don't have a profile loading overlay
+          if (!profileLoadingOverlay) {
+            let skeleton = document.getElementById('page-skeleton');
+            if (skeleton) {
+              skeleton.style.display = 'block';
+            }
           }
         });
 
-        // Hide skeleton when new page content is about to render
-        document.addEventListener('turbo:before-render', () => {
+        // Hide skeleton as soon as Turbo starts loading the page
+        // This allows users to see content immediately while images lazy load
+        document.addEventListener('turbo:load', () => {
           navigationInProgress = false;
           const skeleton = document.getElementById('page-skeleton');
           if (skeleton) {
             skeleton.style.display = 'none';
-          }
-        });
-
-        // Fallback: hide on render
-        document.addEventListener('turbo:render', () => {
-          const skeleton = document.getElementById('page-skeleton');
-          if (skeleton && skeleton.style.display === 'block') {
-            skeleton.style.display = 'none';
-            navigationInProgress = false;
           }
         });
 

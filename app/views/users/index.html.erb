@@ -108,8 +108,9 @@
     padding: 16px;
     background: rgba(255,255,255,0.02);
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     gap: 12px;
+    align-items: center;
     transition: all 0.15s ease;
     text-decoration: none;
     color: inherit;
@@ -119,10 +120,27 @@
     border-color: rgba(255,255,255,0.15);
     box-shadow: 0 10px 30px rgba(0,0,0,0.35);
   }
+  .profile-card-content {
+    flex: 1;
+    min-width: 0;
+  }
   .profile-card-header {
     display: flex;
     gap: 12px;
     align-items: flex-start;
+  }
+  .profile-card-actions {
+    flex-shrink: 0;
+  }
+
+  @media (max-width: 768px) {
+    .profile-card {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .profile-card-actions {
+      width: 100%;
+    }
   }
   .profile-avatar {
     width: 60px;
@@ -189,8 +207,21 @@
   }
   .support-btn.active {
     background: linear-gradient(120deg, var(--accent), var(--accent-2));
-    color: <%= theme[:theme_name] == 'light' ? 'white' : '#0b0b0d' %>;
+    color: <%= theme[:theme_name] == 'light' ? '#0b0b0d' : 'white' %>;
     border-color: transparent;
+  }
+  .profile-type-label {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    background: rgba(255,255,255,0.08);
+    color: var(--accent);
+    border: 1px solid rgba(255,255,255,0.1);
+    margin-top: 4px;
   }
 </style>
 
@@ -200,7 +231,7 @@
     <p><%= @user.username.presence || @user.email %> supports these profiles.</p>
   <% else %>
     <h1>Rider Profiles</h1>
-    <p>Discover riders, editors, and filmers across the archive.</p>
+    <p>Discover riders, editors, photographers, filmers, crews, and companies across the archive.</p>
   <% end %>
 </div>
 
@@ -214,35 +245,42 @@
 <div class="profiles-grid">
   <% @users.each do |user| %>
     <div class="profile-card">
-      <%= link_to user_path(user), style: "text-decoration: none; color: inherit; flex: 1; display: flex; flex-direction: column; gap: 12px;" do %>
-        <div class="profile-card-header">
-          <div class="profile-avatar">
-            <% if user.avatar.attached? %>
-              <%= image_tag user.avatar, alt: user.username.presence || user.email %>
-            <% else %>
-              <%= (user.username.presence || user.email).first&.upcase %>
-            <% end %>
+      <div class="profile-card-content">
+        <%= link_to user_path(user), style: "text-decoration: none; color: inherit; display: block;" do %>
+          <div class="profile-card-header">
+            <div class="profile-avatar">
+              <% if user.avatar.attached? %>
+                <%= image_tag user.avatar, alt: user.username.presence || user.email %>
+              <% else %>
+                <%= (user.username.presence || user.email).first&.upcase %>
+              <% end %>
+            </div>
+            <div class="profile-info">
+              <div class="profile-name"><%= user.name.presence || user.username.presence || user.email %></div>
+              <div class="profile-username">@<%= user.username.presence || user.email %></div>
+              <% if user.profile_type == 'company' || user.profile_type == 'crew' %>
+                <span class="profile-type-label"><%= user.profile_type %></span>
+              <% end %>
+              <% if user.bio.present? %>
+                <div class="profile-bio"><%= user.bio %></div>
+              <% end %>
+            </div>
           </div>
-          <div class="profile-info">
-            <div class="profile-name"><%= user.name.presence || user.username.presence || user.email %></div>
-            <div class="profile-username">@<%= user.username.presence || user.email %></div>
-            <% if user.bio.present? %>
-              <div class="profile-bio"><%= user.bio %></div>
-            <% end %>
-          </div>
-        </div>
-      <% end %>
+        <% end %>
+      </div>
       <% if user_signed_in? %>
         <% if current_user.id != user.id %>
-          <% if current_user.following?(user) %>
-            <%= button_to unfollow_user_path(user), method: :delete, class: "support-btn active", form: { style: "display: inline; width: 100%;" } do %>
-              ✓ Supported
+          <div class="profile-card-actions">
+            <% if current_user.following?(user) %>
+              <%= button_to unfollow_user_path(user), method: :delete, class: "support-btn active", form: { style: "display: inline; width: 100%;" } do %>
+                ✓ Supported
+              <% end %>
+            <% else %>
+              <%= button_to follow_user_path(user), method: :post, class: "support-btn", form: { style: "display: inline; width: 100%;" } do %>
+                + Support
+              <% end %>
             <% end %>
-          <% else %>
-            <%= button_to follow_user_path(user), method: :post, class: "support-btn", form: { style: "display: inline; width: 100%;" } do %>
-              + Support
-            <% end %>
-          <% end %>
+          </div>
         <% end %>
       <% end %>
     </div>

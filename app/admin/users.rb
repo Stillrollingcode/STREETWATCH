@@ -2,22 +2,13 @@ ActiveAdmin.register User do
   permit_params :email, :password, :password_confirmation, :username, :name, :bio,
                 :profile_type, :sponsor_requests, :subscription_active, :admin_created, :avatar
 
-  # Add custom action item for search bar
-  action_item :search, only: :index do
-    text_node %{
-      <div style="display: flex; align-items: center; margin-top: 15px;">
-        <form action="#{admin_users_path}" method="get" accept-charset="UTF-8" style="display: flex; gap: 8px; align-items: center;">
-          <input
-            name="q[username_or_name_or_email_or_bio_cont]"
-            type="text"
-            placeholder="Search users..."
-            value="#{params.dig(:q, :username_or_name_or_email_or_bio_cont)}"
-            style="width: 300px; padding: 6px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px;" />
-          <input type="submit" value="Search" style="padding: 6px 16px; background: #5E6469; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; white-space: nowrap;" />
-          #{params[:q].present? ? '<a href="' + admin_users_path + '" style="padding: 6px 16px; background: #999; color: white; text-decoration: none; border-radius: 4px; display: inline-block; font-size: 13px; white-space: nowrap;">Clear</a>' : ''}
-        </form>
-      </div>
-    }.html_safe
+  # Add "Select All" action across all pages (positioned before other action items)
+  action_item :select_all_users, only: :index do
+    link_to "Select All #{collection.total_count} Users",
+            admin_users_path(params.to_unsafe_h.merge(select_all: 'true')),
+            class: 'button',
+            style: 'background: #ff9800; color: white;',
+            data: { confirm: "This will select all #{collection.total_count} users across all pages. Continue?" }
   end
 
   # Add "Select All" action across all pages
@@ -40,12 +31,22 @@ ActiveAdmin.register User do
     redirect_to collection_path, notice: "Updated #{users.count} users"
   end
 
-  action_item :select_all_users, only: :index do
-    link_to "Select All #{collection.total_count} Users",
-            admin_users_path(params.to_unsafe_h.merge(select_all: 'true')),
-            class: 'button',
-            style: 'background: #ff9800; color: white;',
-            data: { confirm: "This will select all #{collection.total_count} users across all pages. Continue?" }
+  # Add custom action item for search bar
+  action_item :search, only: :index do
+    text_node %{
+      <div style="display: flex; align-items: center; margin-top: 15px;">
+        <form action="#{admin_users_path}" method="get" accept-charset="UTF-8" style="display: flex; gap: 8px; align-items: center;">
+          <input
+            name="q[username_or_name_or_email_or_bio_cont]"
+            type="text"
+            placeholder="Search users..."
+            value="#{params.dig(:q, :username_or_name_or_email_or_bio_cont)}"
+            style="width: 300px; padding: 6px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px;" />
+          <input type="submit" value="Search" style="padding: 6px 16px; background: #5E6469; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; white-space: nowrap;" />
+          #{params[:q].present? ? '<a href="' + admin_users_path + '" style="padding: 6px 16px; background: #999; color: white; text-decoration: none; border-radius: 4px; display: inline-block; font-size: 13px; white-space: nowrap;">Clear</a>' : ''}
+        </form>
+      </div>
+    }.html_safe
   end
 
   index do

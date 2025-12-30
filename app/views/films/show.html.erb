@@ -447,7 +447,7 @@
     <% if @film.youtube_url.present? %>
       <div class="video-player-wrapper">
         <iframe
-          src="https://www.youtube-nocookie.com/embed/<%= @film.youtube_video_id %>?origin=<%= request.base_url %>&enablejsapi=1"
+          src="https://www.youtube-nocookie.com/embed/<%= @film.youtube_video_id %>?autoplay=1&origin=<%= request.base_url %>&enablejsapi=1"
           frameborder="0"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
           referrerpolicy="strict-origin-when-cross-origin"
@@ -506,6 +506,7 @@
         document.addEventListener('DOMContentLoaded', function() {
           var player = videojs('film-video-player', {
             fluid: true,
+            autoplay: true,
             playbackRates: [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2],
             controlBar: {
               playbackRateMenuButton: true

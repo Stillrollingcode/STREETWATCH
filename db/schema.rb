@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_12_29_032717) do
+ActiveRecord::Schema[8.0].define(version: 2025_12_29_142621) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -178,6 +178,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_29_032717) do
     t.string "friendly_id"
     t.integer "views_count", default: 0, null: false
     t.index ["company_user_id"], name: "index_films_on_company_user_id"
+    t.index ["created_at"], name: "index_films_on_created_at"
     t.index ["editor_user_id"], name: "index_films_on_editor_user_id"
     t.index ["film_type"], name: "index_films_on_film_type"
     t.index ["filmer_user_id"], name: "index_films_on_filmer_user_id"

@@ -3,9 +3,9 @@
 
 <div class="film-thumbnail <%= 'pending-film' if show_pending %>">
   <% if film.thumbnail.attached? %>
-    <%= image_tag film.thumbnail, alt: film.title %>
+    <%= image_tag film.thumbnail, alt: film.title, loading: "lazy" %>
   <% elsif film.youtube_thumbnail_url %>
-    <%= image_tag film.youtube_thumbnail_url, alt: film.title %>
+    <%= image_tag film.youtube_thumbnail_url, alt: film.title, loading: "lazy" %>
   <% else %>
     <div class="placeholder">🎬</div>
   <% end %>
