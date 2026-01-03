@@ -1,0 +1,35 @@
+<% films.each do |film| %>
+  <%= link_to film, style: "text-decoration: none; color: inherit;", data: { turbo_frame: "_top" } do %>
+    <div class="film-card">
+      <%= render 'shared/film_thumbnail', film: film, show_pending: (user_signed_in? && !film.published?), unique_id: "lazy-#{film.id}" %>
+      <div class="film-info">
+        <h3 class="film-title"><%= film.title %></h3>
+        <div class="film-meta">
+          <% if film.company_user.present? || film.company.present? %>
+            <div class="film-meta-row">
+              <span class="film-company"><%= film.company_user&.username || film.company %></span>
+            </div>
+          <% end %>
+          <div class="film-meta-row">
+            <% if film.release_date.present? %>
+              <span><%= film.release_date.year %></span>
+            <% end %>
+            <% if film.runtime.present? %>
+              <span>· <%= film.formatted_runtime %></span>
+            <% end %>
+          </div>
+          <% if film.riders.any? %>
+            <div class="film-riders">
+              <% film.riders.limit(5).each do |rider| %>
+                <span class="rider-tag"><%= rider.username %></span>
+              <% end %>
+              <% if film.riders.count > 5 %>
+                <span class="rider-tag">+<%= film.riders.count - 5 %></span>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  <% end %>
+<% end %>

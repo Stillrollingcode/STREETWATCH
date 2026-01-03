@@ -1,0 +1,111 @@
+<div class="coming-soon-page">
+  <div class="coming-soon-container">
+    <div class="coming-soon-icon">
+      <svg width="80" height="80" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M7 18C5.9 18 5.01 18.9 5.01 20C5.01 21.1 5.9 22 7 22C8.1 22 9 21.1 9 20C9 18.9 8.1 18 7 18ZM1 2V4H3L6.6 11.59L5.25 14.04C5.09 14.32 5 14.65 5 15C5 16.1 5.9 17 7 17H19V15H7.42C7.28 15 7.17 14.89 7.17 14.75L7.2 14.63L8.1 13H15.55C16.3 13 16.96 12.59 17.3 11.97L20.88 5.48C20.96 5.34 21 5.17 21 5C21 4.45 20.55 4 20 4H5.21L4.27 2H1ZM17 18C15.9 18 15.01 18.9 15.01 20C15.01 21.1 15.9 22 17 22C18.1 22 19 21.1 19 20C19 18.9 18.1 18 17 18Z" fill="currentColor"/>
+      </svg>
+    </div>
+    <h1>Shop</h1>
+    <p class="coming-soon-subtitle">Loading...</p>
+    <p class="coming-soon-description">
+      STREETWATCH Shop will be partnering with a BMX shop in the near future. Making STREETWATCH shop your all-in-one street bmx platform.
+    </p>
+    <%= link_to "← Back to Home", root_path, class: "back-link" %>
+  </div>
+</div>
+
+<style>
+  .coming-soon-page {
+    min-height: calc(100vh - 200px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 18px;
+  }
+
+  .coming-soon-container {
+    max-width: 600px;
+    text-align: center;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 60px 40px;
+  }
+
+  .coming-soon-icon {
+    margin-bottom: 24px;
+    line-height: 1;
+    color: var(--accent);
+  }
+
+  .coming-soon-icon svg {
+    display: block;
+    margin: 0 auto;
+  }
+
+  .coming-soon-page h1 {
+    font-size: 48px;
+    margin-bottom: 16px;
+    color: var(--text);
+  }
+
+  .coming-soon-subtitle {
+    font-size: 24px;
+    color: var(--accent);
+    font-weight: 600;
+    margin-bottom: 24px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .coming-soon-description {
+    font-size: 16px;
+    line-height: 1.7;
+    color: var(--muted);
+    margin-bottom: 32px;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .back-link {
+    display: inline-block;
+    padding: 12px 24px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.2s ease;
+  }
+
+  .back-link:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--accent);
+    transform: translateY(-2px);
+  }
+
+  @media (max-width: 768px) {
+    .coming-soon-container {
+      padding: 40px 24px;
+    }
+
+    .coming-soon-icon svg {
+      width: 60px;
+      height: 60px;
+    }
+
+    .coming-soon-page h1 {
+      font-size: 36px;
+    }
+
+    .coming-soon-subtitle {
+      font-size: 20px;
+    }
+
+    .coming-soon-description {
+      font-size: 14px;
+    }
+  }
+</style>

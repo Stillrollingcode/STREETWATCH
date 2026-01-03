@@ -1,0 +1,25 @@
+<% films.each do |film| %>
+  <%= link_to film_path(film), class: "film-card" do %>
+    <div class="film-thumbnail">
+      <% if film.display_thumbnail.present? %>
+        <% if film.display_thumbnail.respond_to?(:attachment) %>
+          <%= image_tag film.display_thumbnail, alt: film.title, loading: "lazy" %>
+        <% else %>
+          <%= image_tag film.display_thumbnail, alt: film.title, loading: "lazy" %>
+        <% end %>
+      <% else %>
+        <div class="placeholder">🎬</div>
+      <% end %>
+      <div class="inner-ring"></div>
+    </div>
+    <div class="film-info">
+      <div class="film-title"><%= film.title %></div>
+      <div class="role-badges">
+        <% roles = user.film_roles(film) %>
+        <% roles.each do |role| %>
+          <span class="role-badge <%= role.downcase %>"><%= role %></span>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+<% end %>

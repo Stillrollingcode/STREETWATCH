@@ -1,0 +1,225 @@
+// app/javascript/controllers/lazy_load_controller.js
+// Stimulus controller for lazy loading content and infinite scroll
+
+import { Controller } from "@hotwired/stimulus"
+
+export default class extends Controller {
+  static targets = ["container", "loader", "loadMore"]
+  static values = {
+    url: String,
+    page: Number,
+    loading: Boolean,
+    hasMore: Boolean,
+    offset: Number,
+    limit: Number,
+    pageParam: String  // Custom page parameter name (default: 'page')
+  }
+
+  connect() {
+    console.log("Lazy load controller connected")
+    console.log("URL value:", this.urlValue)
+    console.log("Page value:", this.pageValue)
+    console.log("Has more value:", this.hasMoreValue)
+    console.log("Has loadMore target:", this.hasLoadMoreTarget)
+
+    // Initialize values
+    this.pageValue = this.pageValue || 1
+    this.offsetValue = this.offsetValue || 0
+    this.limitValue = this.limitValue || 24
+    this.loadingValue = false
+    this.hasMoreValue = this.hasMoreValue !== false
+
+    console.log("After init - hasMore:", this.hasMoreValue)
+
+    // Set up intersection observer for infinite scroll
+    this.setupIntersectionObserver()
+
+    // Load initial content if needed
+    if (this.data.get("autoload") === "true") {
+      this.loadContent()
+    }
+  }
+
+  disconnect() {
+    if (this.observer) {
+      this.observer.disconnect()
+    }
+  }
+
+  setupIntersectionObserver() {
+    // Use IntersectionObserver for infinite scroll
+    const options = {
+      root: null,
+      rootMargin: '100px', // Start loading 100px before reaching the bottom
+      threshold: 0.1
+    }
+
+    this.observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting && !this.loadingValue && this.hasMoreValue) {
+          this.loadMore()
+        }
+      })
+    }, options)
+
+    // Observe the loader element if it exists
+    if (this.hasLoaderTarget) {
+      this.observer.observe(this.loaderTarget)
+    }
+  }
+
+  async loadContent() {
+    if (this.loadingValue || !this.hasMoreValue) {
+      console.log('Skipping load - loading:', this.loadingValue, 'hasMore:', this.hasMoreValue)
+      return
+    }
+
+    this.loadingValue = true
+    this.showLoader()
+
+    try {
+      const url = this.buildUrl()
+      console.log('Loading content from:', url)
+
+      const response = await fetch(url, {
+        headers: {
+          'Accept': 'text/html',
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      })
+
+      if (!response.ok) {
+        console.error('Response not OK:', response.status, response.statusText)
+        throw new Error('Network response was not ok')
+      }
+
+      const html = await response.text()
+      console.log('Received HTML length:', html.length)
+      console.log('First 200 chars:', html.substring(0, 200))
+
+      // Check if we got content
+      if (html.trim()) {
+        this.appendContent(html)
+        this.incrementPage()
+      } else {
+        console.log('No more content available')
+        this.hasMoreValue = false
+        this.hideLoadMoreButton()
+      }
+    } catch (error) {
+      console.error('Error loading content:', error)
+      this.showError()
+    } finally {
+      this.loadingValue = false
+      this.hideLoader()
+    }
+  }
+
+  loadMore() {
+    this.loadContent()
+  }
+
+  buildUrl() {
+    const url = new URL(this.urlValue, window.location.origin)
+
+    // Determine the page parameter name to use
+    const pageParam = this.pageParamValue || 'page'
+
+    // Add pagination parameters
+    if (this.data.get("pagination-type") === "offset") {
+      url.searchParams.set('offset', this.offsetValue)
+      url.searchParams.set('limit', this.limitValue)
+    } else {
+      url.searchParams.set(pageParam, this.pageValue)
+    }
+
+    // Preserve existing filters
+    const currentParams = new URLSearchParams(window.location.search)
+    currentParams.forEach((value, key) => {
+      // Exclude all possible page parameter names and pagination params
+      if (!['page', 'films_page', 'photos_page', 'offset', 'limit'].includes(key)) {
+        url.searchParams.set(key, value)
+      }
+    })
+
+    return url.toString()
+  }
+
+  appendContent(html) {
+    // Create a temporary container to parse the HTML
+    const temp = document.createElement('div')
+    temp.innerHTML = html
+
+    console.log('Parsed children count:', temp.children.length)
+
+    // Move all children to the container
+    let appendedCount = 0
+    while (temp.firstChild) {
+      this.containerTarget.appendChild(temp.firstChild)
+      appendedCount++
+    }
+
+    console.log('Appended', appendedCount, 'nodes to container')
+
+    // Dispatch event for other components that might need to initialize
+    this.dispatch('content-loaded', {
+      detail: {
+        page: this.pageValue,
+        offset: this.offsetValue
+      }
+    })
+  }
+
+  incrementPage() {
+    if (this.data.get("pagination-type") === "offset") {
+      this.offsetValue += this.limitValue
+    } else {
+      this.pageValue += 1
+    }
+  }
+
+  showLoader() {
+    if (this.hasLoaderTarget) {
+      this.loaderTarget.classList.remove('hidden')
+    }
+  }
+
+  hideLoader() {
+    if (this.hasLoaderTarget) {
+      this.loaderTarget.classList.add('hidden')
+    }
+  }
+
+  showError() {
+    const errorMessage = document.createElement('div')
+    errorMessage.className = 'alert alert-danger'
+    errorMessage.textContent = 'Error loading content. Please try again.'
+    this.containerTarget.appendChild(errorMessage)
+
+    // Remove error after 5 seconds
+    setTimeout(() => {
+      errorMessage.remove()
+    }, 5000)
+  }
+
+  hideLoadMoreButton() {
+    if (this.hasLoadMoreTarget) {
+      this.loadMoreTarget.style.display = 'none'
+    }
+  }
+
+  // Manual trigger for "Load More" button
+  loadMoreClick(event) {
+    event.preventDefault()
+    this.loadMore()
+  }
+
+  // Reset the pagination (useful for filters)
+  reset() {
+    this.pageValue = 1
+    this.offsetValue = 0
+    this.hasMoreValue = true
+    this.containerTarget.innerHTML = ''
+    this.loadContent()
+  }
+}

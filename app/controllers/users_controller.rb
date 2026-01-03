@@ -1,7 +1,10 @@
 class UsersController < ApplicationController
   def index
     # Set cache headers for CDN (5 minutes for logged-out users)
-    expires_in 5.minutes, public: true unless user_signed_in?
+    unless user_signed_in?
+      expires_in 5.minutes, public: true
+      response.headers['Vary'] = 'Accept-Encoding'
+    end
 
     @query = params[:q].to_s.strip
     @users = User.includes(avatar_attachment: :blob)
@@ -17,12 +20,21 @@ class UsersController < ApplicationController
   end
 
   def show
-    @user = User.find_by_friendly_or_id(params[:id])
+    # Set cache headers for non-logged-in users (10 minutes)
+    unless user_signed_in?
+      expires_in 10.minutes, public: true
+      response.headers['Vary'] = 'Accept-Encoding'
+    end
+
+    @user = User.includes(avatar_attachment: :blob).find_by_friendly_or_id(params[:id])
     @query = params[:q].to_s.strip
 
     # Get all films and photos for the user (unpaginated ActiveRecord relations)
+    # Eager load associations to prevent N+1 queries
     @films = @user.all_films(viewing_user: current_user)
+               .includes(:film_riders, :film_filmers, thumbnail_attachment: :blob)
     @photos = @user.all_photos(viewing_user: current_user)
+               .includes(:album, image_attachment: :blob)
 
     # Apply film type filter if present
     if params[:film_type].present?
@@ -52,14 +64,38 @@ class UsersController < ApplicationController
     # Pagination happens AFTER search filtering
     @films = @films.page(params[:films_page]).per(18)
     @photos = @photos.page(params[:photos_page]).per(18)
+
+    # Add variables for lazy loading support
+    @films_total_count = @films.total_count
+    @films_has_more = @films.next_page.present?
+    @photos_total_count = @photos.total_count
+    @photos_has_more = @photos.next_page.present?
+
+    # Handle AJAX requests for lazy loading
+    respond_to do |format|
+      format.html do
+        # If it's an AJAX request for pagination, render just the film or photo cards
+        if (request.xhr? || request.headers['X-Requested-With'] == 'XMLHttpRequest') && params[:films_page].present? && params[:films_page].to_i > 1
+          render partial: 'user_film_cards', locals: { films: @films, user: @user }, layout: false, content_type: 'text/html'
+        elsif (request.xhr? || request.headers['X-Requested-With'] == 'XMLHttpRequest') && params[:photos_page].present? && params[:photos_page].to_i > 1
+          render partial: 'user_photo_cards', locals: { photos: @photos, user: @user }, layout: false, content_type: 'text/html'
+        else
+          # Normal full page render
+          render :show
+        end
+      end
+    end
   end
 
   def following
     @user = User.find_by_friendly_or_id(params[:id])
     @query = params[:q].to_s.strip
     @users = @user.following
+               .includes(avatar_attachment: :blob)
                .search_by_fields(@query, :username, :email)
                .order(Arel.sql("LOWER(username) ASC"))
+               .page(params[:page])
+               .per(18)
     render 'index'
   end
 
@@ -67,8 +103,11 @@ class UsersController < ApplicationController
     @user = User.find_by_friendly_or_id(params[:id])
     @query = params[:q].to_s.strip
     @users = @user.followers
+               .includes(avatar_attachment: :blob)
                .search_by_fields(@query, :username, :email)
                .order(Arel.sql("LOWER(username) ASC"))
+               .page(params[:page])
+               .per(18)
     render 'index'
   end
 end
