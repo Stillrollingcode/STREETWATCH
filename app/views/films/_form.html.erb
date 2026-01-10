@@ -361,7 +361,7 @@
   <div class="form-card">
     <h1><%= film.new_record? ? "Add Film" : "Edit Film" %></h1>
 
-    <%= form_with(model: film, class: 'film-form') do |f| %>
+    <%= form_with(model: film, class: 'film-form', data: { turbo: false }) do |f| %>
       <% if film.errors.any? %>
         <div class="error-messages">
           <h2><%= pluralize(film.errors.count, "error") %> prevented this film from being saved:</h2>
@@ -567,9 +567,10 @@
 </div>
 
 <script>
-  // Get user data for autocomplete
-  const users = <%= User.order(:username).select(:id, :username, :profile_type).map { |u| { id: u.id, username: u.username, profile_type: u.profile_type } }.to_json.html_safe %>;
+  // Get user data for autocomplete (limit to 500 most recently active users)
+  const users = <%= User.order(updated_at: :desc).limit(500).select(:id, :username, :profile_type).map { |u| { id: u.id, username: u.username, profile_type: u.profile_type } }.to_json.html_safe %>;
   const companyUsers = users.filter(u => u.profile_type === 'company' || u.profile_type === 'crew');
+  console.log('[Film Form] Loaded ' + users.length + ' users for autocomplete');
 
   function initForm() {
     // Film type toggle
@@ -665,6 +666,11 @@
   }
 
   function initAutocomplete() {
+    if (!users || users.length === 0) {
+      console.error('[Film Form] No users loaded for autocomplete!');
+      return;
+    }
+
     const autocompleteInputs = document.querySelectorAll('.autocomplete-input');
 
     autocompleteInputs.forEach(input => {
