@@ -17,4 +17,10 @@ class PagesController < ApplicationController
 
   def sellers_disclaimer
   end
+
+  def articles
+  end
+
+  def shop
+  end
 end

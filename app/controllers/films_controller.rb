@@ -9,6 +9,7 @@ class FilmsController < ApplicationController
     unless user_signed_in?
       expires_in 5.minutes, public: true
       response.headers['Cache-Control'] = 'public, max-age=300, must-revalidate'
+      response.headers['Vary'] = 'Cookie, Accept-Encoding'
     end
 
     begin
@@ -95,7 +96,7 @@ class FilmsController < ApplicationController
       if params[:group_by].present?
         # Limit to 200 records before grouping, then eager load
         films_to_group = @films.limit(200)
-                               .includes(:riders, :filmers, :companies, :filmer_user, :editor_user, :company_user, thumbnail_attachment: :blob)
+                               .includes(:riders, :filmers, :companies, :filmer_user, :editor_user, :company_user, :film_reviews, thumbnail_attachment: :blob)
                                .to_a
 
         # Determine group sort order (A-Z or Z-A)
@@ -104,45 +105,83 @@ class FilmsController < ApplicationController
         case params[:group_by]
         when 'company'
           # Group by company, handling multiple companies per film
-          @grouped_films = Hash.new { |h, k| h[k] = [] }
+          temp_groups = Hash.new { |h, k| h[k] = { user: nil, films: [], total_count: 0 } }
           films_to_group.each do |film|
-            company_names = film.companies_display_names
-            if company_names.any?
-              company_names.each { |name| @grouped_films[name] << film }
+            # Get company users (not just names)
+            companies = film.companies.presence || []
+            if companies.any?
+              companies.each do |company_user|
+                temp_groups[company_user.username][:user] = company_user
+                temp_groups[company_user.username][:films] << film
+              end
             else
-              @grouped_films['Unknown'] << film
+              # Handle legacy company field or unknown
+              company_name = film.company_user&.username || film.company.presence || 'Unknown'
+              temp_groups[company_name][:films] << film
+              temp_groups[company_name][:user] = film.company_user if film.company_user
             end
           end
-          @grouped_films = @grouped_films.sort_by { |k, _| k.to_s.downcase }
+          # Sort groups and limit films to first 5
+          @grouped_films = temp_groups.sort_by { |k, _| k.to_s.downcase }
           @grouped_films.reverse! if reverse_groups
           @grouped_films = @grouped_films.to_h
-          @grouped_films.each { |_, films| films.sort_by! { |f| [f.release_date || Date.new(1900), f.created_at] }.reverse! }
+          @grouped_films.each do |_, data|
+            data[:films].sort_by! { |f| [f.release_date || Date.new(1900), f.created_at] }.reverse!
+            data[:total_count] = data[:films].count
+            data[:films] = data[:films].first(5)
+          end
         when 'filmer'
           # Group by filmer, handling multiple filmers per film
-          @grouped_films = Hash.new { |h, k| h[k] = [] }
+          temp_groups = Hash.new { |h, k| h[k] = { user: nil, films: [], total_count: 0 } }
           films_to_group.each do |film|
-            filmer_names = film.filmers_display_names
-            if filmer_names.any?
-              filmer_names.each { |name| @grouped_films[name] << film }
+            # Get filmer users (not just names)
+            filmers = film.filmers.presence || []
+            if filmers.any?
+              filmers.each do |filmer_user|
+                temp_groups[filmer_user.username][:user] = filmer_user
+                temp_groups[filmer_user.username][:films] << film
+              end
             else
-              @grouped_films['Unknown'] << film
+              # Handle legacy filmer_user field or unknown
+              filmer_name = film.filmer_user&.username || film.custom_filmer_name.presence || 'Unknown'
+              temp_groups[filmer_name][:films] << film
+              temp_groups[filmer_name][:user] = film.filmer_user if film.filmer_user
             end
           end
-          @grouped_films = @grouped_films.sort_by { |k, _| k.to_s.downcase }
+          # Sort groups and limit films to first 5
+          @grouped_films = temp_groups.sort_by { |k, _| k.to_s.downcase }
           @grouped_films.reverse! if reverse_groups
           @grouped_films = @grouped_films.to_h
-          @grouped_films.each { |_, films| films.sort_by! { |f| [f.release_date || Date.new(1900), f.created_at] }.reverse! }
+          @grouped_films.each do |_, data|
+            data[:films].sort_by! { |f| [f.release_date || Date.new(1900), f.created_at] }.reverse!
+            data[:total_count] = data[:films].count
+            data[:films] = data[:films].first(5)
+          end
         when 'editor'
-          @grouped_films = films_to_group.group_by { |f| f.editor_display_name.presence || 'Unknown' }
-          @grouped_films = @grouped_films.sort_by { |k, _| k.to_s.downcase }
+          temp_groups = Hash.new { |h, k| h[k] = { user: nil, films: [], total_count: 0 } }
+          films_to_group.each do |film|
+            editor_name = film.editor_display_name.presence || 'Unknown'
+            temp_groups[editor_name][:user] = film.editor_user
+            temp_groups[editor_name][:films] << film
+          end
+          # Sort groups and limit films to first 5
+          @grouped_films = temp_groups.sort_by { |k, _| k.to_s.downcase }
           @grouped_films.reverse! if reverse_groups
           @grouped_films = @grouped_films.to_h
-          @grouped_films.each { |_, films| films.sort_by! { |f| [f.release_date || Date.new(1900), f.created_at] }.reverse! }
+          @grouped_films.each do |_, data|
+            data[:films].sort_by! { |f| [f.release_date || Date.new(1900), f.created_at] }.reverse!
+            data[:total_count] = data[:films].count
+            data[:films] = data[:films].first(5)
+          end
         end
       else
         # Paginate first, then eager load only the 18 films needed
         @films = @films.page(params[:page]).per(18)
-                       .includes(:riders, :company_user, thumbnail_attachment: :blob)
+                       .includes(:riders, :filmers, :companies, :company_user, :filmer_user, :editor_user, :film_reviews, thumbnail_attachment: :blob)
+
+        # Add variables for lazy loading support
+        @total_count = @films.total_count
+        @has_more = @films.next_page.present?
       end
     rescue => e
       Rails.logger.error "Films index error: #{e.class} - #{e.message}"
@@ -151,13 +190,33 @@ class FilmsController < ApplicationController
       # Fallback to simple query
       @films = Film.order(created_at: :desc)
                    .page(params[:page]).per(18)
-                   .includes(thumbnail_attachment: :blob)
+                   .includes(:film_reviews, thumbnail_attachment: :blob)
 
       flash.now[:alert] = "There was an error with your search. Showing all films instead."
+    end
+
+    # Handle AJAX requests for lazy loading
+    respond_to do |format|
+      format.html do
+        # If it's an AJAX request for pagination, render just the film cards
+        # Check for X-Requested-With header (set by lazy_load_controller.js)
+        if (request.xhr? || request.headers['X-Requested-With'] == 'XMLHttpRequest') && params[:page].present? && params[:page].to_i > 1
+          render partial: 'film_cards', locals: { films: @films }, layout: false, content_type: 'text/html'
+        else
+          # Normal full page render
+          render :index
+        end
+      end
     end
   end
 
   def show
+    # Set cache headers for non-logged-in users (10 minutes)
+    unless user_signed_in?
+      expires_in 10.minutes, public: true
+      response.headers['Vary'] = 'Accept-Encoding'
+    end
+
     # Check if film is published or user has access
     unless @film.published? || can_view_unpublished?(@film)
       flash[:alert] = "This film is pending approval and cannot be viewed yet."
@@ -174,6 +233,14 @@ class FilmsController < ApplicationController
     @film.user = current_user
 
     if @film.save
+      # Auto-tag company/crew accounts as companies on their uploads (after save)
+      if current_user.profile_type.in?(['company', 'crew'])
+        unless @film.companies.include?(current_user)
+          @film.companies << current_user
+          # The approval will be auto-created and auto-approved by the after_commit callback
+        end
+      end
+
       redirect_to @film, notice: "Film was successfully created."
     else
       render :new, status: :unprocessable_entity
@@ -218,7 +285,8 @@ class FilmsController < ApplicationController
   def set_film
     @film = Film.includes(
       :riders, :filmers, :companies, :filmer_user, :editor_user, :company_user,
-      :film_approvals, :comments, :favorites,
+      :film_approvals, :favorites,
+      comments: [:user, replies: :user], # Eager load comment associations
       thumbnail_attachment: :blob,
       video_attachment: :blob
     ).find_by_friendly_or_id(params[:id])
@@ -276,6 +344,7 @@ class FilmsController < ApplicationController
   end
 
   def increment_views
-    @film.increment!(:views_count)
+    # Use background job to avoid blocking the request
+    IncrementViewCountJob.perform_later(@film.id)
   end
 end

@@ -13,11 +13,17 @@ module ApplicationHelper
       elsif action_name == "show" && @film
         # Check if we came from a user profile by looking at the referer
         if request.referer&.include?('/users/') && (match = request.referer.match(/\/users\/([^\/\?#]+)/))
-          # Extract user ID from referer and create breadcrumb
-          if (user = User.find_by_friendly_or_id(match[1]))
-            crumbs << { name: user.username, path: user_path(user) }
-          else
+          user_param = match[1]
+          # Ignore Devise routes (sign_in, sign_out, password, etc.)
+          if user_param.in?(['sign_in', 'sign_out', 'sign_up', 'password', 'confirmation', 'unlock'])
             crumbs << { name: "Films", path: films_path }
+          else
+            # Extract user ID from referer and create breadcrumb
+            if (user = User.find_by_friendly_or_id(user_param))
+              crumbs << { name: user.username, path: user_path(user) }
+            else
+              crumbs << { name: "Films", path: films_path }
+            end
           end
         else
           crumbs << { name: "Films", path: films_path }
@@ -33,11 +39,17 @@ module ApplicationHelper
       elsif action_name == "show" && @photo
         # Check if we came from a user profile by looking at the referer
         if request.referer&.include?('/users/') && (match = request.referer.match(/\/users\/([^\/\?#]+)/))
-          # Extract user ID from referer and create breadcrumb
-          if (user = User.find_by_friendly_or_id(match[1]))
-            crumbs << { name: user.username, path: user_path(user) }
-          else
+          user_param = match[1]
+          # Ignore Devise routes (sign_in, sign_out, password, etc.)
+          if user_param.in?(['sign_in', 'sign_out', 'sign_up', 'password', 'confirmation', 'unlock'])
             crumbs << { name: "Photos", path: photos_path }
+          else
+            # Extract user ID from referer and create breadcrumb
+            if (user = User.find_by_friendly_or_id(user_param))
+              crumbs << { name: user.username, path: user_path(user) }
+            else
+              crumbs << { name: "Photos", path: photos_path }
+            end
           end
         else
           crumbs << { name: "Photos", path: photos_path }

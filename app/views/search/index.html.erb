@@ -1,0 +1,333 @@
+<% content_for :head do %>
+  <style>
+    .search-results-shell {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 30px 20px;
+    }
+    .search-results-header {
+      margin-bottom: 40px;
+    }
+    .search-results-header h1 {
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 12px;
+    }
+    .search-query {
+      font-size: 18px;
+      color: var(--muted);
+    }
+    .search-query-term {
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .search-section {
+      margin-bottom: 50px;
+    }
+    .search-section-header {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .search-section-icon {
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .search-section-count {
+      color: var(--muted);
+      font-size: 16px;
+      font-weight: 500;
+      margin-left: auto;
+    }
+    .search-results-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+    }
+    .search-result-card {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+    .search-result-card:hover {
+      background: rgba(255,255,255,0.08);
+      border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+    }
+    .search-result-card-icon {
+      flex-shrink: 0;
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.06);
+    }
+    .search-result-card-content {
+      flex: 1;
+      min-width: 0;
+    }
+    .search-result-card-title {
+      font-weight: 600;
+      font-size: 16px;
+      color: var(--text);
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .search-result-card-meta {
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .search-result-card-badge {
+      flex-shrink: 0;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .search-result-card-badge.film {
+      background: rgba(255, 99, 71, 0.2);
+      border: 1px solid rgba(255, 99, 71, 0.3);
+      color: hsl(9, 100%, 64%);
+    }
+    .search-result-card-badge.photo {
+      background: rgba(147, 51, 234, 0.2);
+      border: 1px solid rgba(147, 51, 234, 0.3);
+      color: hsl(271, 81%, 56%);
+    }
+    .search-result-card-badge.user {
+      background: rgba(34, 197, 94, 0.2);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      color: hsl(142, 71%, 45%);
+    }
+    .search-result-card-badge.album {
+      background: rgba(59, 130, 246, 0.2);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      color: hsl(221, 91%, 60%);
+    }
+    .search-no-results {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--muted);
+    }
+    .search-no-results-icon {
+      font-size: 64px;
+      margin-bottom: 20px;
+      opacity: 0.3;
+    }
+    .search-no-results-title {
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+    .search-no-results-text {
+      font-size: 16px;
+    }
+    @media (max-width: 640px) {
+      .search-results-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+<% end %>
+
+<div class="search-results-shell">
+  <div class="search-results-header">
+    <h1>Search Results</h1>
+    <% if params[:q].present? %>
+      <p class="search-query">
+        Results for <span class="search-query-term">"<%= params[:q] %>"</span>
+      </p>
+    <% end %>
+  </div>
+
+  <% if @films.any? || @photos.any? || @users.any? || @albums.any? %>
+    <!-- Films Section -->
+    <% if @films.any? %>
+      <div class="search-section">
+        <div class="search-section-header">
+          <div class="search-section-icon">
+            <svg width="24" height="24" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M2 3C2 2.44772 2.44772 2 3 2H13C13.5523 2 14 2.44772 14 3V13C14 13.5523 13.5523 14 13 14H3C2.44772 14 2 13.5523 2 13V3Z" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M2 5.5H14M2 8.5H14M2 11.5H14M5.5 2V14M10.5 2V14" stroke="currentColor" stroke-width="1.5"/>
+            </svg>
+          </div>
+          <span>Films</span>
+          <span class="search-section-count"><%= @films.length %> <%= @films.length == 1 ? 'result' : 'results' %></span>
+        </div>
+        <div class="search-results-grid">
+          <% @films.each do |film| %>
+            <%= link_to film, class: "search-result-card", data: { turbo_frame: "_top" } do %>
+              <div class="search-result-card-icon">
+                <svg width="24" height="24" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M2 3C2 2.44772 2.44772 2 3 2H13C13.5523 2 14 2.44772 14 3V13C14 13.5523 13.5523 14 13 14H3C2.44772 14 2 13.5523 2 13V3Z" stroke="currentColor" stroke-width="1.5"/>
+                  <path d="M2 5.5H14M2 8.5H14M2 11.5H14M5.5 2V14M10.5 2V14" stroke="currentColor" stroke-width="1.5"/>
+                </svg>
+              </div>
+              <div class="search-result-card-content">
+                <div class="search-result-card-title"><%= film.title %></div>
+                <div class="search-result-card-meta">
+                  <%= film.formatted_film_type %>
+                  <%= " · #{film.company}" if film.company.present? %>
+                </div>
+              </div>
+              <span class="search-result-card-badge film">Film</span>
+            <% end %>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
+    <!-- Photos Section -->
+    <% if @photos.any? %>
+      <div class="search-section">
+        <div class="search-section-header">
+          <div class="search-section-icon">
+            <svg width="24" height="24" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="2" y="3" width="12" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
+              <circle cx="5.5" cy="6.5" r="1.5" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M14 10L11.5 7.5L8.5 10.5L6.5 8.5L2 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <span>Photos</span>
+          <span class="search-section-count"><%= @photos.length %> <%= @photos.length == 1 ? 'result' : 'results' %></span>
+        </div>
+        <div class="search-results-grid">
+          <% @photos.each do |photo| %>
+            <%= link_to photo, class: "search-result-card", data: { turbo_frame: "_top" } do %>
+              <div class="search-result-card-icon">
+                <svg width="24" height="24" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="2" y="3" width="12" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
+                  <circle cx="5.5" cy="6.5" r="1.5" stroke="currentColor" stroke-width="1.5"/>
+                  <path d="M14 10L11.5 7.5L8.5 10.5L6.5 8.5L2 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <div class="search-result-card-content">
+                <div class="search-result-card-title"><%= photo.title %></div>
+                <% if photo.photographer_name.present? %>
+                  <div class="search-result-card-meta">Photo by <%= photo.photographer_name %></div>
+                <% end %>
+              </div>
+              <span class="search-result-card-badge photo">Photo</span>
+            <% end %>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
+    <!-- Users Section -->
+    <% if @users.any? %>
+      <div class="search-section">
+        <div class="search-section-header">
+          <div class="search-section-icon">
+            <svg width="24" height="24" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="8" cy="5" r="2.5" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M3 13C3 10.7909 5.23858 9 8 9C10.7614 9 13 10.7909 13 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <span>Users</span>
+          <span class="search-section-count"><%= @users.length %> <%= @users.length == 1 ? 'result' : 'results' %></span>
+        </div>
+        <div class="search-results-grid">
+          <% @users.each do |user| %>
+            <%= link_to user, class: "search-result-card", data: { turbo_frame: "_top" } do %>
+              <div class="search-result-card-icon">
+                <svg width="24" height="24" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="8" cy="5" r="2.5" stroke="currentColor" stroke-width="1.5"/>
+                  <path d="M3 13C3 10.7909 5.23858 9 8 9C10.7614 9 13 10.7909 13 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <div class="search-result-card-content">
+                <div class="search-result-card-title">@<%= user.username %></div>
+                <div class="search-result-card-meta">
+                  <%= user.name %>
+                  <%= " · #{user.profile_type}" if user.profile_type.present? %>
+                </div>
+              </div>
+              <span class="search-result-card-badge user">User</span>
+            <% end %>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
+    <!-- Albums Section -->
+    <% if @albums.any? %>
+      <div class="search-section">
+        <div class="search-section-header">
+          <div class="search-section-icon">
+            <svg width="24" height="24" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M3 4.5C3 3.67157 3.67157 3 4.5 3H11.5C12.3284 3 13 3.67157 13 4.5V12.5C13 13.3284 12.3284 14 11.5 14H4.5C3.67157 14 3 13.3284 3 12.5V4.5Z" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M3 6H13" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M6 3V6" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M10 3V6" stroke="currentColor" stroke-width="1.5"/>
+            </svg>
+          </div>
+          <span>Albums</span>
+          <span class="search-section-count"><%= @albums.length %> <%= @albums.length == 1 ? 'result' : 'results' %></span>
+        </div>
+        <div class="search-results-grid">
+          <% @albums.each do |album| %>
+            <%= link_to album, class: "search-result-card", data: { turbo_frame: "_top" } do %>
+              <div class="search-result-card-icon">
+                <svg width="24" height="24" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M3 4.5C3 3.67157 3.67157 3 4.5 3H11.5C12.3284 3 13 3.67157 13 4.5V12.5C13 13.3284 12.3284 14 11.5 14H4.5C3.67157 14 3 13.3284 3 12.5V4.5Z" stroke="currentColor" stroke-width="1.5"/>
+                  <path d="M3 6H13" stroke="currentColor" stroke-width="1.5"/>
+                  <path d="M6 3V6" stroke="currentColor" stroke-width="1.5"/>
+                  <path d="M10 3V6" stroke="currentColor" stroke-width="1.5"/>
+                </svg>
+              </div>
+              <div class="search-result-card-content">
+                <div class="search-result-card-title"><%= album.title %></div>
+                <% if album.user %>
+                  <div class="search-result-card-meta">by @<%= album.user.username %></div>
+                <% end %>
+              </div>
+              <span class="search-result-card-badge album">Album</span>
+            <% end %>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  <% else %>
+    <div class="search-no-results">
+      <div class="search-no-results-icon">
+        <svg width="64" height="64" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="7" cy="7" r="4.5" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M10.5 10.5L13.5 13.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="search-no-results-title">No results found</div>
+      <p class="search-no-results-text">
+        <% if params[:q].present? %>
+          Try searching with different keywords
+        <% else %>
+          Enter a search term to get started
+        <% end %>
+      </p>
+    </div>
+  <% end %>
+</div>

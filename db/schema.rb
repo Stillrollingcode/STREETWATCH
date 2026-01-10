@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_12_29_142621) do
+ActiveRecord::Schema[8.0].define(version: 2026_01_10_144034) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -75,6 +75,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_29_142621) do
     t.datetime "updated_at", null: false
     t.integer "parent_id"
     t.string "friendly_id"
+    t.index ["film_id", "created_at"], name: "index_comments_on_film_and_created_at"
     t.index ["film_id", "created_at"], name: "index_comments_on_film_id_and_created_at"
     t.index ["film_id"], name: "index_comments_on_film_id"
     t.index ["friendly_id"], name: "index_comments_on_friendly_id", unique: true
@@ -103,7 +104,10 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_29_142621) do
     t.integer "film_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["film_id", "created_at"], name: "index_favorites_on_film_and_created"
+    t.index ["film_id", "created_at"], name: "index_favorites_on_film_and_created_at"
     t.index ["film_id"], name: "index_favorites_on_film_id"
+    t.index ["user_id", "film_id"], name: "index_favorites_on_user_and_film"
     t.index ["user_id", "film_id"], name: "index_favorites_on_user_id_and_film_id", unique: true
     t.index ["user_id"], name: "index_favorites_on_user_id"
   end
@@ -130,6 +134,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_29_142621) do
     t.integer "user_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["film_id", "user_id"], name: "index_film_companies_on_film_and_user"
     t.index ["film_id", "user_id"], name: "index_film_companies_on_film_id_and_user_id", unique: true
     t.index ["film_id"], name: "index_film_companies_on_film_id"
     t.index ["user_id"], name: "index_film_companies_on_user_id"
@@ -140,9 +145,22 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_29_142621) do
     t.integer "user_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["film_id", "user_id"], name: "index_film_filmers_on_film_and_user"
     t.index ["film_id", "user_id"], name: "index_film_filmers_on_film_id_and_user_id", unique: true
     t.index ["film_id"], name: "index_film_filmers_on_film_id"
     t.index ["user_id"], name: "index_film_filmers_on_user_id"
+  end
+
+  create_table "film_reviews", force: :cascade do |t|
+    t.integer "user_id", null: false
+    t.integer "film_id", null: false
+    t.integer "rating", null: false
+    t.text "comment"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["film_id"], name: "index_film_reviews_on_film_id"
+    t.index ["user_id", "film_id"], name: "index_film_reviews_on_user_id_and_film_id", unique: true
+    t.index ["user_id"], name: "index_film_reviews_on_user_id"
   end
 
   create_table "film_riders", force: :cascade do |t|
@@ -150,6 +168,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_29_142621) do
     t.integer "user_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["film_id", "user_id"], name: "index_film_riders_on_film_and_user"
     t.index ["film_id", "user_id"], name: "index_film_riders_on_film_id_and_user_id", unique: true
     t.index ["film_id"], name: "index_film_riders_on_film_id"
     t.index ["user_id"], name: "index_film_riders_on_user_id"
@@ -180,11 +199,14 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_29_142621) do
     t.index ["company_user_id"], name: "index_films_on_company_user_id"
     t.index ["created_at"], name: "index_films_on_created_at"
     t.index ["editor_user_id"], name: "index_films_on_editor_user_id"
+    t.index ["film_type", "created_at"], name: "index_films_on_type_and_created_at"
     t.index ["film_type"], name: "index_films_on_film_type"
     t.index ["filmer_user_id"], name: "index_films_on_filmer_user_id"
     t.index ["friendly_id"], name: "index_films_on_friendly_id", unique: true
     t.index ["release_date"], name: "index_films_on_release_date"
     t.index ["title"], name: "index_films_on_title"
+    t.index ["user_id", "created_at"], name: "index_films_on_user_and_created"
+    t.index ["user_id", "created_at"], name: "index_films_on_user_and_created_at"
     t.index ["user_id"], name: "index_films_on_user_id"
   end
 
@@ -194,6 +216,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_29_142621) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["followed_id"], name: "index_follows_on_followed_id"
+    t.index ["follower_id", "followed_id"], name: "index_follows_on_follower_and_followed"
     t.index ["follower_id", "followed_id"], name: "index_follows_on_follower_id_and_followed_id", unique: true
   end
 
@@ -227,6 +250,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_29_142621) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["actor_id"], name: "index_notifications_on_actor_id"
+    t.index ["notifiable_type", "notifiable_id"], name: "index_notifications_on_notifiable"
     t.index ["notifiable_type", "notifiable_id"], name: "index_notifications_on_notifiable_type_and_notifiable_id"
     t.index ["user_id", "read_at", "created_at"], name: "index_notifications_on_user_id_and_read_at_and_created_at"
   end
@@ -284,11 +308,14 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_29_142621) do
     t.string "friendly_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["album_id", "created_at"], name: "index_photos_on_album_and_created_at"
     t.index ["album_id"], name: "index_photos_on_album_id"
     t.index ["company_user_id"], name: "index_photos_on_company_user_id"
     t.index ["date_taken"], name: "index_photos_on_date_taken"
     t.index ["friendly_id"], name: "index_photos_on_friendly_id", unique: true
     t.index ["photographer_user_id"], name: "index_photos_on_photographer_user_id"
+    t.index ["user_id", "created_at"], name: "index_photos_on_user_and_created"
+    t.index ["user_id", "created_at"], name: "index_photos_on_user_and_created_at"
     t.index ["user_id"], name: "index_photos_on_user_id"
   end
 
@@ -400,8 +427,10 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_29_142621) do
     t.string "unconfirmed_email"
     t.index ["claim_token"], name: "index_users_on_claim_token", unique: true
     t.index ["confirmation_token"], name: "index_users_on_confirmation_token", unique: true
+    t.index ["created_at"], name: "index_users_on_created_at"
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["friendly_id"], name: "index_users_on_friendly_id", unique: true
+    t.index ["profile_type"], name: "index_users_on_profile_type"
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
     t.index ["username"], name: "index_users_on_username", unique: true
   end
@@ -421,6 +450,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_29_142621) do
   add_foreign_key "film_companies", "users"
   add_foreign_key "film_filmers", "films"
   add_foreign_key "film_filmers", "users"
+  add_foreign_key "film_reviews", "films"
+  add_foreign_key "film_reviews", "users"
   add_foreign_key "film_riders", "films"
   add_foreign_key "film_riders", "users"
   add_foreign_key "films", "users"

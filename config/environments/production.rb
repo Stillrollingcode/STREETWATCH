@@ -57,7 +57,11 @@ Rails.application.configure do
   # config.action_mailer.raise_delivery_errors = false
 
   # Set host to be used by links generated in mailer templates.
-  config.action_mailer.default_url_options = { host: "streetwatch-production.up.railway.app", protocol: "https" }
+  # Use custom domain if available, fallback to Railway domain
+  config.action_mailer.default_url_options = {
+    host: ENV.fetch("APP_DOMAIN", "streetwatch.mov"),
+    protocol: "https"
+  }
 
   # Email delivery configuration
   config.action_mailer.delivery_method = :smtp
@@ -86,8 +90,17 @@ Rails.application.configure do
 
   config.hosts << "streetwatch.mov"
   config.hosts << "www.streetwatch.mov"
-  
+
   # Also allow the Railway subdomain during transition
   config.hosts << /.*\.up\.railway\.app/
-  
+
+  # Configure action controller to allow forgery protection with the custom domain
+  # This ensures CSRF tokens work correctly across both Railway and custom domain
+  config.action_controller.forgery_protection_origin_check = true
+  config.action_controller.default_protect_from_forgery = true
+
+  # Force cookies to be sent with SameSite=None for CloudFlare compatibility
+  # This allows cookies to work through the CloudFlare proxy
+  config.action_dispatch.cookies_same_site_protection = :lax
+
 end

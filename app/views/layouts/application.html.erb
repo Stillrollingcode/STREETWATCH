@@ -100,7 +100,7 @@
       .nav {
         position: sticky;
         top: 0;
-        z-index: 100;
+        z-index: 200;
         background: <%= theme[:nav_bg] %>;
         backdrop-filter: blur(12px);
         border-bottom: 1px solid var(--border);
@@ -111,6 +111,25 @@
         justify-content: space-between;
         height: 60px;
         gap: 20px;
+      }
+      .sidebar-toggle-nav {
+        background: none;
+        border: none;
+        color: var(--text);
+        font-size: 24px;
+        cursor: pointer;
+        padding: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+        border-radius: 6px;
+        margin-right: 8px;
+        position: relative;
+        z-index: 200;
+      }
+      .sidebar-toggle-nav:hover {
+        background: rgba(255,255,255,0.08);
       }
       .brand {
         display: flex;
@@ -206,7 +225,7 @@
         margin-top: 24px;
         display: grid;
         grid-template-columns: repeat(6, 1fr);
-        gap: 24px;
+        gap: 12px;
         max-width: 1400px;
         margin-left: auto;
         margin-right: auto;
@@ -239,7 +258,7 @@
         }
       }
       .cta-tile {
-        padding: 12px 14px;
+        padding: 16px 32px;
         border-radius: 12px;
         border: 1px solid var(--border);
         background: rgba(255,255,255,0.04);
@@ -545,6 +564,180 @@
       .turbo-progress-bar {
         display: none !important;
       }
+
+      /* Global Search Bar */
+      .global-search-container {
+        width: 100%;
+        padding: 0 18px 12px;
+        position: relative;
+        z-index: 10;
+      }
+      .global-search-wrapper {
+        position: relative;
+        max-width: 1100px;
+        margin: 0 auto;
+      }
+      .global-search-input {
+        width: 100%;
+        padding: 12px 16px 12px 42px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: rgba(255,255,255,0.04);
+        color: var(--text);
+        font-size: 14px;
+        font-family: inherit;
+        transition: all 0.2s ease;
+      }
+      .global-search-input::placeholder {
+        color: var(--muted);
+        opacity: 0.7;
+      }
+      .global-search-input:focus {
+        outline: none;
+        border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+        background: rgba(255,255,255,0.06);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      }
+      .global-search-icon {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--muted);
+        pointer-events: none;
+        font-size: 16px;
+      }
+      .global-search-results {
+        position: absolute;
+        top: calc(100% + 8px);
+        left: 0;
+        right: 0;
+        background: <%= theme[:theme_name] == 'light' ? 'rgba(255,255,255,0.98)' : '#111015' %>;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        box-shadow: 0 12px 30px rgba(0,0,0,0.4);
+        display: none;
+        max-height: 500px;
+        overflow-y: auto;
+        z-index: 200;
+      }
+      .global-search-results.open {
+        display: block;
+      }
+      .search-results-section {
+        padding: 12px;
+        border-bottom: 1px solid var(--border);
+      }
+      .search-results-section:last-child {
+        border-bottom: none;
+      }
+      .search-results-header {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 8px;
+        padding: 0 8px;
+      }
+      .search-result-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 12px;
+        border-radius: 8px;
+        background: rgba(255,255,255,0.02);
+        border: 1px solid var(--border);
+        margin-bottom: 6px;
+        transition: all 0.15s ease;
+        cursor: pointer;
+        text-decoration: none;
+      }
+      .search-result-item:last-child {
+        margin-bottom: 0;
+      }
+      .search-result-item:hover {
+        background: rgba(255,255,255,0.08);
+        border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+        transform: translateX(2px);
+      }
+      .search-result-icon {
+        flex-shrink: 0;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        background: rgba(255,255,255,0.06);
+        font-size: 16px;
+      }
+      .search-result-content {
+        flex: 1;
+        min-width: 0;
+      }
+      .search-result-title {
+        font-weight: 600;
+        font-size: 14px;
+        color: var(--text);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .search-result-meta {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 2px;
+      }
+      .search-result-badge {
+        flex-shrink: 0;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+      }
+      .search-result-badge.film {
+        background: rgba(255, 99, 71, 0.2);
+        border: 1px solid rgba(255, 99, 71, 0.3);
+        color: hsl(9, 100%, 64%);
+      }
+      .search-result-badge.photo {
+        background: rgba(147, 51, 234, 0.2);
+        border: 1px solid rgba(147, 51, 234, 0.3);
+        color: hsl(271, 81%, 56%);
+      }
+      .search-result-badge.user {
+        background: rgba(34, 197, 94, 0.2);
+        border: 1px solid rgba(34, 197, 94, 0.3);
+        color: hsl(142, 71%, 45%);
+      }
+      .search-result-badge.album {
+        background: rgba(59, 130, 246, 0.2);
+        border: 1px solid rgba(59, 130, 246, 0.3);
+        color: hsl(221, 91%, 60%);
+      }
+      .search-empty {
+        padding: 40px 20px;
+        text-align: center;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .search-loading {
+        padding: 20px;
+        text-align: center;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      @media (max-width: 640px) {
+        .global-search-container {
+          padding: 0 12px 12px;
+        }
+        .global-search-results {
+          max-height: 400px;
+        }
+      }
     </style>
   </head>
 
@@ -584,6 +777,9 @@
 
     <div class="nav">
       <div class="shell nav-inner">
+        <button type="button" class="sidebar-toggle-nav" onclick="toggleSidebar()" aria-label="Toggle menu">
+          ☰
+        </button>
         <a href="/" class="brand">
           <% logo_file = theme[:theme_name] == 'light' ? '/SW-LOGO-2025-BLACK.svg' : '/SW-LOGO-2025-WHITE.svg' %>
           <img src="<%= logo_file %>" alt="STREETWATCH" class="brand-logo">
@@ -687,6 +883,25 @@
           <% end %>
         </div>
       </div>
+      <!-- Global Search Bar -->
+      <div class="global-search-container">
+        <div class="global-search-wrapper">
+          <span class="global-search-icon">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="7" cy="7" r="4.5" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M10.5 10.5L13.5 13.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <input
+            type="text"
+            id="global-search-input"
+            class="global-search-input"
+            placeholder="Search the entire archive..."
+            autocomplete="off"
+          >
+          <div id="global-search-results" class="global-search-results"></div>
+        </div>
+      </div>
     </div>
 
     <%= render 'shared/sidebar' %>
@@ -735,29 +950,40 @@
     <%= render 'shared/footer' %>
 
     <script>
-      function initActivityDropdown() {
-        const activityBtn = document.getElementById('activity-btn');
-        const activityMenu = document.getElementById('activity-menu');
+      // Activity dropdown - using event delegation to avoid duplicate listeners
+      (function() {
+        let isInitialized = false;
 
-        if (!activityBtn || !activityMenu) return;
+        function initActivityDropdown() {
+          // Only initialize once
+          if (isInitialized) return;
+          isInitialized = true;
 
-        activityBtn.addEventListener('click', function(e) {
-          e.stopPropagation();
-          activityMenu.classList.toggle('open');
-        });
+          // Use event delegation on document to handle clicks
+          document.addEventListener('click', function(e) {
+            const activityBtn = document.getElementById('activity-btn');
+            const activityMenu = document.getElementById('activity-menu');
 
-        // Close dropdown when clicking outside
-        document.addEventListener('click', function(e) {
-          if (!activityMenu.contains(e.target) && e.target !== activityBtn) {
-            activityMenu.classList.remove('open');
-          }
-        });
+            if (!activityBtn || !activityMenu) return;
 
-        // Prevent closing when clicking inside the menu
-        activityMenu.addEventListener('click', function(e) {
-          e.stopPropagation();
-        });
-      }
+            // Check if clicked on activity button
+            if (activityBtn.contains(e.target)) {
+              e.stopPropagation();
+              activityMenu.classList.toggle('open');
+            }
+            // Check if clicked inside the menu
+            else if (activityMenu.contains(e.target)) {
+              e.stopPropagation();
+            }
+            // Clicked outside - close the menu
+            else {
+              activityMenu.classList.remove('open');
+            }
+          });
+        }
+
+        document.addEventListener('DOMContentLoaded', initActivityDropdown);
+      })();
 
       function markNotificationsAsRead() {
         // Count notifications BEFORE removing them
@@ -857,9 +1083,217 @@
           expandedView.style.display = 'block';
         }
       }
+    </script>
 
-      document.addEventListener('DOMContentLoaded', initActivityDropdown);
-      document.addEventListener('turbo:load', initActivityDropdown);
+    <script>
+      // Global Search Autocomplete
+      (function() {
+        let searchTimeout;
+        let currentRequest = null;
+
+        function initGlobalSearch() {
+          const searchInput = document.getElementById('global-search-input');
+          const resultsContainer = document.getElementById('global-search-results');
+
+          if (!searchInput || !resultsContainer) return;
+
+          // Search on input with debounce
+          searchInput.addEventListener('input', function(e) {
+            const query = e.target.value.trim();
+
+            clearTimeout(searchTimeout);
+
+            if (query.length < 2) {
+              resultsContainer.classList.remove('open');
+              resultsContainer.innerHTML = '';
+              return;
+            }
+
+            // Show loading state
+            resultsContainer.innerHTML = '<div class="search-loading">Searching...</div>';
+            resultsContainer.classList.add('open');
+
+            // Debounce search requests
+            searchTimeout = setTimeout(() => {
+              performSearch(query, resultsContainer);
+            }, 300);
+          });
+
+          // Close results when clicking outside
+          document.addEventListener('click', function(e) {
+            if (!resultsContainer.contains(e.target) && e.target !== searchInput) {
+              resultsContainer.classList.remove('open');
+            }
+          });
+
+          // Handle keyboard events
+          searchInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+              resultsContainer.classList.remove('open');
+              searchInput.blur();
+            } else if (e.key === 'Enter') {
+              const query = e.target.value.trim();
+              if (query.length >= 2) {
+                // Redirect to full search results page
+                window.location.href = `/search?q=${encodeURIComponent(query)}`;
+              }
+            }
+          });
+        }
+
+        function performSearch(query, resultsContainer) {
+          // Cancel previous request if still pending
+          if (currentRequest) {
+            currentRequest.abort();
+          }
+
+          currentRequest = new AbortController();
+
+          fetch(`/search?q=${encodeURIComponent(query)}`, {
+            signal: currentRequest.signal,
+            headers: {
+              'Accept': 'application/json',
+              'X-Requested-With': 'XMLHttpRequest'
+            }
+          })
+          .then(response => response.json())
+          .then(data => {
+            renderResults(data, resultsContainer);
+          })
+          .catch(error => {
+            if (error.name !== 'AbortError') {
+              console.error('Search error:', error);
+              resultsContainer.innerHTML = '<div class="search-empty">An error occurred. Please try again.</div>';
+            }
+          })
+          .finally(() => {
+            currentRequest = null;
+          });
+        }
+
+        function renderResults(data, resultsContainer) {
+          const hasResults = data.films.length > 0 || data.photos.length > 0 || data.users.length > 0 || data.albums.length > 0;
+
+          if (!hasResults) {
+            resultsContainer.innerHTML = '<div class="search-empty">No results found</div>';
+            return;
+          }
+
+          let html = '';
+
+          // Render Films
+          if (data.films.length > 0) {
+            html += '<div class="search-results-section">';
+            html += '<div class="search-results-header">Films</div>';
+            data.films.forEach(film => {
+              const filmType = film.film_type ? `<span class="search-result-meta">${film.film_type}</span>` : '';
+              const company = film.company ? ` · ${film.company}` : '';
+              html += `
+                <a href="/films/${film.id}" class="search-result-item" data-turbo-frame="_top">
+                  <div class="search-result-icon">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M2 3C2 2.44772 2.44772 2 3 2H13C13.5523 2 14 2.44772 14 3V13C14 13.5523 13.5523 14 13 14H3C2.44772 14 2 13.5523 2 13V3Z" stroke="currentColor" stroke-width="1.5"/>
+                      <path d="M2 5.5H14M2 8.5H14M2 11.5H14M5.5 2V14M10.5 2V14" stroke="currentColor" stroke-width="1.5"/>
+                    </svg>
+                  </div>
+                  <div class="search-result-content">
+                    <div class="search-result-title">${escapeHtml(film.title)}</div>
+                    ${filmType ? `<div class="search-result-meta">${filmType}${company}</div>` : ''}
+                  </div>
+                  <span class="search-result-badge film">Film</span>
+                </a>
+              `;
+            });
+            html += '</div>';
+          }
+
+          // Render Photos
+          if (data.photos.length > 0) {
+            html += '<div class="search-results-section">';
+            html += '<div class="search-results-header">Photos</div>';
+            data.photos.forEach(photo => {
+              html += `
+                <a href="/photos/${photo.id}" class="search-result-item" data-turbo-frame="_top">
+                  <div class="search-result-icon">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <rect x="2" y="3" width="12" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
+                      <circle cx="5.5" cy="6.5" r="1.5" stroke="currentColor" stroke-width="1.5"/>
+                      <path d="M14 10L11.5 7.5L8.5 10.5L6.5 8.5L2 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </div>
+                  <div class="search-result-content">
+                    <div class="search-result-title">${escapeHtml(photo.title)}</div>
+                  </div>
+                  <span class="search-result-badge photo">Photo</span>
+                </a>
+              `;
+            });
+            html += '</div>';
+          }
+
+          // Render Users
+          if (data.users.length > 0) {
+            html += '<div class="search-results-section">';
+            html += '<div class="search-results-header">Profiles</div>';
+            data.users.forEach(user => {
+              const name = user.name ? `<span class="search-result-meta">${user.name}</span>` : '';
+              const profileType = user.profile_type ? ` · ${user.profile_type}` : '';
+              html += `
+                <a href="/users/${user.id}" class="search-result-item" data-turbo-frame="_top">
+                  <div class="search-result-icon">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="8" cy="5" r="2.5" stroke="currentColor" stroke-width="1.5"/>
+                      <path d="M3 13C3 10.7909 5.23858 9 8 9C10.7614 9 13 10.7909 13 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                  </div>
+                  <div class="search-result-content">
+                    <div class="search-result-title">@${escapeHtml(user.username)}</div>
+                    ${name ? `<div class="search-result-meta">${name}${profileType}</div>` : ''}
+                  </div>
+                  <span class="search-result-badge user">User</span>
+                </a>
+              `;
+            });
+            html += '</div>';
+          }
+
+          // Render Albums
+          if (data.albums.length > 0) {
+            html += '<div class="search-results-section">';
+            html += '<div class="search-results-header">Albums</div>';
+            data.albums.forEach(album => {
+              html += `
+                <a href="/albums/${album.id}" class="search-result-item" data-turbo-frame="_top">
+                  <div class="search-result-icon">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M3 4.5C3 3.67157 3.67157 3 4.5 3H11.5C12.3284 3 13 3.67157 13 4.5V12.5C13 13.3284 12.3284 14 11.5 14H4.5C3.67157 14 3 13.3284 3 12.5V4.5Z" stroke="currentColor" stroke-width="1.5"/>
+                      <path d="M3 6H13" stroke="currentColor" stroke-width="1.5"/>
+                      <path d="M6 3V6" stroke="currentColor" stroke-width="1.5"/>
+                      <path d="M10 3V6" stroke="currentColor" stroke-width="1.5"/>
+                    </svg>
+                  </div>
+                  <div class="search-result-content">
+                    <div class="search-result-title">${escapeHtml(album.title)}</div>
+                  </div>
+                  <span class="search-result-badge album">Album</span>
+                </a>
+              `;
+            });
+            html += '</div>';
+          }
+
+          resultsContainer.innerHTML = html;
+        }
+
+        function escapeHtml(text) {
+          const div = document.createElement('div');
+          div.textContent = text;
+          return div.innerHTML;
+        }
+
+        document.addEventListener('DOMContentLoaded', initGlobalSearch);
+        document.addEventListener('turbo:load', initGlobalSearch);
+      })();
     </script>
 
     <script>

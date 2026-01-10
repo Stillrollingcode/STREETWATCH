@@ -5,17 +5,25 @@
       <div class="film-info">
         <h3 class="film-title"><%= film.title %></h3>
         <div class="film-meta">
-          <% if film.company_user.present? || film.company.present? %>
+          <%# Display companies - check multi-company association first, then legacy fields %>
+          <% company_names = film.companies_display_names %>
+          <% if company_names.any? %>
             <div class="film-meta-row">
-              <span class="film-company"><%= film.company_user&.username || film.company %></span>
+              <span class="film-company"><%= company_names.first(2).join(', ') %><%= company_names.count > 2 ? " +#{company_names.count - 2}" : '' %></span>
             </div>
           <% end %>
           <div class="film-meta-row">
             <% if film.release_date.present? %>
               <span><%= film.release_date.year %></span>
             <% end %>
+            <%# Show runtime for all videos, not just uploaded ones %>
             <% if film.runtime.present? %>
               <span>· <%= film.formatted_runtime %></span>
+            <% end %>
+            <% if film.review_count > 0 %>
+              <span class="film-card-rating">
+                · ★ <%= number_with_precision(film.average_rating, precision: 1) %> (<%= film.review_count %>)
+              </span>
             <% end %>
           </div>
           <% if film.riders.any? %>

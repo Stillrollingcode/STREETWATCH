@@ -59,6 +59,8 @@ class Notification < ApplicationRecord
       "Tag Approved"
     when 'tag_rejected'
       "Tag Rejected"
+    when 'film_published'
+      "Film Published"
     else
       "Notification"
     end
@@ -121,6 +123,16 @@ class Notification < ApplicationRecord
       else
         "#{actor.username} rejected your tag"
       end
+    when 'film_published'
+      if notifiable_type == 'Film' && notifiable
+        if user.id == actor.id
+          "Your film '#{notifiable.title}' is now published and visible to everyone"
+        else
+          "The film '#{notifiable.title}' you're featured in is now published"
+        end
+      else
+        "A film you're associated with is now published"
+      end
     else
       "New notification from #{actor.username}"
     end
@@ -160,6 +172,12 @@ class Notification < ApplicationRecord
         "/photos/#{notifiable.photo.id}"
       else
         "/users/#{actor.id}"
+      end
+    when 'film_published'
+      if notifiable_type == 'Film' && notifiable
+        "/films/#{notifiable.id}"
+      else
+        "/"
       end
     else
       "/users/#{actor.id}"

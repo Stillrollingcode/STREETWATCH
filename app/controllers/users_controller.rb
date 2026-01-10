@@ -13,8 +13,18 @@ class UsersController < ApplicationController
                .page(params[:page])
                .per(18)
 
+    @has_more = @users.next_page.present?
+
     respond_to do |format|
-      format.html
+      format.html do
+        # If it's an AJAX request for pagination, render just the profile cards
+        if (request.xhr? || request.headers['X-Requested-With'] == 'XMLHttpRequest') && params[:page].present? && params[:page].to_i > 1
+          render partial: 'profile_cards', locals: { users: @users }, layout: false, content_type: 'text/html'
+        else
+          # Normal full page render
+          render :index
+        end
+      end
       format.json { render json: @users.select(:id, :username, :profile_type) }
     end
   end
@@ -32,7 +42,7 @@ class UsersController < ApplicationController
     # Get all films and photos for the user (unpaginated ActiveRecord relations)
     # Eager load associations to prevent N+1 queries
     @films = @user.all_films(viewing_user: current_user)
-               .includes(:film_riders, :film_filmers, thumbnail_attachment: :blob)
+               .includes(:riders, :filmers, :companies, :company_user, :filmer_user, :editor_user, :film_reviews, thumbnail_attachment: :blob)
     @photos = @user.all_photos(viewing_user: current_user)
                .includes(:album, image_attachment: :blob)
 

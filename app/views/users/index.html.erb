@@ -237,63 +237,44 @@
 
 <div class="profiles-toolbar">
   <div class="profiles-search">
-    <span style="opacity: 0.7;">🔍</span>
+    <span style="opacity: 0.7;">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="7" cy="7" r="4.5" stroke="currentColor" stroke-width="1.5"/>
+        <path d="M10.5 10.5L13.5 13.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+    </span>
     <input type="text" id="profiles-search-input" placeholder="Search riders by username or email" value="<%= @query %>">
   </div>
 </div>
 
-<div class="profiles-grid">
-  <% @users.each do |user| %>
-    <div class="profile-card">
-      <div class="profile-card-content">
-        <%= link_to user_path(user), style: "text-decoration: none; color: inherit; display: block;" do %>
-          <div class="profile-card-header">
-            <div class="profile-avatar">
-              <% if user.avatar.attached? %>
-                <%= image_tag user.avatar, alt: user.username.presence || user.email %>
-              <% else %>
-                <%= (user.username.presence || user.email).first&.upcase %>
-              <% end %>
-            </div>
-            <div class="profile-info">
-              <div class="profile-name"><%= user.name.presence || user.username.presence || user.email %></div>
-              <div class="profile-username">@<%= user.username.presence || user.email %></div>
-              <% if user.profile_type == 'company' || user.profile_type == 'crew' %>
-                <span class="profile-type-label"><%= user.profile_type %></span>
-              <% end %>
-              <% if user.bio.present? %>
-                <div class="profile-bio"><%= user.bio %></div>
-              <% end %>
-            </div>
-          </div>
-        <% end %>
-      </div>
-      <% if user_signed_in? %>
-        <% if current_user.id != user.id %>
-          <div class="profile-card-actions">
-            <% if current_user.following?(user) %>
-              <%= button_to unfollow_user_path(user), method: :delete, class: "support-btn active", form: { style: "display: inline; width: 100%;" } do %>
-                ✓ Supported
-              <% end %>
-            <% else %>
-              <%= button_to follow_user_path(user), method: :post, class: "support-btn", form: { style: "display: inline; width: 100%;" } do %>
-                + Support
-              <% end %>
-            <% end %>
-          </div>
-        <% end %>
-      <% end %>
-    </div>
-  <% end %>
+<div data-controller="lazy-load"
+     data-lazy-load-url-value="<%= users_path(format: :html) %>"
+     data-lazy-load-has-more-value="<%= @has_more %>"
+     data-lazy-load-page-value="<%= @users.current_page + 1 %>">
+  <div class="profiles-grid" data-lazy-load-target="container">
+    <%= render partial: 'profile_cards', locals: { users: @users } %>
 
-  <% if @users.none? %>
-    <div style="grid-column: 1 / -1; text-align: center; color: var(--muted); padding: 20px;">
-      No profiles match that search.
+    <% if @users.none? %>
+      <div style="grid-column: 1 / -1; text-align: center; color: var(--muted); padding: 20px;">
+        No profiles match that search.
+      </div>
+    <% end %>
+  </div>
+
+  <div data-lazy-load-target="loader" style="display: none; text-align: center; padding: 20px;">
+    <div style="display: inline-block; width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite;"></div>
+  </div>
+
+  <% if @has_more %>
+    <div style="text-align: center; margin: 32px 0;">
+      <button data-action="click->lazy-load#loadMore"
+              data-lazy-load-target="loadButton"
+              style="padding: 12px 32px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,0.04); color: var(--text); font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.15s ease;">
+        Load More Profiles
+      </button>
     </div>
   <% end %>
 </div>
-
-<%= paginate @users %>
 
 <script>
   let usersIndexSearchTimeout;

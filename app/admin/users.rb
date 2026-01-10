@@ -99,6 +99,10 @@ ActiveAdmin.register User do
       end
     end
 
+    def scoped_collection
+      super.includes(:avatar_attachment)
+    end
+
     def add_select_all_script
       return unless @all_user_ids.present?
 
@@ -225,6 +229,143 @@ ActiveAdmin.register User do
     end
   end
 
+  member_action :bulk_tag_films, method: :post do
+    user = resource
+    film_ids = params[:film_ids] || []
+    role = params[:role]
+
+    if film_ids.empty?
+      render json: { success: false, message: 'No films selected' }, status: :bad_request
+      return
+    end
+
+    unless ['rider', 'filmer', 'editor', 'company'].include?(role)
+      render json: { success: false, message: 'Invalid role' }, status: :bad_request
+      return
+    end
+
+    success_count = 0
+    errors = []
+
+    film_ids.each do |film_id|
+      film = Film.find_by(id: film_id)
+      next unless film
+
+      begin
+        case role
+        when 'rider'
+          unless film.riders.include?(user)
+            film.riders << user
+            # Auto-approve the tag since admin is adding it
+            approval = film.film_approvals.find_by(approver_id: user.id, approval_type: 'rider')
+            approval&.update(status: 'approved')
+            success_count += 1
+          end
+        when 'filmer'
+          unless film.filmers.include?(user)
+            film.filmers << user
+            approval = film.film_approvals.find_by(approver_id: user.id, approval_type: 'filmer')
+            approval&.update(status: 'approved')
+            success_count += 1
+          end
+        when 'editor'
+          if film.editor_user_id != user.id
+            film.update(editor_user_id: user.id)
+            approval = film.film_approvals.find_by(approver_id: user.id, approval_type: 'editor')
+            approval&.update(status: 'approved')
+            success_count += 1
+          end
+        when 'company'
+          unless film.companies.include?(user)
+            film.companies << user
+            approval = film.film_approvals.find_by(approver_id: user.id, approval_type: 'company')
+            approval&.update(status: 'approved')
+            success_count += 1
+          end
+        end
+      rescue => e
+        errors << "#{film.title}: #{e.message}"
+      end
+    end
+
+    if success_count > 0
+      render json: {
+        success: true,
+        message: "Successfully tagged #{success_count} film(s) as #{role}. #{errors.any? ? "Errors: #{errors.join(', ')}" : ''}"
+      }
+    else
+      render json: {
+        success: false,
+        message: "No films were tagged. #{errors.any? ? "Errors: #{errors.join(', ')}" : 'All films may already have this tag.'}"
+      }
+    end
+  end
+
+  member_action :bulk_tag_photos, method: :post do
+    user = resource
+    photo_ids = params[:photo_ids] || []
+    role = params[:role]
+
+    if photo_ids.empty?
+      render json: { success: false, message: 'No photos selected' }, status: :bad_request
+      return
+    end
+
+    unless ['rider', 'photographer', 'company'].include?(role)
+      render json: { success: false, message: 'Invalid role' }, status: :bad_request
+      return
+    end
+
+    success_count = 0
+    errors = []
+
+    photo_ids.each do |photo_id|
+      photo = Photo.find_by(id: photo_id)
+      next unless photo
+
+      begin
+        case role
+        when 'rider'
+          unless photo.riders.include?(user)
+            photo.riders << user
+            # Auto-approve the tag since admin is adding it
+            approval = photo.photo_approvals.find_by(approver_id: user.id, approval_type: 'rider')
+            approval&.update(status: 'approved')
+            success_count += 1
+          end
+        when 'photographer'
+          if photo.photographer_user_id != user.id
+            photo.update(photographer_user_id: user.id)
+            approval = photo.photo_approvals.find_by(approver_id: user.id, approval_type: 'photographer')
+            approval&.update(status: 'approved')
+            success_count += 1
+          end
+        when 'company'
+          if photo.company_user_id != user.id
+            photo.update(company_user_id: user.id)
+            approval = photo.photo_approvals.find_by(approver_id: user.id, approval_type: 'company')
+            approval&.update(status: 'approved')
+            success_count += 1
+          end
+        end
+      rescue => e
+        errors << "#{photo.title}: #{e.message}"
+      end
+    end
+
+    if success_count > 0
+      render json: {
+        success: true,
+        message: "Successfully tagged #{success_count} photo(s) as #{role}. #{errors.any? ? "Errors: #{errors.join(', ')}" : ''}"
+      }
+    else
+      render json: {
+        success: false,
+        message: "No photos were tagged. #{errors.any? ? "Errors: #{errors.join(', ')}" : 'All photos may already have this tag.'}"
+      }
+    end
+  end
+
   show do
     attributes_table do
       row :friendly_id
@@ -321,51 +462,446 @@ ActiveAdmin.register User do
       li "Leave blank to keep current password. Fill only to reset."
     end
 
+    # Tagged Films Section (only on edit)
+    if f.object.persisted?
+      f.inputs "Tagged Films" do
+        para do
+          films = f.object.all_films
+          if films.any?
+            content_tag(:div, class: 'tagged-content-list') do
+              films.map do |film|
+                roles = f.object.film_roles(film).join(", ")
+                content_tag(:div, class: 'tagged-item') do
+                  content_tag(:div, class: 'tagged-item-info') do
+                    (link_to(film.title, admin_film_path(film), target: '_blank') +
+                    content_tag(:span, " (#{roles}) - #{film.release_date&.year || 'N/A'}", class: 'tagged-item-meta')).html_safe
+                  end
+                end
+              end.join.html_safe
+            end
+          else
+            content_tag(:p, "No films tagged yet.", style: "color: #999;")
+          end
+        end
+
+        para do
+          content_tag(:div, id: 'bulk-tag-films-section', style: 'margin-top: 20px; padding: 15px; background: #f9f9f9; border-radius: 4px;') do
+            content_tag(:h4, 'Bulk Tag Films', style: 'margin-top: 0;') +
+            content_tag(:label, 'Search and add films:', style: 'display: block; margin-bottom: 8px; font-weight: 600;') +
+            text_field_tag('film_search', '',
+              id: 'film-autocomplete-input',
+              placeholder: 'Type to search films...',
+              style: 'width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 4px;',
+              autocomplete: 'off'
+            ) +
+            content_tag(:div, '', id: 'film-autocomplete-results', style: 'margin-bottom: 15px;') +
+            content_tag(:div, '', id: 'selected-films-container') +
+            content_tag(:label, 'Tag as:', style: 'display: block; margin: 15px 0 8px; font-weight: 600;') +
+            select_tag('film_tag_role',
+              options_for_select(['rider', 'filmer', 'editor', 'company'], 'rider'),
+              style: 'width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 4px;'
+            ) +
+            button_tag('Add Selected Films',
+              type: 'button',
+              id: 'add-films-btn',
+              style: 'padding: 10px 20px; background: #5E6469; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;'
+            )
+          end
+        end
+      end
+
+      # Tagged Photos Section
+      f.inputs "Tagged Photos" do
+        para do
+          photos = f.object.all_photos
+          if photos.any?
+            content_tag(:div, class: 'tagged-content-list') do
+              photos.map do |photo|
+                roles = f.object.photo_roles(photo).join(", ")
+                content_tag(:div, class: 'tagged-item') do
+                  content_tag(:div, class: 'tagged-item-info') do
+                    (link_to(photo.title, admin_photo_path(photo), target: '_blank') +
+                    content_tag(:span, " (#{roles}) - #{photo.album&.title || 'No Album'}", class: 'tagged-item-meta')).html_safe
+                  end
+                end
+              end.join.html_safe
+            end
+          else
+            content_tag(:p, "No photos tagged yet.", style: "color: #999;")
+          end
+        end
+
+        para do
+          content_tag(:div, id: 'bulk-tag-photos-section', style: 'margin-top: 20px; padding: 15px; background: #f9f9f9; border-radius: 4px;') do
+            content_tag(:h4, 'Bulk Tag Photos', style: 'margin-top: 0;') +
+            content_tag(:label, 'Search and add photos:', style: 'display: block; margin-bottom: 8px; font-weight: 600;') +
+            text_field_tag('photo_search', '',
+              id: 'photo-autocomplete-input',
+              placeholder: 'Type to search photos...',
+              style: 'width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 4px;',
+              autocomplete: 'off'
+            ) +
+            content_tag(:div, '', id: 'photo-autocomplete-results', style: 'margin-bottom: 15px;') +
+            content_tag(:div, '', id: 'selected-photos-container') +
+            content_tag(:label, 'Tag as:', style: 'display: block; margin: 15px 0 8px; font-weight: 600;') +
+            select_tag('photo_tag_role',
+              options_for_select(['rider', 'photographer', 'company'], 'rider'),
+              style: 'width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 4px;'
+            ) +
+            button_tag('Add Selected Photos',
+              type: 'button',
+              id: 'add-photos-btn',
+              style: 'padding: 10px 20px; background: #5E6469; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;'
+            )
+          end
+        end
+      end
+    end
+
     f.actions
 
-    # Add JavaScript for username availability checking
+    # Add CSS and JavaScript for the new features
+    style type: "text/css" do
+      raw %{
+        .tagged-content-list {
+          max-height: 400px;
+          overflow-y: auto;
+          border: 1px solid #ddd;
+          border-radius: 4px;
+          padding: 10px;
+          background: white;
+        }
+        .tagged-item {
+          padding: 8px;
+          margin-bottom: 6px;
+          border-bottom: 1px solid #f0f0f0;
+        }
+        .tagged-item:last-child {
+          border-bottom: none;
+        }
+        .tagged-item-info {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .tagged-item-meta {
+          color: #666;
+          font-size: 13px;
+        }
+        .autocomplete-results {
+          border: 1px solid #ddd;
+          border-radius: 4px;
+          max-height: 300px;
+          overflow-y: auto;
+          background: white;
+          display: none;
+        }
+        .autocomplete-results.active {
+          display: block;
+        }
+        .autocomplete-item {
+          padding: 10px;
+          cursor: pointer;
+          border-bottom: 1px solid #f0f0f0;
+        }
+        .autocomplete-item:hover {
+          background: #f5f5f5;
+        }
+        .autocomplete-item.selected {
+          background: #e8f4f8;
+        }
+        .selected-item {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 6px 12px;
+          margin: 4px;
+          background: #e8f4f8;
+          border-radius: 4px;
+          font-size: 13px;
+        }
+        .selected-item-remove {
+          cursor: pointer;
+          color: #999;
+          font-weight: bold;
+        }
+        .selected-item-remove:hover {
+          color: #d00;
+        }
+      }
+    end
+
+    # Add JavaScript for username availability checking and autocomplete
     script type: "text/javascript" do
       raw %{
         (function() {
           const usernameInput = document.getElementById('user_username');
           const statusSpan = document.getElementById('username-status');
 
-          if (!usernameInput || !statusSpan) return;
+          if (usernameInput && statusSpan) {
+            const originalUsername = usernameInput.value;
+            let timer;
 
-          const originalUsername = usernameInput.value;
-          let timer;
+            usernameInput.addEventListener('input', function() {
+              const val = this.value.trim();
 
-          usernameInput.addEventListener('input', function() {
-            const val = this.value.trim();
+              if (!val || val === originalUsername) {
+                statusSpan.textContent = '';
+                return;
+              }
 
-            if (!val || val === originalUsername) {
-              statusSpan.textContent = '';
-              return;
+              statusSpan.textContent = 'Checking...';
+              statusSpan.style.color = '#999';
+
+              clearTimeout(timer);
+              timer = setTimeout(function() {
+                fetch('/username/check?username=' + encodeURIComponent(val), {
+                  headers: { 'Accept': 'application/json' }
+                })
+                .then(function(res) { return res.json(); })
+                .then(function(data) {
+                  if (data.available) {
+                    statusSpan.textContent = 'Available ✓';
+                    statusSpan.style.color = '#6dd27f';
+                  } else {
+                    statusSpan.textContent = 'Taken ✗';
+                    statusSpan.style.color = '#ff7b7b';
+                  }
+                })
+                .catch(function() {
+                  statusSpan.textContent = 'Error checking';
+                  statusSpan.style.color = '#ff7b7b';
+                });
+              }, 300);
+            });
+          }
+
+          // Autocomplete functionality for films
+          const filmInput = document.getElementById('film-autocomplete-input');
+          const filmResults = document.getElementById('film-autocomplete-results');
+          const selectedFilmsContainer = document.getElementById('selected-films-container');
+          const addFilmsBtn = document.getElementById('add-films-btn');
+          let selectedFilms = [];
+          let filmSearchTimer;
+
+          if (filmInput && filmResults) {
+            filmResults.className = 'autocomplete-results';
+
+            filmInput.addEventListener('input', function() {
+              const query = this.value.trim();
+              clearTimeout(filmSearchTimer);
+
+              if (query.length < 2) {
+                filmResults.classList.remove('active');
+                return;
+              }
+
+              filmSearchTimer = setTimeout(function() {
+                fetch('/admin/films.json?q[title_cont]=' + encodeURIComponent(query) + '&per_page=20')
+                  .then(res => res.json())
+                  .then(data => {
+                    filmResults.innerHTML = '';
+                    if (data.length > 0) {
+                      data.forEach(film => {
+                        const div = document.createElement('div');
+                        div.className = 'autocomplete-item';
+                        div.textContent = film.title + ' (' + (film.release_date ? new Date(film.release_date).getFullYear() : 'N/A') + ')';
+                        div.dataset.filmId = film.id;
+                        div.dataset.filmTitle = film.title;
+
+                        div.addEventListener('click', function() {
+                          const filmId = this.dataset.filmId;
+                          const filmTitle = this.dataset.filmTitle;
+
+                          if (!selectedFilms.find(f => f.id == filmId)) {
+                            selectedFilms.push({ id: filmId, title: filmTitle });
+                            renderSelectedFilms();
+                          }
+
+                          filmInput.value = '';
+                          filmResults.classList.remove('active');
+                        });
+
+                        filmResults.appendChild(div);
+                      });
+                      filmResults.classList.add('active');
+                    } else {
+                      filmResults.classList.remove('active');
+                    }
+                  });
+              }, 300);
+            });
+
+            function renderSelectedFilms() {
+              selectedFilmsContainer.innerHTML = '';
+              selectedFilms.forEach((film, index) => {
+                const div = document.createElement('div');
+                div.className = 'selected-item';
+                div.innerHTML = film.title + ' <span class="selected-item-remove" data-index="' + index + '">×</span>';
+                selectedFilmsContainer.appendChild(div);
+              });
+
+              document.querySelectorAll('.selected-item-remove').forEach(btn => {
+                btn.addEventListener('click', function() {
+                  const index = parseInt(this.dataset.index);
+                  selectedFilms.splice(index, 1);
+                  renderSelectedFilms();
+                });
+              });
             }
 
-            statusSpan.textContent = 'Checking...';
-            statusSpan.style.color = '#999';
-
-            clearTimeout(timer);
-            timer = setTimeout(function() {
-              fetch('/username/check?username=' + encodeURIComponent(val), {
-                headers: { 'Accept': 'application/json' }
-              })
-              .then(function(res) { return res.json(); })
-              .then(function(data) {
-                if (data.available) {
-                  statusSpan.textContent = 'Available ✓';
-                  statusSpan.style.color = '#6dd27f';
-                } else {
-                  statusSpan.textContent = 'Taken ✗';
-                  statusSpan.style.color = '#ff7b7b';
+            if (addFilmsBtn) {
+              addFilmsBtn.addEventListener('click', function() {
+                if (selectedFilms.length === 0) {
+                  alert('Please select at least one film');
+                  return;
                 }
-              })
-              .catch(function() {
-                statusSpan.textContent = 'Error checking';
-                statusSpan.style.color = '#ff7b7b';
+
+                const role = document.getElementById('film_tag_role').value;
+                const userId = #{f.object.id};
+                const filmIds = selectedFilms.map(f => f.id);
+
+                fetch('/admin/users/' + userId + '/bulk_tag_films', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+                  },
+                  body: JSON.stringify({ film_ids: filmIds, role: role })
+                })
+                .then(res => res.json())
+                .then(data => {
+                  if (data.success) {
+                    alert(data.message || 'Films tagged successfully!');
+                    location.reload();
+                  } else {
+                    alert('Error: ' + (data.message || 'Failed to tag films'));
+                  }
+                })
+                .catch(err => {
+                  alert('Error: ' + err.message);
+                });
               });
-            }, 300);
+            }
+          }
+
+          // Autocomplete functionality for photos
+          const photoInput = document.getElementById('photo-autocomplete-input');
+          const photoResults = document.getElementById('photo-autocomplete-results');
+          const selectedPhotosContainer = document.getElementById('selected-photos-container');
+          const addPhotosBtn = document.getElementById('add-photos-btn');
+          let selectedPhotos = [];
+          let photoSearchTimer;
+
+          if (photoInput && photoResults) {
+            photoResults.className = 'autocomplete-results';
+
+            photoInput.addEventListener('input', function() {
+              const query = this.value.trim();
+              clearTimeout(photoSearchTimer);
+
+              if (query.length < 2) {
+                photoResults.classList.remove('active');
+                return;
+              }
+
+              photoSearchTimer = setTimeout(function() {
+                fetch('/admin/photos.json?q[title_cont]=' + encodeURIComponent(query) + '&per_page=20')
+                  .then(res => res.json())
+                  .then(data => {
+                    photoResults.innerHTML = '';
+                    if (data.length > 0) {
+                      data.forEach(photo => {
+                        const div = document.createElement('div');
+                        div.className = 'autocomplete-item';
+                        div.textContent = photo.title + ' (Album: ' + (photo.album_title || 'N/A') + ')';
+                        div.dataset.photoId = photo.id;
+                        div.dataset.photoTitle = photo.title;
+
+                        div.addEventListener('click', function() {
+                          const photoId = this.dataset.photoId;
+                          const photoTitle = this.dataset.photoTitle;
+
+                          if (!selectedPhotos.find(p => p.id == photoId)) {
+                            selectedPhotos.push({ id: photoId, title: photoTitle });
+                            renderSelectedPhotos();
+                          }
+
+                          photoInput.value = '';
+                          photoResults.classList.remove('active');
+                        });
+
+                        photoResults.appendChild(div);
+                      });
+                      photoResults.classList.add('active');
+                    } else {
+                      photoResults.classList.remove('active');
+                    }
+                  });
+              }, 300);
+            });
+
+            function renderSelectedPhotos() {
+              selectedPhotosContainer.innerHTML = '';
+              selectedPhotos.forEach((photo, index) => {
+                const div = document.createElement('div');
+                div.className = 'selected-item';
+                div.innerHTML = photo.title + ' <span class="selected-item-remove" data-index="' + index + '">×</span>';
+                selectedPhotosContainer.appendChild(div);
+              });
+
+              document.querySelectorAll('#selected-photos-container .selected-item-remove').forEach(btn => {
+                btn.addEventListener('click', function() {
+                  const index = parseInt(this.dataset.index);
+                  selectedPhotos.splice(index, 1);
+                  renderSelectedPhotos();
+                });
+              });
+            }
+
+            if (addPhotosBtn) {
+              addPhotosBtn.addEventListener('click', function() {
+                if (selectedPhotos.length === 0) {
+                  alert('Please select at least one photo');
+                  return;
+                }
+
+                const role = document.getElementById('photo_tag_role').value;
+                const userId = #{f.object.id};
+                const photoIds = selectedPhotos.map(p => p.id);
+
+                fetch('/admin/users/' + userId + '/bulk_tag_photos', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+                  },
+                  body: JSON.stringify({ photo_ids: photoIds, role: role })
+                })
+                .then(res => res.json())
+                .then(data => {
+                  if (data.success) {
+                    alert(data.message || 'Photos tagged successfully!');
+                    location.reload();
+                  } else {
+                    alert('Error: ' + (data.message || 'Failed to tag photos'));
+                  }
+                })
+                .catch(err => {
+                  alert('Error: ' + err.message);
+                });
+              });
+            }
+          }
+
+          // Close autocomplete results when clicking outside
+          document.addEventListener('click', function(e) {
+            if (filmResults && !filmInput.contains(e.target) && !filmResults.contains(e.target)) {
+              filmResults.classList.remove('active');
+            }
+            if (photoResults && !photoInput.contains(e.target) && !photoResults.contains(e.target)) {
+              photoResults.classList.remove('active');
+            }
           });
         })();
       }

@@ -9,7 +9,9 @@ class SettingsController < ApplicationController
     @preference = current_user.preference || current_user.build_preference
 
     if @preference.update(preference_params)
-      redirect_to settings_path, notice: "Settings saved successfully!"
+      # Force full page reload to refresh theme CSS variables in head
+      redirect_to settings_path, notice: "Settings saved successfully!", allow_other_host: false
+      response.headers['Turbo-Visit-Control'] = 'reload'
     else
       render :show, status: :unprocessable_entity
     end

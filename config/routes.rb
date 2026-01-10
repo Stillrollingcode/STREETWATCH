@@ -19,7 +19,7 @@ Rails.application.routes.draw do
   # Defines the root path route ("/")
   root "pages#home"
   get "/username/check", to: "usernames#show"
-  get "/search", to: "search#index", defaults: { format: :json }
+  get "/search", to: "search#index"
   get "/favorites", to: "favorites_films#index"
   get "/settings", to: "settings#show"
   patch "/settings", to: "settings#update"
@@ -30,6 +30,10 @@ Rails.application.routes.draw do
   get "/subscription", to: "pages#subscription", as: :subscription
   get "/privacy", to: "pages#privacy", as: :privacy
   get "/sellers-disclaimer", to: "pages#sellers_disclaimer", as: :sellers_disclaimer
+
+  # Coming soon pages
+  get "/articles", to: "pages#articles", as: :articles
+  get "/shop", to: "pages#shop", as: :shop
 
   resources :users, only: [:index, :show] do
     member do
@@ -45,6 +49,7 @@ Rails.application.routes.draw do
     resources :comments, only: [:create, :destroy]
     resource :favorite, only: [:create, :destroy]
     resources :tag_requests, only: [:create]
+    resources :film_reviews, only: [:index, :create, :update, :destroy]
     member do
       post 'hide_from_profile', to: 'films#hide_from_profile'
       delete 'unhide_from_profile', to: 'films#unhide_from_profile'

@@ -1,3 +1,4 @@
+<% theme = user_theme_styles %>
 <% content_for :head do %>
   <style>
     .films-shell {
@@ -86,8 +87,9 @@
       display: flex;
       gap: 12px;
       align-items: center;
+      flex-wrap: wrap;
     }
-    .sort-select {
+    .sort-select, .group-select, .type-select {
       padding: 10px 32px 10px 12px;
       border-radius: 10px;
       border: 1px solid var(--border);
@@ -100,12 +102,13 @@
       background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L6 6L11 1' stroke='%23999' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
       background-repeat: no-repeat;
       background-position: right 12px center;
+      min-width: 140px;
     }
-    .sort-select:focus {
+    .sort-select:focus, .group-select:focus, .type-select:focus {
       outline: none;
       border-color: color-mix(in srgb, var(--accent) 50%, transparent);
     }
-    .sort-select option {
+    .sort-select option, .group-select option, .type-select option {
       background: var(--bg);
       color: var(--text);
     }
@@ -118,10 +121,219 @@
     .group-header {
       font-size: 20px;
       font-weight: 700;
+      color: var(--text);
+      margin-bottom: 20px;
+      padding: 16px 20px;
+      background: rgba(255,255,255,0.04);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .group-header:hover {
+      background: rgba(255,255,255,0.08);
+      border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+      transform: translateY(-2px);
+    }
+    .group-header-name {
+      flex: 1;
       color: var(--accent);
-      margin-bottom: 16px;
-      padding-bottom: 8px;
-      border-bottom: 2px solid var(--border);
+    }
+    .group-header-count {
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .dvd-stack {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      position: relative;
+      min-height: 140px;
+    }
+    .dvd-stack-discs {
+      display: flex;
+      position: relative;
+      height: 120px;
+      padding-right: 20px;
+    }
+    .dvd-stack-discs > a {
+      margin-left: -90px;
+      transition: all 0.3s ease;
+      text-decoration: none;
+    }
+    .dvd-stack-discs > a:first-child {
+      margin-left: 0;
+    }
+    .dvd-stack-discs:hover > a {
+      /* Spread out discs on group hover */
+      margin-left: 0 !important;
+      margin-right: 8px;
+    }
+    .dvd-stack-discs > a:hover {
+      transform: translateY(-12px) scale(1.05);
+      z-index: 100 !important;
+    }
+    .dvd-stack-disc {
+      --size: 120px;
+      --hole: 18%;
+      --inner-ring: 28%;
+
+      width: var(--size);
+      height: var(--size);
+      border-radius: 50%;
+      position: relative;
+      transition: all 0.3s ease;
+      cursor: pointer;
+
+      /* depth */
+      box-shadow:
+        inset 0 0 0 2px rgba(255,255,255,.10),
+        inset 0 -14px 30px rgba(0,0,0,.35),
+        0 0 8px <%= "hsla(#{user_theme_styles[:accent_hue] || 145}, 70%, 60%, 0.15)" %>,
+        0 8px 20px rgba(0,0,0,.45);
+
+      /* punch the center hole */
+      -webkit-mask-image: radial-gradient(
+        circle at 50% 50%,
+        transparent 0 calc(var(--hole) * 0.50),
+        #000      calc(var(--hole) * 0.52) 100%
+      );
+      mask-image: radial-gradient(
+        circle at 50% 50%,
+        transparent 0 calc(var(--hole) * 0.50),
+        #000      calc(var(--hole) * 0.52) 100%
+      );
+    }
+    .dvd-stack-discs > a:hover .dvd-stack-disc {
+      box-shadow:
+        inset 0 0 0 2px rgba(255,255,255,.12),
+        inset 0 -14px 30px rgba(0,0,0,.35),
+        0 0 16px <%= "hsla(#{user_theme_styles[:accent_hue] || 145}, 70%, 60%, 0.35)" %>,
+        0 16px 40px rgba(0,0,0,.75);
+    }
+    .dvd-stack-disc img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+    }
+    /* Inner data ring circle */
+    .dvd-stack-disc .inner-ring {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 3;
+      background:
+        radial-gradient(
+          circle at 50% 50%,
+          rgba(255, 255, 255, 0.20) 0 calc(var(--inner-ring) * 0.94),
+          rgba(255, 255, 255, 0.20) calc(var(--inner-ring) * 0.96),
+          transparent calc(var(--inner-ring) * 0.97),
+          transparent calc(var(--inner-ring) * 0.98),
+          rgba(180, 180, 200, 0.40) calc(var(--inner-ring) * 0.98),
+          rgba(220, 220, 235, 0.50) calc(var(--inner-ring) * 1.00),
+          rgba(180, 180, 200, 0.40) calc(var(--inner-ring) * 1.02),
+          transparent calc(var(--inner-ring) * 1.03) 100%
+        );
+    }
+    /* rim + bevel */
+    .dvd-stack-disc::before {
+      content: "";
+      position: absolute;
+      inset: -2%;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 50% 50%,
+          rgba(255,255,255,.00) 48%,
+          rgba(255,255,255,.10) 58%,
+          rgba(0,0,0,.20) 72%,
+          rgba(255,255,255,.14) 86%,
+          rgba(0,0,0,.35) 100%
+        );
+      mix-blend-mode: overlay;
+      pointer-events: none;
+      z-index: 1;
+    }
+    /* glossy sweep */
+    .dvd-stack-disc::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background:
+        conic-gradient(from 220deg,
+          rgba(255,255,255,.00) 0 20%,
+          rgba(255,255,255,.18) 26%,
+          rgba(255,255,255,.00) 36% 100%
+        ),
+        repeating-radial-gradient(circle at 50% 50%,
+          rgba(255,255,255,.05) 0 2px,
+          rgba(0,0,0,.00) 2px 7px
+        );
+      opacity: .85;
+      mix-blend-mode: screen;
+      pointer-events: none;
+      z-index: 2;
+    }
+    .dvd-stack-disc .placeholder {
+      font-size: 32px;
+      opacity: 0.3;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 0;
+    }
+    .dvd-more-indicator {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 20px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+    .dvd-more-indicator:hover {
+      background: rgba(255,255,255,0.08);
+      color: var(--accent);
+    }
+    .dvd-more-dots {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+    }
+    .dvd-more-dots span {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+      opacity: 0.6;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    .dvd-more-dots span:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+    .dvd-more-dots span:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.4; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.2); }
     }
     .films-grid {
       display: grid;
@@ -350,6 +562,12 @@
       object-fit: cover;
       position: absolute;
       inset: 0;
+      animation: fadeInImage 0.6s ease-in;
+    }
+
+    @keyframes fadeInImage {
+      from { opacity: 0; }
+      to { opacity: 1; }
     }
 
     .film-thumbnail .placeholder {
@@ -386,6 +604,10 @@
     }
     .film-company {
       color: var(--accent);
+      font-weight: 600;
+    }
+    .film-card-rating {
+      color: <%= theme[:theme_name] == 'light' ? 'hsl(45, 100%, 35%)' : 'hsl(45, 100%, 51%)' %>;
       font-weight: 600;
     }
     .film-riders {
@@ -457,45 +679,65 @@
     .pagination .last {
       font-weight: 600;
     }
+
+    /* Lazy loading styles */
+    .hidden {
+      display: none;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
   </style>
 <% end %>
 
 <div class="films-shell">
   <div class="films-header">
     <h1>Films</h1>
-    <% if params[:film_type].present? && Film::FILM_TYPE_DESCRIPTIONS[params[:film_type]] %>
-      <p style="font-size: 15px; font-style: italic; color: var(--muted); margin: 8px auto 0; max-width: 600px;">
-        <%= Film::FILM_TYPE_DESCRIPTIONS[params[:film_type]] %>
+    <% if params[:group_by].present? %>
+      <p style="font-size: 18px; font-weight: 600; color: var(--accent); margin: 8px auto 0;">
+        Grouped by <%= params[:group_by].humanize %>
       </p>
     <% end %>
-  </div>
-
-  <!-- Group By Buttons -->
-  <div class="group-by-buttons">
-    <%= link_to "All Films", films_path, class: "group-btn #{params[:group_by].blank? ? 'active' : ''}" %>
-    <%= link_to "Group by Company", films_path(group_by: 'company', sort: params[:sort], q: params[:q], film_type: params[:film_type]), class: "group-btn #{params[:group_by] == 'company' ? 'active' : ''}" %>
-    <%= link_to "Group by Filmer", films_path(group_by: 'filmer', sort: params[:sort], q: params[:q], film_type: params[:film_type]), class: "group-btn #{params[:group_by] == 'filmer' ? 'active' : ''}" %>
-    <%= link_to "Group by Editor", films_path(group_by: 'editor', sort: params[:sort], q: params[:q], film_type: params[:film_type]), class: "group-btn #{params[:group_by] == 'editor' ? 'active' : ''}" %>
-  </div>
-
-  <!-- Filter By Film Type -->
-  <div class="group-by-buttons" style="margin-top: 12px;">
-    <%= link_to "All Types", films_path(group_by: params[:group_by], sort: params[:sort], q: params[:q]), class: "group-btn #{params[:film_type].blank? ? 'active' : ''}" %>
-    <%= link_to "Full Length", films_path(film_type: 'full_length', group_by: params[:group_by], sort: params[:sort], q: params[:q]), class: "group-btn #{params[:film_type] == 'full_length' ? 'active' : ''}" %>
-    <%= link_to "Rider Part", films_path(film_type: 'rider_part', group_by: params[:group_by], sort: params[:sort], q: params[:q]), class: "group-btn #{params[:film_type] == 'rider_part' ? 'active' : ''}" %>
-    <%= link_to "Mixtape", films_path(film_type: 'mixtape', group_by: params[:group_by], sort: params[:sort], q: params[:q]), class: "group-btn #{params[:film_type] == 'mixtape' ? 'active' : ''}" %>
-    <%= link_to "Series", films_path(film_type: 'series', group_by: params[:group_by], sort: params[:sort], q: params[:q]), class: "group-btn #{params[:film_type] == 'series' ? 'active' : ''}" %>
-    <%= link_to "B-Sides", films_path(film_type: 'b_sides', group_by: params[:group_by], sort: params[:sort], q: params[:q]), class: "group-btn #{params[:film_type] == 'b_sides' ? 'active' : ''}" %>
-    <%= link_to "All The Rest", films_path(film_type: 'all_the_rest', group_by: params[:group_by], sort: params[:sort], q: params[:q]), class: "group-btn #{params[:film_type] == 'all_the_rest' ? 'active' : ''}" %>
+    <% if params[:film_type].present? %>
+      <p style="font-size: 18px; font-weight: 600; color: var(--accent); margin: 8px auto 0;">
+        <%= params[:film_type].humanize.titleize %>
+      </p>
+      <% if Film::FILM_TYPE_DESCRIPTIONS[params[:film_type]] %>
+        <p style="font-size: 15px; font-style: italic; color: var(--muted); margin: 8px auto 0; max-width: 600px;">
+          <%= Film::FILM_TYPE_DESCRIPTIONS[params[:film_type]] %>
+        </p>
+      <% end %>
+    <% end %>
   </div>
 
   <!-- Filters Bar -->
   <div class="filters-bar">
     <div class="search-box">
-      <span class="search-icon">🔍</span>
+      <span class="search-icon">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="7" cy="7" r="4.5" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M10.5 10.5L13.5 13.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </span>
       <input type="text" id="film-search" placeholder="Search films..." value="<%= params[:q] %>">
     </div>
     <div class="sort-controls">
+      <select id="group-select" class="group-select">
+        <option value="" <%= 'selected' if params[:group_by].blank? %>>All Films</option>
+        <option value="company" <%= 'selected' if params[:group_by] == 'company' %>>Group by Company</option>
+        <option value="filmer" <%= 'selected' if params[:group_by] == 'filmer' %>>Group by Filmer</option>
+        <option value="editor" <%= 'selected' if params[:group_by] == 'editor' %>>Group by Editor</option>
+      </select>
+      <select id="type-select" class="type-select">
+        <option value="" <%= 'selected' if params[:film_type].blank? %>>All Types</option>
+        <option value="full_length" <%= 'selected' if params[:film_type] == 'full_length' %>>Full Length</option>
+        <option value="rider_part" <%= 'selected' if params[:film_type] == 'rider_part' %>>Rider Part</option>
+        <option value="mixtape" <%= 'selected' if params[:film_type] == 'mixtape' %>>Mixtape</option>
+        <option value="series" <%= 'selected' if params[:film_type] == 'series' %>>Series</option>
+        <option value="b_sides" <%= 'selected' if params[:film_type] == 'b_sides' %>>B-Sides</option>
+        <option value="all_the_rest" <%= 'selected' if params[:film_type] == 'all_the_rest' %>>All The Rest</option>
+      </select>
       <select id="sort-select" class="sort-select">
         <% if params[:group_by].present? %>
           <option value="alpha_asc" <%= 'selected' if params[:sort] == 'alpha_asc' || params[:sort].blank? %>>A-Z</option>
@@ -516,33 +758,58 @@
   <turbo-frame id="films-content" data-turbo-action="advance">
   <% if @films.any? %>
     <% if @grouped_films.present? %>
-      <!-- Grouped Display -->
-      <% @grouped_films.each do |group_name, films| %>
+      <!-- Grouped Display with DVD Stacks -->
+      <% @grouped_films.each do |group_name, data| %>
         <div class="grouped-section">
-          <h2 class="group-header"><%= group_name || 'Unknown' %></h2>
-          <div class="films-grid">
-            <% films.each do |film| %>
-              <%= link_to film, style: "text-decoration: none; color: inherit;", data: { turbo_frame: "_top" } do %>
-                <div class="film-card">
-                  <%= render 'shared/film_thumbnail', film: film, show_pending: (user_signed_in? && !film.published?), unique_id: "grouped-#{film.id}" %>
-                  <div class="film-info">
-                    <h3 class="film-title"><%= film.title %></h3>
-                    <div class="film-meta">
-                      <% if film.company_user.present? || film.company.present? %>
-                        <div class="film-meta-row">
-                          <span class="film-company"><%= film.company_user&.username || film.company %></span>
-                        </div>
-                      <% end %>
-                      <div class="film-meta-row">
-                        <% if film.release_date.present? %>
-                          <span><%= film.release_date.year %></span>
-                        <% end %>
-                        <% if film.runtime.present? %>
-                          <span>· <%= film.formatted_runtime %></span>
-                        <% end %>
-                      </div>
-                    </div>
+          <% user = data[:user] %>
+          <% films = data[:films] %>
+          <% total_count = data[:total_count] %>
+
+          <% if user %>
+            <%= link_to user_path(user), class: "group-header", data: { turbo_frame: "_top" } do %>
+              <span class="group-header-name"><%= group_name || 'Unknown' %></span>
+              <span class="group-header-count"><%= total_count %> <%= total_count == 1 ? 'film' : 'films' %></span>
+            <% end %>
+          <% else %>
+            <div class="group-header" style="cursor: default;">
+              <span class="group-header-name"><%= group_name || 'Unknown' %></span>
+              <span class="group-header-count"><%= total_count %> <%= total_count == 1 ? 'film' : 'films' %></span>
+            </div>
+          <% end %>
+
+          <div class="dvd-stack">
+            <div class="dvd-stack-discs">
+              <% films.each_with_index do |film, index| %>
+                <%= link_to film, data: { turbo_frame: "_top" }, style: "z-index: #{5 - index};" do %>
+                  <div class="dvd-stack-disc">
+                    <% if film.display_thumbnail.present? %>
+                      <%= image_tag film.display_thumbnail, alt: film.title, loading: "lazy" %>
+                    <% else %>
+                      <div class="placeholder">🎬</div>
+                    <% end %>
+                    <div class="inner-ring"></div>
                   </div>
+                <% end %>
+              <% end %>
+            </div>
+            <% if total_count > 5 %>
+              <% if user %>
+                <%= link_to user_path(user), class: "dvd-more-indicator", data: { turbo_frame: "_top" } do %>
+                  <div class="dvd-more-dots">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                  </div>
+                  <span>+<%= total_count - 5 %> more</span>
+                <% end %>
+              <% else %>
+                <div class="dvd-more-indicator" style="cursor: default;">
+                  <div class="dvd-more-dots">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                  </div>
+                  <span>+<%= total_count - 5 %> more</span>
                 </div>
               <% end %>
             <% end %>
@@ -550,49 +817,71 @@
         </div>
       <% end %>
     <% else %>
-      <!-- Normal Grid Display -->
-      <div class="films-grid">
-      <% @films.each do |film| %>
-        <%= link_to film, style: "text-decoration: none; color: inherit;", data: { turbo_frame: "_top" } do %>
-          <div class="film-card">
-            <%= render 'shared/film_thumbnail', film: film, show_pending: (user_signed_in? && !film.published?), unique_id: "normal-#{film.id}" %>
-            <div class="film-info">
-              <h3 class="film-title"><%= film.title %></h3>
-              <div class="film-meta">
-                <% if film.company_user.present? || film.company.present? %>
-                  <div class="film-meta-row">
-                    <span class="film-company"><%= film.company_user&.username || film.company %></span>
-                  </div>
-                <% end %>
-                <div class="film-meta-row">
-                  <% if film.release_date.present? %>
-                    <span><%= film.release_date.year %></span>
+      <!-- Normal Grid Display with Lazy Loading -->
+      <div data-controller="lazy-load"
+           data-lazy-load-url-value="<%= films_path(format: :html) %>"
+           data-lazy-load-has-more-value="<%= @has_more %>"
+           data-lazy-load-page-value="<%= @films.current_page + 1 %>">
+
+        <div class="films-grid" data-lazy-load-target="container">
+        <% @films.each do |film| %>
+          <%= link_to film, style: "text-decoration: none; color: inherit;", data: { turbo_frame: "_top" } do %>
+            <div class="film-card">
+              <%= render 'shared/film_thumbnail', film: film, show_pending: (user_signed_in? && !film.published?), unique_id: "normal-#{film.id}" %>
+              <div class="film-info">
+                <h3 class="film-title"><%= film.title %></h3>
+                <div class="film-meta">
+                  <%# Display companies - check multi-company association first, then legacy fields %>
+                  <% company_names = film.companies_display_names %>
+                  <% if company_names.any? %>
+                    <div class="film-meta-row">
+                      <span class="film-company"><%= company_names.first(2).join(', ') %><%= company_names.count > 2 ? " +#{company_names.count - 2}" : '' %></span>
+                    </div>
                   <% end %>
-                  <% if film.runtime.present? %>
-                    <span>· <%= film.formatted_runtime %></span>
+                  <div class="film-meta-row">
+                    <% if film.release_date.present? %>
+                      <span><%= film.release_date.year %></span>
+                    <% end %>
+                    <% if film.runtime.present? %>
+                      <span>· <%= film.formatted_runtime %></span>
+                    <% end %>
+                    <% if film.review_count > 0 %>
+                      <span class="film-card-rating">
+                        · ★ <%= number_with_precision(film.average_rating, precision: 1) %> (<%= film.review_count %>)
+                      </span>
+                    <% end %>
+                  </div>
+                  <% if film.riders.any? %>
+                    <div class="film-riders">
+                      <% film.riders.limit(5).each do |rider| %>
+                        <span class="rider-tag"><%= rider.username %></span>
+                      <% end %>
+                      <% if film.riders.count > 5 %>
+                        <span class="rider-tag">+<%= film.riders.count - 5 %></span>
+                      <% end %>
+                    </div>
                   <% end %>
                 </div>
-                <% if film.riders.any? %>
-                  <div class="film-riders">
-                    <% film.riders.limit(5).each do |rider| %>
-                      <span class="rider-tag"><%= rider.username %></span>
-                    <% end %>
-                    <% if film.riders.count > 5 %>
-                      <span class="rider-tag">+<%= film.riders.count - 5 %></span>
-                    <% end %>
-                  </div>
-                <% end %>
               </div>
             </div>
+          <% end %>
+        <% end %>
+        </div>
+
+        <!-- Loader for infinite scroll -->
+        <div class="loader hidden" data-lazy-load-target="loader" style="text-align: center; padding: 2rem;">
+          <div style="display: inline-block; width: 3rem; height: 3rem; border: 4px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+        </div>
+
+        <!-- Alternative: Load More button -->
+        <% if @has_more %>
+          <div data-lazy-load-target="loadMore" style="text-align: center; padding: 2rem;">
+            <button class="group-btn" data-action="click->lazy-load#loadMoreClick" style="padding: 12px 32px; font-size: 15px; cursor: pointer;">
+              Load More Films
+            </button>
           </div>
         <% end %>
-      <% end %>
       </div>
-
-      <!-- Pagination (only show when not grouped) -->
-      <% if @films.respond_to?(:current_page) %>
-        <%= paginate @films %>
-      <% end %>
     <% end %>
   <% else %>
     <div class="empty-state">
@@ -608,34 +897,35 @@
   function initializeFilmSearch() {
     const searchInput = document.getElementById('film-search');
     const sortSelect = document.getElementById('sort-select');
+    const groupSelect = document.getElementById('group-select');
+    const typeSelect = document.getElementById('type-select');
     let searchTimeout;
 
     function updateFilters() {
-      const params = new URLSearchParams(window.location.search);
+      const params = new URLSearchParams();
       const searchValue = searchInput ? searchInput.value.trim() : '';
       const sortValue = sortSelect ? sortSelect.value : '';
+      const groupValue = groupSelect ? groupSelect.value : '';
+      const typeValue = typeSelect ? typeSelect.value : '';
 
       // Update or remove search parameter
       if (searchValue) {
         params.set('q', searchValue);
-      } else {
-        params.delete('q');
       }
 
       // Update or remove sort parameter
       if (sortValue) {
         params.set('sort', sortValue);
-      } else {
-        params.delete('sort');
       }
 
-      // Preserve group_by and film_type parameters if present
-      const currentParams = new URLSearchParams(window.location.search);
-      if (currentParams.get('group_by')) {
-        params.set('group_by', currentParams.get('group_by'));
+      // Update or remove group_by parameter
+      if (groupValue) {
+        params.set('group_by', groupValue);
       }
-      if (currentParams.get('film_type')) {
-        params.set('film_type', currentParams.get('film_type'));
+
+      // Update or remove film_type parameter
+      if (typeValue) {
+        params.set('film_type', typeValue);
       }
 
       // Reset to page 1 when searching or filtering
@@ -681,6 +971,18 @@
 
     if (sortSelect) {
       sortSelect.addEventListener('change', function() {
+        updateFilters();
+      });
+    }
+
+    if (groupSelect) {
+      groupSelect.addEventListener('change', function() {
+        updateFilters();
+      });
+    }
+
+    if (typeSelect) {
+      typeSelect.addEventListener('change', function() {
         updateFilters();
       });
     }

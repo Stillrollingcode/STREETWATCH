@@ -36,7 +36,12 @@
   <div class="filters-bar">
     <div class="search-box">
       <%= form_with url: photos_path, method: :get, local: true do |f| %>
-        <span class="search-icon">🔍</span>
+        <span class="search-icon">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="7" cy="7" r="4.5" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M10.5 10.5L13.5 13.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </span>
         <%= f.text_field :search, placeholder: "Search photos...", value: params[:search] %>
         <%= f.hidden_field :group_by, value: params[:group_by] if params[:group_by] %>
         <%= f.hidden_field :sort, value: params[:sort] if params[:sort] %>
@@ -107,30 +112,28 @@
       </div>
     <% end %>
   <% else %>
-    <div class="content-grid">
-      <% @photos.each do |photo| %>
-        <%= link_to photo_path(photo), class: "card", style: "text-decoration: none;" do %>
-          <% if photo.image.attached? %>
-            <%= image_tag url_for(photo.image),
-              class: 'card-thumbnail',
-              alt: photo.title,
-              loading: 'lazy' %>
-          <% else %>
-            <div class="card-thumbnail-empty">
-              No Image
-            </div>
-          <% end %>
-          <div class="card-info">
-            <h3 class="card-title"><%= photo.title %></h3>
-            <p class="card-subtitle"><%= photo.photographer_name %></p>
-          </div>
-        <% end %>
+    <div data-controller="lazy-load"
+         data-lazy-load-url-value="<%= photos_path(format: :html) %>"
+         data-lazy-load-has-more-value="<%= @has_more %>"
+         data-lazy-load-page-value="<%= @photos.current_page + 1 %>">
+      <div class="content-grid" data-lazy-load-target="container">
+        <%= render partial: 'photo_cards', locals: { photos: @photos } %>
+      </div>
+
+      <div data-lazy-load-target="loader" style="display: none; text-align: center; padding: 20px;">
+        <div style="display: inline-block; width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite;"></div>
+      </div>
+
+      <% if @has_more %>
+        <div style="text-align: center; margin: 32px 0;">
+          <button data-action="click->lazy-load#loadMore"
+                  data-lazy-load-target="loadButton"
+                  style="padding: 12px 32px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,0.04); color: var(--text); font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.15s ease;">
+            Load More Photos
+          </button>
+        </div>
       <% end %>
     </div>
-
-    <% if defined?(Kaminari) && @photos.respond_to?(:total_pages) %>
-      <%= paginate @photos %>
-    <% end %>
   <% end %>
 </div>
 

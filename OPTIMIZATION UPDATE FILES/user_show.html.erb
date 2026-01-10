@@ -1,0 +1,305 @@
+<%# app/views/users/show.html.erb %>
+<%# Optimized user profile with lazy loading %>
+
+<div class="user-profile" data-user-id="<%= @user.friendly_id %>">
+  <%# Profile Header - Critical, loads immediately %>
+  <div class="profile-header">
+    <div class="profile-cover" style="background-color: var(--accent);">
+      <% if @user.cover_image.attached? %>
+        <%= image_tag @user.cover_image, 
+            loading: "eager",
+            class: "cover-image" %>
+      <% end %>
+    </div>
+    
+    <div class="profile-info">
+      <div class="avatar-section">
+        <%= image_tag @user.avatar_url, 
+            loading: "eager",
+            class: "avatar avatar-xl",
+            alt: @user.username %>
+      </div>
+      
+      <div class="user-details">
+        <h1><%= @user.username %></h1>
+        <% if @user.name.present? %>
+          <p class="real-name"><%= @user.name %></p>
+        <% end %>
+        
+        <div class="profile-stats">
+          <div class="stat">
+            <span class="stat-value"><%= @followers_count %></span>
+            <span class="stat-label">Followers</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value"><%= @following_count %></span>
+            <span class="stat-label">Following</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value"><%= @total_films_count %></span>
+            <span class="stat-label">Films</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value"><%= @total_photos_count %></span>
+            <span class="stat-label">Photos</span>
+          </div>
+        </div>
+        
+        <% if @user.bio.present? %>
+          <div class="bio">
+            <%= simple_format @user.bio %>
+          </div>
+        <% end %>
+        
+        <% if user_signed_in? && current_user != @user %>
+          <div class="profile-actions">
+            <%= button_to @is_following ? "Unfollow" : "Follow",
+                @is_following ? unfollow_user_path(@user) : follow_user_path(@user),
+                method: @is_following ? :delete : :post,
+                class: "btn btn-primary",
+                data: { turbo_method: @is_following ? :delete : :post } %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+  
+  <%# Content Tabs %>
+  <div class="profile-content" data-controller="tabs">
+    <div class="content-nav">
+      <button class="tab-button active" 
+              data-action="click->tabs#show"
+              data-tabs-target="button"
+              data-tab="films">
+        Films (<%= @total_films_count %>)
+      </button>
+      <button class="tab-button"
+              data-action="click->tabs#show" 
+              data-tabs-target="button"
+              data-tab="photos">
+        Photos (<%= @total_photos_count %>)
+      </button>
+      <button class="tab-button"
+              data-action="click->tabs#show"
+              data-tabs-target="button"
+              data-tab="albums">
+        Albums (<%= @total_albums_count %>)
+      </button>
+      <button class="tab-button"
+              data-action="click->tabs#show"
+              data-tabs-target="button"
+              data-tab="activity">
+        Activity
+      </button>
+    </div>
+    
+    <%# Films Tab %>
+    <div class="tab-content active" data-tabs-target="panel" data-tab="films">
+      <% if @featured_film %>
+        <div class="featured-film">
+          <h3>Featured</h3>
+          <%= render 'films/film_card', film: @featured_film, featured: true %>
+        </div>
+      <% end %>
+      
+      <div class="films-section">
+        <h3>Recent Films</h3>
+        <div class="films-grid"
+             data-controller="lazy-load"
+             data-lazy-load-url-value="<%= user_films_path(@user) %>"
+             data-lazy-load-offset-value="<%= @recent_films_limit %>"
+             data-lazy-load-limit-value="24"
+             data-lazy-load-pagination-type-value="offset"
+             data-lazy-load-has-more-value="<%= @total_films_count > @recent_films_limit %>">
+          
+          <div class="films-container" data-lazy-load-target="container">
+            <% @recent_films.each do |film| %>
+              <%= render 'films/film_card', film: film %>
+            <% end %>
+          </div>
+          
+          <% if @total_films_count > @recent_films_limit %>
+            <div class="load-more-container" data-lazy-load-target="loadMore">
+              <button class="btn btn-secondary"
+                      data-action="click->lazy-load#loadMoreClick">
+                View All Films (<%= @total_films_count %>)
+              </button>
+            </div>
+          <% end %>
+          
+          <div class="loader hidden" data-lazy-load-target="loader">
+            <div class="spinner-border" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <%# Photos Tab - Lazy loaded %>
+    <div class="tab-content" data-tabs-target="panel" data-tab="photos">
+      <div class="photos-section"
+           data-controller="lazy-load"
+           data-lazy-load-url-value="<%= user_photos_path(@user) %>"
+           data-lazy-load-offset-value="0"
+           data-lazy-load-limit-value="36"
+           data-lazy-load-pagination-type-value="offset"
+           data-lazy-load-autoload-value="false">
+        
+        <div class="photos-grid" data-lazy-load-target="container">
+          <%# Photos will be loaded when tab is clicked %>
+        </div>
+        
+        <div class="loader hidden" data-lazy-load-target="loader">
+          <div class="spinner-border" role="status">
+            <span class="visually-hidden">Loading photos...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <%# Albums Tab - Lazy loaded %>
+    <div class="tab-content" data-tabs-target="panel" data-tab="albums">
+      <div class="albums-section" data-load-on-visible="<%= user_albums_path(@user) %>">
+        <%# Albums will be loaded when tab becomes visible %>
+      </div>
+    </div>
+    
+    <%# Activity Tab - Lazy loaded %>
+    <div class="tab-content" data-tabs-target="panel" data-tab="activity">
+      <div class="activity-section" data-load-on-visible="<%= user_activity_path(@user) %>">
+        <%# Initial activity stats %>
+        <div class="activity-stats">
+          <h3>Last 30 Days</h3>
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-value"><%= @activity_stats[:films_uploaded] %></div>
+              <div class="stat-label">Films Uploaded</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value"><%= @activity_stats[:photos_uploaded] %></div>
+              <div class="stat-label">Photos Uploaded</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value"><%= @activity_stats[:comments_made] %></div>
+              <div class="stat-label">Comments</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value"><%= @activity_stats[:favorites_given] %></div>
+              <div class="stat-label">Favorites</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="activity-feed" data-load-on-visible="<%= user_activity_feed_path(@user) %>">
+          <%# Activity feed will be lazy loaded %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* Critical CSS for profile page */
+  .profile-header {
+    margin-bottom: 2rem;
+  }
+  
+  .profile-cover {
+    height: 200px;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .profile-info {
+    display: flex;
+    gap: 2rem;
+    padding: 1rem;
+  }
+  
+  .avatar-section .avatar-xl {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    margin-top: -60px;
+    border: 4px solid var(--bg);
+  }
+  
+  .profile-stats {
+    display: flex;
+    gap: 2rem;
+    margin: 1rem 0;
+  }
+  
+  .stat {
+    text-align: center;
+  }
+  
+  .stat-value {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: bold;
+  }
+  
+  .stat-label {
+    display: block;
+    color: var(--muted);
+    font-size: 0.875rem;
+  }
+  
+  .content-nav {
+    display: flex;
+    gap: 1rem;
+    border-bottom: 2px solid var(--border);
+    margin-bottom: 2rem;
+  }
+  
+  .tab-button {
+    background: none;
+    border: none;
+    padding: 1rem;
+    cursor: pointer;
+    color: var(--text);
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s;
+  }
+  
+  .tab-button.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+  
+  .tab-content {
+    display: none;
+  }
+  
+  .tab-content.active {
+    display: block;
+  }
+  
+  .films-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1rem;
+  }
+  
+  .photos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 0.5rem;
+  }
+  
+  @media (max-width: 768px) {
+    .profile-info {
+      flex-direction: column;
+    }
+    
+    .films-container {
+      grid-template-columns: 1fr;
+    }
+    
+    .photos-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+</style>

@@ -1,0 +1,129 @@
+<%# app/views/films/index.html.erb %>
+<%# Optimized films index with lazy loading %>
+
+<div class="films-index">
+  <div class="page-header">
+    <h1>Films</h1>
+    
+    <div class="filters-and-search">
+      <%= form_with url: films_path, method: :get, data: { turbo_frame: "films_content" } do |f| %>
+        <div class="filter-row">
+          <%= f.select :year, options_for_select(Film.published.distinct.pluck(:year).compact.sort.reverse), 
+              { include_blank: "All Years" }, 
+              class: "form-control", 
+              onchange: "this.form.requestSubmit()" %>
+          
+          <%= f.select :film_type, options_for_select(Film.film_types.keys), 
+              { include_blank: "All Types" }, 
+              class: "form-control",
+              onchange: "this.form.requestSubmit()" %>
+          
+          <%= f.text_field :query, 
+              placeholder: "Search films...", 
+              class: "form-control",
+              data: { 
+                controller: "debounce",
+                action: "input->debounce#submit",
+                debounce_delay_value: 300 
+              } %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+  
+  <turbo-frame id="films_content">
+    <div class="films-grid" 
+         data-controller="lazy-load"
+         data-lazy-load-url-value="<%= films_path(format: :html) %>"
+         data-lazy-load-has-more-value="<%= @has_more %>"
+         data-lazy-load-page-value="2">
+      
+      <div class="films-container" data-lazy-load-target="container">
+        <%# Initial films loaded server-side for SEO and fast first paint %>
+        <% @films.each do |film| %>
+          <%= render 'films/film_card', film: film %>
+        <% end %>
+      </div>
+      
+      <%# Loader for infinite scroll %>
+      <div class="loader hidden" data-lazy-load-target="loader">
+        <div class="spinner-border" role="status">
+          <span class="visually-hidden">Loading more films...</span>
+        </div>
+      </div>
+      
+      <%# Alternative: Load More button %>
+      <% if @has_more %>
+        <div class="load-more-container" data-lazy-load-target="loadMore">
+          <button class="btn btn-primary" 
+                  data-action="click->lazy-load#loadMoreClick">
+            Load More Films
+          </button>
+        </div>
+      <% end %>
+    </div>
+  </turbo-frame>
+  
+  <div class="page-stats">
+    <p class="text-muted">
+      Showing <%= @films.size %> of <%= @total_count %> films
+    </p>
+  </div>
+</div>
+
+<style>
+  /* Critical CSS for above-the-fold content */
+  .films-grid {
+    margin-top: 2rem;
+  }
+  
+  .films-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  
+  @media (max-width: 768px) {
+    .films-container {
+      grid-template-columns: 1fr;
+    }
+  }
+  
+  .loader {
+    text-align: center;
+    padding: 2rem;
+  }
+  
+  .load-more-container {
+    text-align: center;
+    padding: 2rem;
+  }
+  
+  .page-header {
+    margin-bottom: 2rem;
+  }
+  
+  .filter-row {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+  
+  .filter-row > * {
+    flex: 1;
+  }
+</style>
+
+<script>
+  // Preload the next batch of films when user is idle
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(() => {
+      const nextPageUrl = '<%= films_path(page: 2, format: :html) %>';
+      fetch(nextPageUrl, { 
+        headers: { 'Accept': 'text/html' },
+        priority: 'low'
+      });
+    });
+  }
+</script>

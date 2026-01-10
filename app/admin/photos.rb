@@ -95,6 +95,17 @@ ActiveAdmin.register Photo do
             @all_photo_ids = @photos.pluck(:id)
           end
         end
+        format.json do
+          photos = @photos.includes(:album).limit(params[:per_page] || 20).map do |photo|
+            {
+              id: photo.id,
+              title: photo.title,
+              album_title: photo.album&.title,
+              date_taken: photo.date_taken
+            }
+          end
+          render json: photos
+        end
       end
     end
 

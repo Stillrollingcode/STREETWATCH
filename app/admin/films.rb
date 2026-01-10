@@ -41,11 +41,11 @@ ActiveAdmin.register Film do
       <div style="display: flex; align-items: center; margin-top: 15px;">
         <form action="#{admin_films_path}" method="get" accept-charset="UTF-8" style="display: flex; gap: 8px; align-items: center;">
           <input
-            name="q[title_or_description_or_company_or_filmer_user_username_or_editor_user_username_or_riders_username_cont]"
+            name="q[title_or_description_or_company_or_friendly_id_or_filmer_user_username_or_editor_user_username_or_riders_username_or_filmers_username_or_companies_username_cont]"
             type="text"
-            placeholder="Search films..."
-            value="#{params.dig(:q, :title_or_description_or_company_or_filmer_user_username_or_editor_user_username_or_riders_username_cont)}"
-            style="width: 300px; padding: 6px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px;" />
+            placeholder="Search films (title, ID, tagged users)..."
+            value="#{params.dig(:q, :title_or_description_or_company_or_friendly_id_or_filmer_user_username_or_editor_user_username_or_riders_username_or_filmers_username_or_companies_username_cont)}"
+            style="width: 350px; padding: 6px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px;" />
           <input type="submit" value="Search" style="padding: 6px 16px; background: #5E6469; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; white-space: nowrap;" />
           #{params[:q].present? ? '<a href="' + admin_films_path + '" style="padding: 6px 16px; background: #999; color: white; text-decoration: none; border-radius: 4px; display: inline-block; font-size: 13px; white-space: nowrap;">Clear</a>' : ''}
         </form>
@@ -81,6 +81,11 @@ ActiveAdmin.register Film do
       Film.find_by_friendly_or_id(params[:id])
     end
 
+    def scoped_collection
+      # Add .distinct to prevent duplicates from joins (riders, companies, etc.)
+      super.distinct
+    end
+
     def index
       super do |format|
         format.html do
@@ -88,6 +93,17 @@ ActiveAdmin.register Film do
             # Get all film IDs matching current filters
             @all_film_ids = @films.pluck(:id)
           end
+        end
+        format.json do
+          films = @films.limit(params[:per_page] || 20).map do |film|
+            {
+              id: film.id,
+              title: film.title,
+              release_date: film.release_date,
+              film_type: film.film_type
+            }
+          end
+          render json: films
         end
       end
     end
@@ -155,10 +171,10 @@ ActiveAdmin.register Film do
     end
   end
 
-  # Search bar - searches across title, description, company, and associated users
-  filter :title_or_description_or_company_or_filmer_user_username_or_editor_user_username_or_riders_username_cont,
+  # Search bar - searches across title, description, friendly_id, company, and all associated users
+  filter :title_or_description_or_company_or_friendly_id_or_filmer_user_username_or_editor_user_username_or_riders_username_or_filmers_username_or_companies_username_cont,
          as: :string,
-         label: 'Search'
+         label: 'Search (title, ID, tagged users)'
 
   filter :title
   filter :film_type, as: :select, collection: Film::FILM_TYPES
@@ -209,9 +225,10 @@ ActiveAdmin.register Film do
 
       row :custom_riders
 
-      row "YouTube URL" do |film|
+      row "Video URL" do |film|
         if film.youtube_url.present?
-          link_to film.youtube_url, film.youtube_url, target: "_blank"
+          platform_name = film.video_platform == :vimeo ? "Vimeo" : "YouTube"
+          link_to "#{platform_name}: #{film.youtube_url}", film.youtube_url, target: "_blank"
         end
       end
 
@@ -377,9 +394,9 @@ ActiveAdmin.register Film do
     end
 
     f.inputs "Media" do
-      f.input :youtube_url, hint: "YouTube video URL (if using YouTube hosting)"
-      f.input :thumbnail, as: :file, hint: "Upload custom thumbnail image"
-      f.input :video, as: :file, hint: "Upload video file (will be stored in S3)"
+      f.input :youtube_url, label: "Video URL (YouTube or Vimeo)", hint: "Enter YouTube or Vimeo video URL"
+      f.input :thumbnail, as: :file, hint: "Upload custom thumbnail image (auto-downloaded from video platform if not provided)"
+      f.input :video, as: :file, hint: "Upload video file (will be stored in S3) - TEMPORARILY DISABLED for legal compliance"
     end
 
     f.inputs "Additional Info" do

@@ -206,7 +206,7 @@
   <div class="settings-card">
     <h1>Settings</h1>
 
-    <%= form_with(model: @preference, url: settings_path, method: :patch) do |f| %>
+    <%= form_with(model: @preference, url: settings_path, method: :patch, data: { turbo: false }) do |f| %>
       <!-- Theme Selection -->
       <div class="settings-section">
         <div class="section-title">Theme</div>

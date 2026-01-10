@@ -11,7 +11,7 @@
     border-right: 1px solid var(--border);
     transform: translateX(-280px);
     transition: transform 0.3s ease;
-    z-index: 90;
+    z-index: 250;
     display: flex;
     flex-direction: column;
     overflow-y: auto;
@@ -22,32 +22,7 @@
   }
 
   .sidebar-toggle {
-    position: fixed;
-    top: 70px;
-    left: 12px;
-    width: 44px;
-    height: 44px;
-    background: <%= theme[:sidebar_bg] %>;
-    backdrop-filter: blur(12px);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    z-index: 91;
-    transition: all 0.2s ease;
-    color: var(--text);
-    font-size: 20px;
-  }
-
-  .sidebar-toggle:hover {
-    background: rgba(255,255,255,0.08);
-    border-color: color-mix(in srgb, var(--accent) 50%, transparent);
-  }
-
-  .sidebar-toggle.open {
-    left: 292px;
+    display: none;
   }
 
   .sidebar-content {
@@ -182,7 +157,7 @@
     width: 100vw;
     height: calc(100vh - 60px);
     background: rgba(0,0,0,0.5);
-    z-index: 89;
+    z-index: 240;
     display: none;
   }
 
@@ -292,10 +267,6 @@
 
 <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
 
-<div class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()">
-  ☰
-</div>
-
 <div class="sidebar" id="sidebar">
   <div class="sidebar-content">
     <div class="sidebar-search">
@@ -304,7 +275,12 @@
         id="globalSearch"
         placeholder="Search films, profiles, articles..."
         autocomplete="off">
-      <span class="sidebar-search-icon">🔍</span>
+      <span class="sidebar-search-icon">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="7" cy="7" r="4.5" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M10.5 10.5L13.5 13.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </span>
       <div class="search-results" id="searchResults"></div>
     </div>
 
@@ -386,11 +362,9 @@
   // Wrap in function scope to avoid Turbo const conflicts
   window.toggleSidebar = function() {
     const sidebar = document.getElementById('sidebar');
-    const toggle = document.getElementById('sidebarToggle');
     const overlay = document.getElementById('sidebarOverlay');
 
     sidebar.classList.toggle('open');
-    toggle.classList.toggle('open');
     overlay.classList.toggle('open');
   }
 
@@ -498,12 +472,10 @@
   document.addEventListener('keydown', function(event) {
     if (event.key === 'Escape') {
       const sidebar = document.getElementById('sidebar');
-      const toggle = document.getElementById('sidebarToggle');
       const overlay = document.getElementById('sidebarOverlay');
 
       if (sidebar.classList.contains('open')) {
         sidebar.classList.remove('open');
-        toggle.classList.remove('open');
         overlay.classList.remove('open');
       }
     }

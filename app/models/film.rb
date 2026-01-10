@@ -48,6 +48,9 @@ class Film < ApplicationRecord
   has_many :tag_requests, dependent: :destroy
   has_many :pending_tag_requests, -> { pending }, class_name: 'TagRequest'
 
+  # Reviews
+  has_many :film_reviews, dependent: :destroy
+
   # Hidden from profile associations
   has_many :hidden_profile_films, dependent: :destroy
   has_many :hidden_by_users, through: :hidden_profile_films, source: :user
@@ -72,7 +75,7 @@ class Film < ApplicationRecord
   # TEMPORARILY DISABLED for development performance
   # after_commit :enqueue_video_processing, on: [:create, :update], if: :video_attached?
   after_commit :create_approval_requests, on: [:create, :update]
-  after_commit :download_youtube_thumbnail, on: [:create, :update], if: :should_download_youtube_thumbnail?
+  after_commit :download_video_thumbnail, on: [:create, :update], if: :should_download_video_thumbnail?
 
   scope :recent, -> { order(release_date: :desc, created_at: :desc) }
   scope :by_company, ->(company) { where(company: company) if company.present? }
@@ -143,8 +146,21 @@ class Film < ApplicationRecord
     aspect_ratio.gsub(':', ' / ')
   end
 
-  def youtube_video_id
+  # Detect which video platform is being used
+  def video_platform
     return nil unless youtube_url.present?
+
+    if youtube_url.match?(/(?:youtube\.com|youtu\.be)/)
+      :youtube
+    elsif youtube_url.match?(/vimeo\.com/)
+      :vimeo
+    else
+      nil
+    end
+  end
+
+  def youtube_video_id
+    return nil unless youtube_url.present? && video_platform == :youtube
 
     # Extract video ID from various YouTube URL formats
     # https://www.youtube.com/watch?v=VIDEO_ID
@@ -152,6 +168,20 @@ class Film < ApplicationRecord
     # https://youtu.be/VIDEO_ID?si=TRACKING_ID
     # https://www.youtube.com/embed/VIDEO_ID
     if youtube_url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/)
+      $1
+    end
+  end
+
+  def vimeo_video_id
+    return nil unless youtube_url.present? && video_platform == :vimeo
+
+    # Extract video ID from various Vimeo URL formats
+    # https://vimeo.com/VIDEO_ID
+    # https://vimeo.com/channels/CHANNEL/VIDEO_ID
+    # https://player.vimeo.com/video/VIDEO_ID
+    if youtube_url.match(/vimeo\.com\/(?:channels\/\w+\/)?(?:video\/)?(\d+)/)
+      $1
+    elsif youtube_url.match(/player\.vimeo\.com\/video\/(\d+)/)
       $1
     end
   end
@@ -165,6 +195,14 @@ class Film < ApplicationRecord
 
     # Quality options: default, mqdefault, hqdefault, sddefault, maxresdefault
     "https://img.youtube.com/vi/#{youtube_video_id}/#{quality}.jpg"
+  end
+
+  def vimeo_thumbnail_url
+    return nil unless vimeo_video_id
+
+    # Vimeo requires an API call to get thumbnail, we'll fetch it in the download method
+    # Return nil here and rely on download_video_thumbnail to fetch it
+    nil
   end
 
   def display_thumbnail
@@ -200,20 +238,48 @@ class Film < ApplicationRecord
     users.uniq
   end
 
+  # Review methods
+  def average_rating
+    return 0 if film_reviews.empty?
+    (film_reviews.average(:rating).to_f * 10).round / 10.0
+  end
+
+  def review_count
+    film_reviews.count
+  end
+
+  def user_review(user)
+    return nil unless user
+    film_reviews.find_by(user: user)
+  end
+
   private
 
-  def should_download_youtube_thumbnail?
-    # Download YouTube thumbnail if:
-    # 1. There's a YouTube URL
+  def should_download_video_thumbnail?
+    # Download video thumbnail if:
+    # 1. There's a video URL (YouTube or Vimeo)
     # 2. No thumbnail is currently attached
-    # 3. YouTube URL has changed (for updates)
-    youtube_url.present? && !thumbnail.attached? && youtube_video_id.present?
+    # 3. We can extract a video ID
+    youtube_url.present? && !thumbnail.attached? && (youtube_video_id.present? || vimeo_video_id.present?)
+  end
+
+  def download_video_thumbnail
+    case video_platform
+    when :youtube
+      download_youtube_thumbnail
+    when :vimeo
+      download_vimeo_thumbnail
+    end
   end
 
   def download_youtube_thumbnail
     require 'open-uri'
+    require 'json'
 
     begin
+      # First, try to fetch metadata including publish date from YouTube oEmbed
+      populate_youtube_metadata
+
       Rails.logger.info "[FILM #{id}] Downloading YouTube thumbnail from: #{youtube_thumbnail_url}"
 
       # Try maxresdefault first (highest quality)
@@ -244,6 +310,138 @@ class Film < ApplicationRecord
     ensure
       downloaded_image&.close
     end
+  end
+
+  def populate_youtube_metadata
+    # YouTube's oEmbed doesn't include publish date, so we'll use a workaround
+    # We can scrape the page or use YouTube Data API if available
+    # For now, we'll use a simple page scrape approach
+    require 'open-uri'
+    require 'json'
+
+    begin
+      # YouTube embeds JSON-LD structured data in the page which includes uploadDate
+      video_page_url = "https://www.youtube.com/watch?v=#{youtube_video_id}"
+      page_content = URI.open(video_page_url, 'User-Agent' => 'Mozilla/5.0').read
+
+      # Extract JSON-LD data which contains uploadDate
+      if page_content =~ /"uploadDate":"([^"]+)"/
+        upload_date_str = $1
+
+        updates = {}
+
+        # Populate release date if not set
+        if release_date.blank?
+          begin
+            parsed_date = Date.parse(upload_date_str)
+            updates[:release_date] = parsed_date
+            Rails.logger.info "[FILM #{id}] Setting release date from YouTube: #{parsed_date}"
+          rescue ArgumentError => e
+            Rails.logger.warn "[FILM #{id}] Could not parse YouTube upload date: #{upload_date_str}"
+          end
+        end
+
+        # Apply updates if any exist
+        update_columns(updates) if updates.any?
+      else
+        Rails.logger.warn "[FILM #{id}] Could not find upload date in YouTube page"
+      end
+    rescue => e
+      Rails.logger.error "[FILM #{id}] Failed to fetch YouTube metadata: #{e.class} - #{e.message}"
+      # Don't raise - metadata population failure shouldn't break the thumbnail download
+    end
+  end
+
+  def download_vimeo_thumbnail
+    require 'open-uri'
+    require 'json'
+
+    begin
+      # Vimeo requires an oEmbed API call to get thumbnail URL and metadata
+      # https://vimeo.com/api/oembed.json?url=https://vimeo.com/VIDEO_ID
+      oembed_url = "https://vimeo.com/api/oembed.json?url=https://vimeo.com/#{vimeo_video_id}"
+
+      Rails.logger.info "[FILM #{id}] Fetching Vimeo data from oEmbed API"
+
+      oembed_response = URI.open(oembed_url).read
+      oembed_data = JSON.parse(oembed_response)
+
+      # Extract and populate metadata if not already set
+      populate_vimeo_metadata(oembed_data)
+
+      thumbnail_url = oembed_data['thumbnail_url']
+
+      if thumbnail_url.blank?
+        Rails.logger.warn "[FILM #{id}] No thumbnail URL found in Vimeo oEmbed response"
+        return
+      end
+
+      # Vimeo thumbnails can be requested in higher resolution by modifying the URL
+      # Replace _295x166 or similar with _1280x720 for higher quality
+      thumbnail_url = thumbnail_url.sub(/_\d+x\d+/, '_1280')
+
+      Rails.logger.info "[FILM #{id}] Downloading Vimeo thumbnail from: #{thumbnail_url}"
+
+      downloaded_image = URI.open(thumbnail_url)
+
+      # Attach the downloaded image
+      thumbnail.attach(
+        io: downloaded_image,
+        filename: "#{title.parameterize}_vimeo_thumbnail.jpg",
+        content_type: 'image/jpeg'
+      )
+
+      Rails.logger.info "[FILM #{id}] Successfully downloaded and attached Vimeo thumbnail"
+    rescue => e
+      Rails.logger.error "[FILM #{id}] Failed to download Vimeo thumbnail: #{e.class} - #{e.message}"
+      Rails.logger.error e.backtrace.join("\n")
+      # Don't raise error - thumbnail download failure shouldn't break film creation
+    ensure
+      downloaded_image&.close if defined?(downloaded_image)
+    end
+  end
+
+  def populate_vimeo_metadata(oembed_data)
+    # Auto-populate metadata fields from Vimeo oEmbed data if they're not already set
+    # Available fields: title, author_name, author_url, duration (in seconds), upload_date
+
+    updates = {}
+
+    # Populate runtime if not set and duration is available
+    if runtime.blank? && oembed_data['duration'].present?
+      duration_in_minutes = (oembed_data['duration'].to_f / 60.0).round
+      updates[:runtime] = duration_in_minutes
+      Rails.logger.info "[FILM #{id}] Setting runtime from Vimeo: #{duration_in_minutes} minutes"
+    end
+
+    # Populate title if not set (though this is unlikely since title is required)
+    if title.blank? && oembed_data['title'].present?
+      updates[:title] = oembed_data['title']
+      Rails.logger.info "[FILM #{id}] Setting title from Vimeo: #{oembed_data['title']}"
+    end
+
+    # Populate company field if not set and author_name is available
+    if company.blank? && companies.empty? && oembed_data['author_name'].present?
+      updates[:company] = oembed_data['author_name']
+      Rails.logger.info "[FILM #{id}] Setting company from Vimeo author: #{oembed_data['author_name']}"
+    end
+
+    # Populate release date if not set and upload_date is available
+    if release_date.blank? && oembed_data['upload_date'].present?
+      begin
+        parsed_date = Date.parse(oembed_data['upload_date'])
+        updates[:release_date] = parsed_date
+        Rails.logger.info "[FILM #{id}] Setting release date from Vimeo: #{parsed_date}"
+      rescue ArgumentError => e
+        Rails.logger.warn "[FILM #{id}] Could not parse Vimeo upload date: #{oembed_data['upload_date']}"
+      end
+    end
+
+    # Apply all updates at once if any exist
+    update_columns(updates) if updates.any?
+  rescue => e
+    Rails.logger.error "[FILM #{id}] Failed to populate Vimeo metadata: #{e.class} - #{e.message}"
+    # Don't raise - metadata population failure shouldn't break the thumbnail download
   end
 
   def create_approval_requests
@@ -429,6 +627,6 @@ class Film < ApplicationRecord
   end
 
   def self.ransackable_associations(auth_object = nil)
-    ["riders", "filmer_user", "editor_user", "company_user", "favorites", "comments", "playlists"]
+    ["riders", "filmers", "companies", "filmer_user", "editor_user", "company_user", "favorites", "comments", "playlists"]
   end
 end

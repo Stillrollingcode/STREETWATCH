@@ -4,7 +4,10 @@ class PhotosController < ApplicationController
 
   def index
     # Set cache headers for CDN (5 minutes for logged-out users)
-    expires_in 5.minutes, public: true unless user_signed_in?
+    unless user_signed_in?
+      expires_in 5.minutes, public: true
+      response.headers['Vary'] = 'Cookie, Accept-Encoding'
+    end
 
     @photos = Photo.includes(:album, :user, :photographer_user, :riders, image_attachment: :blob)
 
@@ -64,6 +67,20 @@ class PhotosController < ApplicationController
 
       # Paginate to 18 photos per page (3 columns × 6 rows)
       @photos = @photos.page(params[:page]).per(18)
+      @has_more = @photos.next_page.present?
+    end
+
+    # Handle AJAX requests for lazy loading
+    respond_to do |format|
+      format.html do
+        # If it's an AJAX request for pagination, render just the photo cards
+        if (request.xhr? || request.headers['X-Requested-With'] == 'XMLHttpRequest') && params[:page].present? && params[:page].to_i > 1
+          render partial: 'photo_cards', locals: { photos: @photos }, layout: false, content_type: 'text/html'
+        else
+          # Normal full page render
+          render :index
+        end
+      end
     end
   end
 

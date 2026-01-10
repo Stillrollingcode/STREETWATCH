@@ -1,0 +1,18 @@
+<% photos.each do |photo| %>
+  <%= link_to photo_path(photo), class: "card", style: "text-decoration: none;" do %>
+    <% if photo.image.attached? %>
+      <%= image_tag url_for(photo.image),
+        class: 'card-thumbnail',
+        alt: photo.title,
+        loading: 'lazy' %>
+    <% else %>
+      <div class="card-thumbnail-empty">
+        No Image
+      </div>
+    <% end %>
+    <div class="card-info">
+      <h3 class="card-title"><%= photo.title %></h3>
+      <p class="card-subtitle"><%= photo.photographer_name %></p>
+    </div>
+  <% end %>
+<% end %>
