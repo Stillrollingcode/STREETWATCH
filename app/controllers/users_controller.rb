@@ -7,16 +7,24 @@ class UsersController < ApplicationController
     end
 
     @query = params[:q].to_s.strip
-    @users = User.includes(avatar_attachment: :blob)
-               .search_by_fields(@query, :username, :email)
-               .order(Arel.sql("LOWER(username) ASC NULLS LAST"))
-               .page(params[:page])
-               .per(18)
 
-    @has_more = @users.next_page.present?
+    # Base query with search
+    base_query = User.search_by_fields(@query, :username, :email)
+                     .order(Arel.sql("LOWER(username) ASC NULLS LAST"))
+
+    # Apply profile_type filter if provided (for company autocomplete)
+    if params[:profile_type].present?
+      profile_types = params[:profile_type].to_s.split(',').map(&:strip)
+      base_query = base_query.where(profile_type: profile_types)
+    end
 
     respond_to do |format|
       format.html do
+        @users = base_query.includes(avatar_attachment: :blob)
+                          .page(params[:page])
+                          .per(18)
+        @has_more = @users.next_page.present?
+
         # If it's an AJAX request for pagination, render just the profile cards
         if (request.xhr? || request.headers['X-Requested-With'] == 'XMLHttpRequest') && params[:page].present? && params[:page].to_i > 1
           render partial: 'profile_cards', locals: { users: @users }, layout: false, content_type: 'text/html'
@@ -25,7 +33,13 @@ class UsersController < ApplicationController
           render :index
         end
       end
-      format.json { render json: @users.select(:id, :username, :profile_type) }
+      format.json do
+        # For JSON autocomplete, return more results and simpler data
+        users = base_query.limit(50)
+                         .select(:id, :username, :profile_type)
+                         .map { |u| { id: u.id, username: u.username, profile_type: u.profile_type } }
+        render json: users
+      end
     end
   end
 

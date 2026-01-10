@@ -96,6 +96,16 @@ ActiveAdmin.register User do
             @all_user_ids = @users.pluck(:id)
           end
         end
+        format.json do
+          users = @users.limit(params[:per_page] || 20).map do |user|
+            {
+              id: user.id,
+              username: user.username,
+              profile_type: user.profile_type
+            }
+          end
+          render json: users
+        end
       end
     end
 

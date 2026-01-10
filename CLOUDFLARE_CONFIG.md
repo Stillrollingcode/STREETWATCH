@@ -12,9 +12,9 @@
 ### 2. Caching Rules
 **Location:** Caching → Configuration
 
-You need to create a rule to **bypass cache** for authentication pages:
+You need to create rules to **bypass cache** for dynamic pages:
 
-**Rule name:** Bypass cache for auth pages
+**Rule 1: Bypass cache for auth pages**
 **When incoming requests match:**
 - URL Path contains `/users/sign_in`
 - OR URL Path contains `/users/sign_up`
@@ -23,6 +23,15 @@ You need to create a rule to **bypass cache** for authentication pages:
 
 **Then:**
 - Cache level: **Bypass**
+
+**Rule 2: Bypass cache for admin dashboard**
+**When incoming requests match:**
+- URL Path starts with `/admin`
+
+**Then:**
+- Cache level: **Bypass**
+
+**IMPORTANT:** Your Films, Photos, and Users pages should NOT be cached with 30-minute TTLs. These are dynamic pages that change frequently. Set them to Bypass or 0 seconds.
 
 ### 3. Page Rules (Alternative to Caching Rules)
 **Location:** Rules → Page Rules

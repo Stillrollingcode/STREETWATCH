@@ -567,9 +567,7 @@
 </div>
 
 <script>
-  // Get user data for autocomplete
-  const users = <%= User.order(:username).select(:id, :username, :profile_type).map { |u| { id: u.id, username: u.username, profile_type: u.profile_type } }.to_json.html_safe %>;
-  const companyUsers = users.filter(u => u.profile_type === 'company' || u.profile_type === 'crew');
+  // No longer loading all users upfront - will fetch via AJAX
 
   function initForm() {
     // Film type toggle
@@ -687,7 +685,6 @@
       console.log(`[Editor Autocomplete] Initializing for field: ${field}`);
       console.log(`[Editor Autocomplete] userIdField found:`, !!userIdField);
       console.log(`[Editor Autocomplete] customNameField found:`, !!customNameField);
-      console.log(`[Editor Autocomplete] users array length:`, users.length);
 
       // Safety check: skip if required fields not found
       if (!userIdField || !customNameField) {
@@ -697,10 +694,11 @@
 
       let selectedUserId = userIdField.value;
       let currentFocus = -1;
+      let searchTimer;
 
       // Show results on focus
       input.addEventListener('focus', function() {
-        if (this.value.trim().length > 0) {
+        if (this.value.trim().length >= 2) {
           showResults(this.value);
         }
       });
@@ -717,7 +715,16 @@
           return;
         }
 
-        showResults(value);
+        if (value.trim().length < 2) {
+          hideResults();
+          customNameField.value = value;
+          return;
+        }
+
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(function() {
+          showResults(value);
+        }, 300);
         customNameField.value = value;
       });
 
@@ -746,31 +753,59 @@
       });
 
       function showResults(searchTerm) {
-        // Use companyUsers for company field, regular users for others
-        const userList = field === 'company' ? companyUsers : users;
-        const filtered = userList.filter(u =>
-          u.username.toLowerCase().includes(searchTerm.toLowerCase())
-        );
+        resultsDiv.innerHTML = '<div class="autocomplete-item no-results">Loading...</div>';
+        resultsDiv.classList.add('show');
 
-        resultsDiv.innerHTML = '';
-        currentFocus = -1;
-
-        if (filtered.length === 0) {
-          const message = field === 'company' ? 'No company profiles found' : 'No profiles found';
-          resultsDiv.innerHTML = `<div class="autocomplete-item no-results">${message}</div>`;
-        } else {
-          filtered.forEach(user => {
-            const div = document.createElement('div');
-            div.className = 'autocomplete-item';
-            div.textContent = user.username;
-            div.addEventListener('click', function() {
-              selectUser(user);
-            });
-            resultsDiv.appendChild(div);
-          });
+        // Build URL with optional company filter
+        let url = '/users.json?q=' + encodeURIComponent(searchTerm);
+        if (field === 'company') {
+          url += '&profile_type=company,crew';
         }
 
-        resultsDiv.classList.add('show');
+        console.log(`${field} autocomplete: Fetching ${url}`);
+
+        fetch(url)
+          .then(res => {
+            console.log(`${field} autocomplete: Response status ${res.status}`);
+            if (!res.ok) {
+              throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+            }
+            return res.json();
+          })
+          .then(data => {
+            console.log(`${field} autocomplete: Received ${data.length} results`, data);
+
+            resultsDiv.innerHTML = '';
+            currentFocus = -1;
+
+            if (data.length === 0) {
+              const message = field === 'company' ? 'No company profiles found' : 'No profiles found';
+              resultsDiv.innerHTML = `<div class="autocomplete-item no-results">${message}</div>`;
+            } else {
+              // Filter by profile type if needed
+              let filtered = data;
+              if (field === 'company') {
+                filtered = data.filter(u => u.profile_type === 'company' || u.profile_type === 'crew');
+                console.log(`${field} autocomplete: After company filter ${filtered.length} results`);
+              }
+
+              filtered.forEach(user => {
+                const div = document.createElement('div');
+                div.className = 'autocomplete-item';
+                div.textContent = user.username;
+                div.addEventListener('click', function() {
+                  selectUser(user);
+                });
+                resultsDiv.appendChild(div);
+              });
+            }
+
+            resultsDiv.classList.add('show');
+          })
+          .catch(err => {
+            console.error(`${field} autocomplete error:`, err);
+            resultsDiv.innerHTML = '<div class="autocomplete-item no-results">Error loading profiles</div>';
+          });
       }
 
       function hideResults() {
@@ -826,26 +861,22 @@
 
     const selectedRiders = new Map(); // Map of id -> {id, username}
     let currentFocus = -1;
+    let searchTimer;
 
     // Load existing selected riders from the film data - ONLY if film is persisted
     <% if @film.persisted? %>
-      const existingRiderIds = <%= @film.rider_ids.to_json.html_safe %>;
-      console.log('[Riders] Loading existing rider IDs:', existingRiderIds);
-      existingRiderIds.forEach(riderId => {
-        const rider = users.find(u => u.id === riderId);
-        if (rider) {
-          selectedRiders.set(rider.id, rider);
-          console.log('[Riders] Added existing rider:', rider.username);
-        } else {
-          console.warn('[Riders] Could not find user for ID:', riderId);
-        }
+      const existingRiders = <%= @film.riders.select(:id, :username).map { |u| { id: u.id, username: u.username } }.to_json.html_safe %>;
+      console.log('[Riders] Loading existing riders:', existingRiders);
+      existingRiders.forEach(rider => {
+        selectedRiders.set(rider.id, rider);
+        console.log('[Riders] Added existing rider:', rider.username);
       });
     <% end %>
     renderSelectedRiders();
 
     // Show results on focus
     searchInput.addEventListener('focus', function() {
-      if (this.value.trim().length > 0) {
+      if (this.value.trim().length >= 2) {
         showResults(this.value);
       }
     });
@@ -859,7 +890,15 @@
         return;
       }
 
-      showResults(value);
+      if (value.length < 2) {
+        hideResults();
+        return;
+      }
+
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(function() {
+        showResults(value);
+      }, 300);
     });
 
     // Keyboard navigation
@@ -887,35 +926,48 @@
     });
 
     function showResults(searchTerm) {
-      if (!users || users.length === 0) {
-        resultsDiv.innerHTML = '<div class="autocomplete-item no-results">Loading users...</div>';
-        resultsDiv.classList.add('show');
-        return;
-      }
-
-      const filtered = users.filter(u =>
-        u.username && u.username.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        !selectedRiders.has(u.id) // Don't show already selected riders
-      );
-
-      resultsDiv.innerHTML = '';
-      currentFocus = -1;
-
-      if (filtered.length === 0) {
-        resultsDiv.innerHTML = '<div class="autocomplete-item no-results">No riders found</div>';
-      } else {
-        filtered.slice(0, 10).forEach(user => { // Limit to 10 results
-          const div = document.createElement('div');
-          div.className = 'autocomplete-item';
-          div.textContent = user.username;
-          div.addEventListener('click', function() {
-            addRider(user);
-          });
-          resultsDiv.appendChild(div);
-        });
-      }
-
+      resultsDiv.innerHTML = '<div class="autocomplete-item no-results">Loading...</div>';
       resultsDiv.classList.add('show');
+
+      const url = '/users.json?q=' + encodeURIComponent(searchTerm);
+      console.log('Riders autocomplete: Fetching ' + url);
+
+      fetch(url)
+        .then(res => {
+          console.log('Riders autocomplete: Response status ' + res.status);
+          if (!res.ok) {
+            throw new Error('HTTP ' + res.status + ': ' + res.statusText);
+          }
+          return res.json();
+        })
+        .then(data => {
+          console.log('Riders autocomplete: Received ' + data.length + ' results', data);
+          const filtered = data.filter(u => !selectedRiders.has(u.id)); // Don't show already selected riders
+          console.log('Riders autocomplete: After filtering out selected, ' + filtered.length + ' results remain');
+
+          resultsDiv.innerHTML = '';
+          currentFocus = -1;
+
+          if (filtered.length === 0) {
+            resultsDiv.innerHTML = '<div class="autocomplete-item no-results">No riders found</div>';
+          } else {
+            filtered.slice(0, 10).forEach(user => { // Limit to 10 results
+              const div = document.createElement('div');
+              div.className = 'autocomplete-item';
+              div.textContent = user.username;
+              div.addEventListener('click', function() {
+                addRider(user);
+              });
+              resultsDiv.appendChild(div);
+            });
+          }
+
+          resultsDiv.classList.add('show');
+        })
+        .catch(err => {
+          console.error('Riders autocomplete error:', err);
+          resultsDiv.innerHTML = '<div class="autocomplete-item no-results">Error loading riders</div>';
+        });
     }
 
     function hideResults() {

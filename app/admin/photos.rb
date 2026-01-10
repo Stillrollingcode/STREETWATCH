@@ -303,11 +303,19 @@ ActiveAdmin.register Photo do
 
     # Embed data and JavaScript together
     li style: 'display:none;' do
-      users_data = User.order(:username).select(:id, :username, :profile_type).map { |u|
-        { id: u.id, username: u.username, profile_type: u.profile_type }
-      }
       rider_ids = f.object.rider_ids rescue []
-      photo_data = { users: users_data, existingRiderIds: rider_ids }
+
+      # Load existing users for display, but don't load all users
+      existing_riders = f.object.riders.select(:id, :username) rescue []
+      existing_photographer = f.object.photographer_user ? { id: f.object.photographer_user.id, username: f.object.photographer_user.username } : nil
+      existing_company = f.object.company_user ? { id: f.object.company_user.id, username: f.object.company_user.username } : nil
+
+      photo_data = {
+        existingRiderIds: rider_ids,
+        existingRiders: existing_riders.map { |u| { id: u.id, username: u.username } },
+        existingPhotographer: existing_photographer,
+        existingCompany: existing_company
+      }
 
       text_node <<~HTML.html_safe
         <script type='text/javascript'>window.photoFormData = #{photo_data.to_json};</script>
@@ -412,9 +420,7 @@ ActiveAdmin.register Photo do
 
         <script>
           (function() {
-            // Get user data for autocomplete from window object
-            const users = window.photoFormData?.users || [];
-            const companyUsers = users.filter(u => u.profile_type === 'company');
+            // No longer loading all users upfront - will fetch via AJAX
             let initialized = false;
 
             function initAdminAutocomplete() {
@@ -422,15 +428,15 @@ ActiveAdmin.register Photo do
               initialized = true;
 
               // Initialize single-select autocomplete for uploader, photographer, company
-              initSingleAutocomplete('uploader', users, 'photo_user_id');
-              initSingleAutocomplete('photographer', users, 'photo_photographer_user_id');
-              initSingleAutocomplete('company', companyUsers, 'photo_company_user_id');
+              initSingleAutocomplete('uploader', 'photo_user_id', false);
+              initSingleAutocomplete('photographer', 'photo_photographer_user_id', false);
+              initSingleAutocomplete('company', 'photo_company_user_id', true);
 
               // Initialize multi-select autocomplete for riders
               initRidersAutocomplete();
             }
 
-            function initSingleAutocomplete(fieldName, userList, hiddenFieldId) {
+            function initSingleAutocomplete(fieldName, hiddenFieldId, companiesOnly) {
               const input = document.getElementById(fieldName + '-search-input');
               const resultsDiv = document.getElementById(fieldName + '-results');
               const hiddenField = document.getElementById(hiddenFieldId);
@@ -438,9 +444,10 @@ ActiveAdmin.register Photo do
               if (!input || !resultsDiv || !hiddenField) return;
 
               let currentFocus = -1;
+              let searchTimer;
 
               input.addEventListener('focus', function() {
-                if (this.value.trim().length > 0) {
+                if (this.value.trim().length >= 2) {
                   showResults(this.value);
                 }
               });
@@ -452,7 +459,14 @@ ActiveAdmin.register Photo do
                   hiddenField.value = '';
                   return;
                 }
-                showResults(value);
+                if (value.length < 2) {
+                  hideResults();
+                  return;
+                }
+                clearTimeout(searchTimer);
+                searchTimer = setTimeout(function() {
+                  showResults(value);
+                }, 300);
               });
 
               input.addEventListener('keydown', function(e) {
@@ -478,28 +492,41 @@ ActiveAdmin.register Photo do
               });
 
               function showResults(searchTerm) {
-                const filtered = userList.filter(u =>
-                  u.username && u.username.toLowerCase().includes(searchTerm.toLowerCase())
-                );
+                resultsDiv.innerHTML = '<div class="autocomplete-item no-results">Loading...</div>';
+                resultsDiv.classList.add('show');
 
-                resultsDiv.innerHTML = '';
-                currentFocus = -1;
-
-                if (filtered.length === 0) {
-                  resultsDiv.innerHTML = '<div class="autocomplete-item no-results">No users found</div>';
-                } else {
-                  filtered.slice(0, 10).forEach(user => {
-                    const div = document.createElement('div');
-                    div.className = 'autocomplete-item';
-                    div.textContent = user.username;
-                    div.addEventListener('click', function() {
-                      selectUser(user);
-                    });
-                    resultsDiv.appendChild(div);
-                  });
+                // Build URL with optional company filter
+                let url = '/admin/users.json?q[username_cont]=' + encodeURIComponent(searchTerm) + '&per_page=10';
+                if (companiesOnly) {
+                  url += '&q[profile_type_eq]=company';
                 }
 
-                resultsDiv.classList.add('show');
+                fetch(url)
+                  .then(res => res.json())
+                  .then(data => {
+                    resultsDiv.innerHTML = '';
+                    currentFocus = -1;
+
+                    if (data.length === 0) {
+                      resultsDiv.innerHTML = '<div class="autocomplete-item no-results">No users found</div>';
+                    } else {
+                      data.forEach(user => {
+                        const div = document.createElement('div');
+                        div.className = 'autocomplete-item';
+                        div.textContent = user.username;
+                        div.addEventListener('click', function() {
+                          selectUser(user);
+                        });
+                        resultsDiv.appendChild(div);
+                      });
+                    }
+
+                    resultsDiv.classList.add('show');
+                  })
+                  .catch(err => {
+                    console.error(`${fieldName} autocomplete error:`, err);
+                    resultsDiv.innerHTML = '<div class="autocomplete-item no-results">Error loading users</div>';
+                  });
               }
 
               function hideResults() {
@@ -542,21 +569,19 @@ ActiveAdmin.register Photo do
 
               const selectedRiders = new Map();
               let currentFocus = -1;
+              let searchTimer;
 
               // Load existing riders
-              const existingRiderIds = window.photoFormData?.existingRiderIds || [];
-              if (existingRiderIds && existingRiderIds.length > 0) {
-                existingRiderIds.forEach(riderId => {
-                  const rider = users.find(u => u.id === riderId);
-                  if (rider) {
-                    selectedRiders.set(rider.id, rider);
-                  }
+              const existingRiders = window.photoFormData?.existingRiders || [];
+              if (existingRiders && existingRiders.length > 0) {
+                existingRiders.forEach(rider => {
+                  selectedRiders.set(rider.id, rider);
                 });
                 renderSelectedRiders();
               }
 
               searchInput.addEventListener('focus', function() {
-                if (this.value.trim().length > 0) {
+                if (this.value.trim().length >= 2) {
                   showResults(this.value);
                 }
               });
@@ -567,7 +592,14 @@ ActiveAdmin.register Photo do
                   hideResults();
                   return;
                 }
-                showResults(value);
+                if (value.length < 2) {
+                  hideResults();
+                  return;
+                }
+                clearTimeout(searchTimer);
+                searchTimer = setTimeout(function() {
+                  showResults(value);
+                }, 300);
               });
 
               searchInput.addEventListener('keydown', function(e) {
@@ -593,29 +625,37 @@ ActiveAdmin.register Photo do
               });
 
               function showResults(searchTerm) {
-                const filtered = users.filter(u =>
-                  u.username && u.username.toLowerCase().includes(searchTerm.toLowerCase()) &&
-                  !selectedRiders.has(u.id)
-                );
-
-                resultsDiv.innerHTML = '';
-                currentFocus = -1;
-
-                if (filtered.length === 0) {
-                  resultsDiv.innerHTML = '<div class="autocomplete-item no-results">No riders found</div>';
-                } else {
-                  filtered.slice(0, 10).forEach(user => {
-                    const div = document.createElement('div');
-                    div.className = 'autocomplete-item';
-                    div.textContent = user.username;
-                    div.addEventListener('click', function() {
-                      addRider(user);
-                    });
-                    resultsDiv.appendChild(div);
-                  });
-                }
-
+                resultsDiv.innerHTML = '<div class="autocomplete-item no-results">Loading...</div>';
                 resultsDiv.classList.add('show');
+
+                fetch('/admin/users.json?q[username_cont]=' + encodeURIComponent(searchTerm) + '&per_page=10')
+                  .then(res => res.json())
+                  .then(data => {
+                    const filtered = data.filter(u => !selectedRiders.has(u.id));
+
+                    resultsDiv.innerHTML = '';
+                    currentFocus = -1;
+
+                    if (filtered.length === 0) {
+                      resultsDiv.innerHTML = '<div class="autocomplete-item no-results">No riders found</div>';
+                    } else {
+                      filtered.forEach(user => {
+                        const div = document.createElement('div');
+                        div.className = 'autocomplete-item';
+                        div.textContent = user.username;
+                        div.addEventListener('click', function() {
+                          addRider(user);
+                        });
+                        resultsDiv.appendChild(div);
+                      });
+                    }
+
+                    resultsDiv.classList.add('show');
+                  })
+                  .catch(err => {
+                    console.error('Riders autocomplete error:', err);
+                    resultsDiv.innerHTML = '<div class="autocomplete-item no-results">Error loading users</div>';
+                  });
               }
 
               function hideResults() {
