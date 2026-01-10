@@ -361,7 +361,7 @@
   <div class="form-card">
     <h1><%= film.new_record? ? "Add Film" : "Edit Film" %></h1>
 
-    <%= form_with(model: film, class: 'film-form', data: { turbo: false }) do |f| %>
+    <%= form_with(model: film, class: 'film-form', html: { data: { turbo: "false" }, onkeydown: "return event.key !== 'Enter' || event.target.tagName === 'TEXTAREA' || event.target.type === 'submit';" }) do |f| %>
       <% if film.errors.any? %>
         <div class="error-messages">
           <h2><%= pluralize(film.errors.count, "error") %> prevented this film from being saved:</h2>
@@ -568,9 +568,17 @@
 
 <script>
   // Get user data for autocomplete (limit to 500 most recently active users)
-  const users = <%= User.order(updated_at: :desc).limit(500).select(:id, :username, :profile_type).map { |u| { id: u.id, username: u.username, profile_type: u.profile_type } }.to_json.html_safe %>;
-  const companyUsers = users.filter(u => u.profile_type === 'company' || u.profile_type === 'crew');
-  console.log('[Film Form] Loaded ' + users.length + ' users for autocomplete');
+  let users = [];
+  let companyUsers = [];
+
+  try {
+    users = <%= User.order(updated_at: :desc).limit(500).select(:id, :username, :profile_type).map { |u| { id: u.id, username: u.username, profile_type: u.profile_type } }.to_json.html_safe %>;
+    companyUsers = users.filter(u => u.profile_type === 'company' || u.profile_type === 'crew');
+    console.log('[Film Form] Successfully loaded ' + users.length + ' users for autocomplete');
+    console.log('[Film Form] Company users: ' + companyUsers.length);
+  } catch (error) {
+    console.error('[Film Form] Failed to load users:', error);
+  }
 
   function initForm() {
     // Film type toggle
@@ -754,9 +762,13 @@
       function showResults(searchTerm) {
         // Use companyUsers for company field, regular users for others
         const userList = field === 'company' ? companyUsers : users;
+        console.log(`[${field}] Searching for "${searchTerm}" in ${userList.length} users`);
+
         const filtered = userList.filter(u =>
-          u.username.toLowerCase().includes(searchTerm.toLowerCase())
+          u.username && u.username.toLowerCase().includes(searchTerm.toLowerCase())
         );
+
+        console.log(`[${field}] Found ${filtered.length} matching users`);
 
         resultsDiv.innerHTML = '';
         currentFocus = -1;
@@ -894,15 +906,20 @@
 
     function showResults(searchTerm) {
       if (!users || users.length === 0) {
+        console.error('[Riders] No users available for search!');
         resultsDiv.innerHTML = '<div class="autocomplete-item no-results">Loading users...</div>';
         resultsDiv.classList.add('show');
         return;
       }
 
+      console.log(`[Riders] Searching for "${searchTerm}" in ${users.length} users`);
+
       const filtered = users.filter(u =>
         u.username && u.username.toLowerCase().includes(searchTerm.toLowerCase()) &&
         !selectedRiders.has(u.id) // Don't show already selected riders
       );
+
+      console.log(`[Riders] Found ${filtered.length} matching users (showing max 10)`);
 
       resultsDiv.innerHTML = '';
       currentFocus = -1;
