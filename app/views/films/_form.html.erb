@@ -574,7 +574,7 @@
   let companyUsers = [];
 
   try {
-    users = <%= User.order(updated_at: :desc).limit(500).select(:id, :username, :profile_type).map { |u| { id: u.id, username: u.username, profile_type: u.profile_type } }.to_json.html_safe %>;
+    users = <%= User.order(:username).limit(1000).select(:id, :username, :profile_type).map { |u| { id: u.id, username: u.username, profile_type: u.profile_type } }.to_json.html_safe %>;
     companyUsers = users.filter(u => u.profile_type === 'company' || u.profile_type === 'crew');
     console.log('[Film Form] Successfully loaded ' + users.length + ' users for autocomplete');
     console.log('[Film Form] Company users: ' + companyUsers.length);
