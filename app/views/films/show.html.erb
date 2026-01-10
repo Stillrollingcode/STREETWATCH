@@ -1857,7 +1857,8 @@
 </div>
 
 <script>
-  // Reviews Modal JavaScript
+(function() {
+  // Reviews Modal JavaScript - wrapped in IIFE to prevent Turbo variable conflicts
   const filmId = '<%= @film.friendly_id || @film.id %>';
   let currentUserReview = null;
   let allReviews = [];
@@ -1871,6 +1872,9 @@
       modal.style.display = 'none';
     }
   }
+
+  // Expose functions globally for onclick handlers
+  window.toggleReviewsModal = toggleReviewsModal;
 
   function loadReviews() {
     fetch(`/films/${filmId}/film_reviews`, {
@@ -2128,6 +2132,7 @@
       toggleReviewsModal();
     }
   });
+})(); // End IIFE
 </script>
 
 <%
