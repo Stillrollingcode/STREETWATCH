@@ -361,7 +361,7 @@
   <div class="form-card">
     <h1><%= film.new_record? ? "Add Film" : "Edit Film" %></h1>
 
-    <%= form_with(model: film) do |f| %>
+    <%= form_with(model: film, class: 'film-form') do |f| %>
       <% if film.errors.any? %>
         <div class="error-messages">
           <h2><%= pluralize(film.errors.count, "error") %> prevented this film from being saved:</h2>
@@ -383,8 +383,8 @@
         <%= f.text_area :description, placeholder: "Brief description of the film..." %>
       </div>
 
-      <div class="form-group" id="video-upload-group" style="opacity: 0.5; pointer-events: none;">
-        <%= f.label :video, "Video File (Temporarily Disabled)" %>
+      <div class="form-group" id="video-upload-group">
+        <%= f.label :video, "Video File" %>
 
         <% if film.video.attached? %>
           <div class="existing-video-info">
@@ -398,19 +398,19 @@
             <a class="toggle-upload-link" onclick="toggleVideoUpload()">Replace video</a>
           </div>
           <div id="video-field-wrapper" style="display: none;">
-            <%= f.file_field :video, direct_upload: true, accept: "video/*", id: "film_video_input", disabled: true %>
+            <%= f.file_field :video, direct_upload: true, accept: "video/*", id: "film_video_input" %>
             <div class="help-text">Upload a new video file (MP4, MOV, etc.)</div>
           </div>
         <% else %>
-          <%= f.file_field :video, direct_upload: true, accept: "video/*", id: "film_video_input", disabled: true %>
-          <div class="help-text" style="color: #ff9966; font-weight: 600;">⚠️ FEATURE COMING SOON! Video uploads are temporarily disabled for legal compliance. Please use YouTube URL below.</div>
+          <%= f.file_field :video, direct_upload: true, accept: "video/*", id: "film_video_input" %>
+          <div class="help-text">Upload the full film video (MP4, MOV, etc.)</div>
         <% end %>
       </div>
 
       <div class="form-group" id="youtube-url-group">
-        <%= f.label :youtube_url, "Video URL (Required - YouTube or Vimeo)" %>
-        <%= f.text_field :youtube_url, placeholder: "https://www.youtube.com/watch?v=... or https://vimeo.com/...", id: "youtube_url_input" %>
-        <div class="help-text">Enter the full YouTube or Vimeo URL for your film. Video uploads are temporarily disabled.</div>
+        <%= f.label :youtube_url, "YouTube URL (Alternative to upload)" %>
+        <%= f.text_field :youtube_url, placeholder: "https://www.youtube.com/watch?v=...", id: "youtube_url_input" %>
+        <div class="help-text">Instead of uploading, you can link to a YouTube video. Leave blank if uploading a file above.</div>
       </div>
 
       <div class="form-group">
@@ -567,7 +567,7 @@
 </div>
 
 <script>
-  // Load all users for autocomplete
+  // Get user data for autocomplete
   const users = <%= User.order(:username).select(:id, :username, :profile_type).map { |u| { id: u.id, username: u.username, profile_type: u.profile_type } }.to_json.html_safe %>;
   const companyUsers = users.filter(u => u.profile_type === 'company' || u.profile_type === 'crew');
 
@@ -603,7 +603,6 @@
   }
 
   // Make video upload and YouTube URL mutually exclusive
-  // NOTE: Video uploads are temporarily disabled for legal compliance
   function initVideoSourceExclusivity() {
     const videoInput = document.getElementById('film_video_input');
     const youtubeInput = document.getElementById('youtube_url_input');
@@ -612,15 +611,6 @@
 
     if (!videoInput || !youtubeInput) return;
 
-    // VIDEO UPLOADS ARE DISABLED - Do not re-enable the video input
-    // Keep video input permanently disabled
-    videoInput.disabled = true;
-
-    // YouTube URL functionality remains active (no need to disable it)
-    // Remove the mutual exclusivity since video uploads are disabled anyway
-
-    // Legacy code kept for reference when re-enabling video uploads:
-    /*
     // Disable YouTube URL when video is selected
     videoInput.addEventListener('change', function() {
       if (this.files && this.files.length > 0) {
@@ -661,7 +651,6 @@
     if (youtubeInput.value.trim().length > 0) {
       youtubeInput.dispatchEvent(new Event('input'));
     }
-    */
   }
 
   function initAutocomplete() {
@@ -826,22 +815,26 @@
 
     const selectedRiders = new Map(); // Map of id -> {id, username}
     let currentFocus = -1;
-    let searchTimer;
 
     // Load existing selected riders from the film data - ONLY if film is persisted
     <% if @film.persisted? %>
-      const existingRiders = <%= @film.riders.select(:id, :username).map { |u| { id: u.id, username: u.username } }.to_json.html_safe %>;
-      console.log('[Riders] Loading existing riders:', existingRiders);
-      existingRiders.forEach(rider => {
-        selectedRiders.set(rider.id, rider);
-        console.log('[Riders] Added existing rider:', rider.username);
+      const existingRiderIds = <%= @film.rider_ids.to_json.html_safe %>;
+      console.log('[Riders] Loading existing rider IDs:', existingRiderIds);
+      existingRiderIds.forEach(riderId => {
+        const rider = users.find(u => u.id === riderId);
+        if (rider) {
+          selectedRiders.set(rider.id, rider);
+          console.log('[Riders] Added existing rider:', rider.username);
+        } else {
+          console.warn('[Riders] Could not find user for ID:', riderId);
+        }
       });
     <% end %>
     renderSelectedRiders();
 
     // Show results on focus
     searchInput.addEventListener('focus', function() {
-      if (this.value.trim().length >= 2) {
+      if (this.value.trim().length > 0) {
         showResults(this.value);
       }
     });
@@ -855,15 +848,7 @@
         return;
       }
 
-      if (value.length < 2) {
-        hideResults();
-        return;
-      }
-
-      clearTimeout(searchTimer);
-      searchTimer = setTimeout(function() {
-        showResults(value);
-      }, 300);
+      showResults(value);
     });
 
     // Keyboard navigation
