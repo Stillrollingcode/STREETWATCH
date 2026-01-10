@@ -402,15 +402,15 @@
             <div class="help-text">Upload a new video file (MP4, MOV, etc.)</div>
           </div>
         <% else %>
-          <%= f.file_field :video, direct_upload: true, accept: "video/*", id: "film_video_input" %>
-          <div class="help-text">Upload the full film video (MP4, MOV, etc.)</div>
+          <%= f.file_field :video, direct_upload: true, accept: "video/*", id: "film_video_input", disabled: true %>
+          <div class="help-text" style="color: #ff9966; font-weight: 600;">⚠️ FEATURE COMING SOON! Video uploads are temporarily disabled for legal compliance. Please use YouTube or Vimeo URL below.</div>
         <% end %>
       </div>
 
       <div class="form-group" id="youtube-url-group">
-        <%= f.label :youtube_url, "YouTube URL (Alternative to upload)" %>
-        <%= f.text_field :youtube_url, placeholder: "https://www.youtube.com/watch?v=...", id: "youtube_url_input" %>
-        <div class="help-text">Instead of uploading, you can link to a YouTube video. Leave blank if uploading a file above.</div>
+        <%= f.label :youtube_url, "Video URL (Required - YouTube or Vimeo)" %>
+        <%= f.text_field :youtube_url, placeholder: "https://www.youtube.com/watch?v=... or https://vimeo.com/...", id: "youtube_url_input" %>
+        <div class="help-text">Enter the full YouTube or Vimeo URL for your film. Video uploads are temporarily disabled.</div>
       </div>
 
       <div class="form-group">
@@ -603,6 +603,7 @@
   }
 
   // Make video upload and YouTube URL mutually exclusive
+  // NOTE: Video uploads are temporarily disabled for legal compliance
   function initVideoSourceExclusivity() {
     const videoInput = document.getElementById('film_video_input');
     const youtubeInput = document.getElementById('youtube_url_input');
@@ -611,6 +612,15 @@
 
     if (!videoInput || !youtubeInput) return;
 
+    // VIDEO UPLOADS ARE DISABLED - Do not re-enable the video input
+    // Keep video input permanently disabled
+    videoInput.disabled = true;
+
+    // YouTube URL functionality remains active (no need to disable it)
+    // Remove the mutual exclusivity since video uploads are disabled anyway
+
+    // Legacy code kept for reference when re-enabling video uploads:
+    /*
     // Disable YouTube URL when video is selected
     videoInput.addEventListener('change', function() {
       if (this.files && this.files.length > 0) {
@@ -622,7 +632,7 @@
         youtubeInput.disabled = false;
         youtubeInput.style.opacity = '1';
         youtubeInput.style.cursor = '';
-        youtubeUrlGroup.querySelector('.help-text').innerHTML = 'Instead of uploading, you can link to a YouTube video. Leave blank if uploading a file above.';
+        youtubeUrlGroup.querySelector('.help-text').innerHTML = 'Instead of uploading, you can link to a YouTube or Vimeo video. Leave blank if uploading a file above.';
       }
     });
 
@@ -634,7 +644,7 @@
         videoInput.style.cursor = 'not-allowed';
         const helpText = videoUploadGroup.querySelector('.help-text');
         if (helpText) {
-          helpText.innerHTML = '<strong style="color: var(--accent);">YouTube URL entered. Video upload is disabled.</strong>';
+          helpText.innerHTML = '<strong style="color: var(--accent);">YouTube or Vimeo URL entered. Video upload is disabled.</strong>';
         }
       } else {
         videoInput.disabled = false;
@@ -651,6 +661,7 @@
     if (youtubeInput.value.trim().length > 0) {
       youtubeInput.dispatchEvent(new Event('input'));
     }
+    */
   }
 
   function initAutocomplete() {
