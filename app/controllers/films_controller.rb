@@ -253,7 +253,8 @@ class FilmsController < ApplicationController
 
   def update
     if @film.update(film_params)
-      redirect_to @film, notice: "Film was successfully updated."
+      # Redirect with cache-busting parameter to force fresh page load
+      redirect_to film_path(@film, updated: Time.current.to_i), notice: "Film was successfully updated."
     else
       render :edit, status: :unprocessable_entity
     end
