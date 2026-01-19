@@ -88,6 +88,7 @@
     }
     .file-upload-area.dragover {
       border-color: var(--accent);
+      background: <%= user_theme_styles[:primary_rgba].sub('ALPHA', '0.1') %>; /* Fallback for Chrome <111 */
       background: color-mix(in srgb, var(--accent) 10%, transparent);
     }
     .upload-icon {
@@ -329,6 +330,7 @@
       padding: 8px 16px;
       border-radius: 8px;
       border: 1px solid var(--accent);
+      background: <%= user_theme_styles[:primary_rgba].sub('ALPHA', '0.15') %>; /* Fallback for Chrome <111 */
       background: color-mix(in srgb, var(--accent) 15%, transparent);
       color: var(--accent);
       font-size: 13px;
@@ -337,9 +339,11 @@
       transition: all 0.15s;
     }
     .tag-all-btn:hover {
+      background: <%= user_theme_styles[:primary_rgba].sub('ALPHA', '0.25') %>; /* Fallback for Chrome <111 */
       background: color-mix(in srgb, var(--accent) 25%, transparent);
     }
     .preview-card.has-tags {
+      border-color: <%= user_theme_styles[:primary_rgba].sub('ALPHA', '0.3') %>; /* Fallback for Chrome <111 */
       border-color: color-mix(in srgb, var(--accent) 30%, transparent);
     }
     .preview-tags-indicator {

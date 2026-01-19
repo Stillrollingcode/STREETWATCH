@@ -1,3 +1,4 @@
+<% theme = user_theme_styles %>
 <% content_for :head do %>
   <style>
     .film-shell {
@@ -17,6 +18,7 @@
     .film-hero {
       width: 100%;
       height: 400px;
+      background: linear-gradient(135deg, <%= theme[:primary_rgba].sub('ALPHA', '0.3') %>, <%= theme[:secondary_rgba].sub('ALPHA', '0.3') %>); /* Fallback for Chrome <111 */
       background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 30%, transparent), color-mix(in srgb, var(--accent-2) 30%, transparent));
       display: flex;
       align-items: center;
@@ -44,6 +46,7 @@
     }
     .video-js .vjs-big-play-button {
       border-color: var(--accent);
+      background-color: <%= theme[:primary_rgba].sub('ALPHA', '0.8') %>; /* Fallback for Chrome <111 */
       background-color: color-mix(in srgb, var(--accent) 80%, transparent);
     }
     .video-js .vjs-big-play-button:hover {
@@ -54,10 +57,12 @@
       overflow-y: auto;
     }
     .vjs-quality-button .vjs-menu-item.vjs-selected {
+      background-color: <%= theme[:primary_rgba].sub('ALPHA', '0.2') %>; /* Fallback for Chrome <111 */
       background-color: color-mix(in srgb, var(--accent) 20%, transparent);
       color: var(--accent);
     }
     .vjs-quality-button .vjs-menu-item:hover {
+      background-color: <%= theme[:primary_rgba].sub('ALPHA', '0.1') %>; /* Fallback for Chrome <111 */
       background-color: color-mix(in srgb, var(--accent) 10%, transparent);
     }
     .film-content {
@@ -240,6 +245,7 @@
       width: 50px;
       height: 50px;
       border-radius: 50%;
+      background: linear-gradient(135deg, <%= theme[:primary_rgba].sub('ALPHA', '0.4') %>, <%= theme[:secondary_rgba].sub('ALPHA', '0.4') %>); /* Fallback for Chrome <111 */
       background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 40%, transparent), color-mix(in srgb, var(--accent-2) 40%, transparent));
       margin: 0 auto 8px;
       display: flex;
@@ -268,6 +274,7 @@
     }
 
     .crew-link:hover {
+      color: <%= theme[:light_rgba].sub('ALPHA', '1') %> !important; /* Fallback for Chrome <111 */
       color: color-mix(in srgb, var(--accent) 80%, white) !important;
       text-decoration: underline;
     }
@@ -282,6 +289,7 @@
     }
 
     .film-company-tag .crew-link:hover {
+      color: <%= theme[:light_rgba].sub('ALPHA', '1') %> !important; /* Fallback for Chrome <111 */
       color: color-mix(in srgb, var(--accent) 80%, white) !important;
     }
 
@@ -341,7 +349,9 @@
       border-color: rgba(255,255,255,0.3);
     }
     .favorite-btn.favorited {
+      background: <%= theme[:primary_rgba].sub('ALPHA', '0.2') %>; /* Fallback for Chrome <111 */
       background: color-mix(in srgb, var(--accent) 20%, transparent);
+      border-color: <%= theme[:primary_rgba].sub('ALPHA', '0.5') %>; /* Fallback for Chrome <111 */
       border-color: color-mix(in srgb, var(--accent) 50%, transparent);
       color: var(--accent);
     }
@@ -482,6 +492,7 @@
     }
 
     .share-copy-btn:hover {
+      background: <%= theme[:light_rgba].sub('ALPHA', '1') %>; /* Fallback for Chrome <111 */
       background: color-mix(in srgb, var(--accent) 80%, white);
     }
 
@@ -629,6 +640,7 @@
 
     .review-comment-textarea:focus {
       outline: none;
+      border-color: <%= theme[:primary_rgba].sub('ALPHA', '0.5') %>; /* Fallback for Chrome <111 */
       border-color: color-mix(in srgb, var(--accent) 50%, transparent);
       background: rgba(255,255,255,0.06);
     }
@@ -666,6 +678,7 @@
     }
 
     .review-action-btn.primary:hover {
+      background: <%= theme[:light_rgba].sub('ALPHA', '1') %>; /* Fallback for Chrome <111 */
       background: color-mix(in srgb, var(--accent) 80%, white);
     }
 
@@ -803,6 +816,7 @@
     }
     .comment-form textarea:focus {
       outline: none;
+      border-color: <%= theme[:primary_rgba].sub('ALPHA', '0.5') %>; /* Fallback for Chrome <111 */
       border-color: color-mix(in srgb, var(--accent) 50%, transparent);
     }
     .comments-list {
@@ -853,6 +867,7 @@
       transition: background 0.15s ease;
     }
     .reply-btn:hover {
+      background: <%= theme[:primary_rgba].sub('ALPHA', '0.1') %>; /* Fallback for Chrome <111 */
       background: color-mix(in srgb, var(--accent) 10%, transparent);
     }
     .reply-form {
@@ -879,6 +894,7 @@
     }
     .reply-form textarea:focus {
       outline: none;
+      border-color: <%= theme[:primary_rgba].sub('ALPHA', '0.5') %>; /* Fallback for Chrome <111 */
       border-color: color-mix(in srgb, var(--accent) 50%, transparent);
     }
     .replies-section {
@@ -941,16 +957,20 @@
       font-weight: 600;
     }
     .create-playlist-link:hover {
+      background: <%= theme[:primary_rgba].sub('ALPHA', '0.1') %>; /* Fallback for Chrome <111 */
       background: color-mix(in srgb, var(--accent) 10%, transparent);
     }
     .delete-btn {
       background: transparent !important;
+      border: 2px solid <%= theme[:primary_rgba].sub('ALPHA', '0.8') %> !important; /* Fallback for Chrome <111 */
       border: 2px solid color-mix(in srgb, var(--accent) 80%, transparent) !important;
+      color: var(--accent) !important; /* Fallback for Chrome <111 */
       color: color-mix(in srgb, var(--accent) 85%, var(--text) 15%) !important;
       transition: all 0.2s ease;
     }
     .delete-btn:hover {
       border-color: var(--accent) !important;
+      background: <%= theme[:primary_rgba].sub('ALPHA', '0.1') %> !important; /* Fallback for Chrome <111 */
       background: color-mix(in srgb, var(--accent) 10%, transparent) !important;
     }
   </style>
@@ -1178,9 +1198,11 @@
         }
         .vjs-quality-button .vjs-menu-item:hover,
         .vjs-quality-button .vjs-menu-item:focus {
+          background-color: <%= theme[:primary_rgba].sub('ALPHA', '0.3') %>; /* Fallback for Chrome <111 */
           background-color: color-mix(in srgb, var(--accent) 30%, transparent);
         }
         .vjs-quality-button .vjs-menu-item.vjs-selected {
+          background-color: <%= theme[:primary_rgba].sub('ALPHA', '0.5') %>; /* Fallback for Chrome <111 */
           background-color: color-mix(in srgb, var(--accent) 50%, transparent);
           color: var(--text);
         }

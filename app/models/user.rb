@@ -88,19 +88,32 @@ class User < ApplicationRecord
 
   # Get all films associated with this user (as rider, filmer, editor, or company)
   # Always filters out hidden films - hidden films only appear in the "Hidden" tab
+  # Optimized: Uses a single SQL query with UNION instead of 6+ separate queries
   def all_films(viewing_user: nil)
-    film_ids = (
-      rider_films.pluck(:id) +
-      filmer_films.pluck(:id) +
-      filmed_films.pluck(:id) +
-      edited_films.pluck(:id) +
-      multi_company_films.pluck(:id) +
-      company_films.pluck(:id)
-    ).uniq
+    # Build a single query to get all film IDs where user is associated
+    # This replaces 6 separate pluck queries with one efficient UNION
+    film_ids_sql = <<~SQL
+      SELECT DISTINCT film_id FROM (
+        SELECT film_id FROM film_riders WHERE user_id = :user_id
+        UNION
+        SELECT film_id FROM film_filmers WHERE user_id = :user_id
+        UNION
+        SELECT id AS film_id FROM films WHERE filmer_user_id = :user_id
+        UNION
+        SELECT id AS film_id FROM films WHERE editor_user_id = :user_id
+        UNION
+        SELECT film_id FROM film_companies WHERE user_id = :user_id
+        UNION
+        SELECT id AS film_id FROM films WHERE company_user_id = :user_id
+      ) AS all_film_ids
+      WHERE film_id NOT IN (
+        SELECT film_id FROM hidden_profile_films WHERE user_id = :user_id
+      )
+    SQL
 
-    # Always filter out films hidden by this user from their profile
-    hidden_film_ids = hidden_profile_films.pluck(:film_id)
-    film_ids -= hidden_film_ids
+    film_ids = Film.connection.select_values(
+      Film.sanitize_sql([film_ids_sql, { user_id: id }])
+    )
 
     Film.published
         .where(id: film_ids)
@@ -111,7 +124,8 @@ class User < ApplicationRecord
   # Get films hidden from profile (only for own profile)
   def hidden_films_from_profile
     Film.published
-        .where(id: hidden_profile_films.pluck(:film_id))
+        .joins("INNER JOIN hidden_profile_films ON hidden_profile_films.film_id = films.id")
+        .where(hidden_profile_films: { user_id: id })
         .includes(thumbnail_attachment: :blob)
         .recent
   end
@@ -130,12 +144,25 @@ class User < ApplicationRecord
 
   # Get all photos associated with this user (as rider, photographer, or company)
   # Always filters out hidden photos - hidden photos only appear in the "Hidden" tab
+  # Optimized: Uses a single SQL query with UNION instead of 3+ separate queries
   def all_photos(viewing_user: nil)
-    photo_ids = (photos_featured_in.pluck(:id) + photographed_photos.pluck(:id) + photo_company_photos.pluck(:id)).uniq
+    # Build a single query to get all photo IDs where user is associated
+    photo_ids_sql = <<~SQL
+      SELECT DISTINCT photo_id FROM (
+        SELECT photo_id FROM photo_riders WHERE user_id = :user_id
+        UNION
+        SELECT id AS photo_id FROM photos WHERE photographer_user_id = :user_id
+        UNION
+        SELECT id AS photo_id FROM photos WHERE company_user_id = :user_id
+      ) AS all_photo_ids
+      WHERE photo_id NOT IN (
+        SELECT photo_id FROM hidden_profile_photos WHERE user_id = :user_id
+      )
+    SQL
 
-    # Always filter out photos hidden by this user from their profile
-    hidden_photo_ids = hidden_profile_photos.pluck(:photo_id)
-    photo_ids -= hidden_photo_ids
+    photo_ids = Photo.connection.select_values(
+      Photo.sanitize_sql([photo_ids_sql, { user_id: id }])
+    )
 
     Photo.published
          .where(id: photo_ids)
@@ -146,7 +173,8 @@ class User < ApplicationRecord
   # Get photos hidden from profile (only for own profile)
   def hidden_photos_from_profile
     Photo.published
-         .where(id: hidden_profile_photos.pluck(:photo_id))
+         .joins("INNER JOIN hidden_profile_photos ON hidden_profile_photos.photo_id = photos.id")
+         .where(hidden_profile_photos: { user_id: id })
          .includes(image_attachment: :blob)
          .recent
   end
@@ -237,6 +265,25 @@ class User < ApplicationRecord
   before_create :generate_claim_token, if: :admin_created?
   before_create :skip_confirmation_for_admin_created, if: :admin_created?
   before_destroy :nullify_direct_content_roles
+
+  # Update the cached films count for this user
+  # Counts all unique films where user is tagged as rider, filmer, editor, or company
+  def update_films_count!
+    count = calculate_films_count
+    update_column(:films_count, count)
+  end
+
+  # Calculate total unique films count without updating
+  def calculate_films_count
+    film_ids = Set.new
+    film_ids.merge(rider_films.pluck(:id))
+    film_ids.merge(filmer_films.pluck(:id))
+    film_ids.merge(filmed_films.pluck(:id))
+    film_ids.merge(edited_films.pluck(:id))
+    film_ids.merge(multi_company_films.pluck(:id))
+    film_ids.merge(company_films.pluck(:id))
+    film_ids.size
+  end
 
   # Admin-created profile methods
   def generate_claim_token

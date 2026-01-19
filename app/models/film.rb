@@ -76,6 +76,7 @@ class Film < ApplicationRecord
   # after_commit :enqueue_video_processing, on: [:create, :update], if: :video_attached?
   after_commit :create_approval_requests, on: [:create, :update]
   after_commit :download_video_thumbnail, on: [:create, :update], if: :should_download_video_thumbnail?
+  after_commit :update_legacy_user_films_counts, on: [:create, :update, :destroy]
 
   scope :recent, -> { order(release_date: :desc, created_at: :desc) }
   scope :by_company, ->(company) { where(company: company) if company.present? }
@@ -89,9 +90,9 @@ class Film < ApplicationRecord
     remaining_minutes = minutes % 60
 
     if hours > 0
-      "#{hours}:#{remaining_minutes.to_s.rjust(2, '0')}"
+      remaining_minutes > 0 ? "#{hours}h #{remaining_minutes}m" : "#{hours}h"
     else
-      "#{remaining_minutes}:00"
+      "#{remaining_minutes}m"
     end
   end
 
@@ -481,6 +482,33 @@ class Film < ApplicationRecord
   rescue => e
     Rails.logger.error "Failed to create approval requests for film #{id}: #{e.message}"
     Rails.logger.error e.backtrace.join("\n")
+  end
+
+  def update_legacy_user_films_counts
+    # Update films_count for users in legacy single-user associations
+    # Track which user IDs changed so we update both old and new values
+    user_ids_to_update = Set.new
+
+    # Check filmer_user changes
+    if saved_change_to_filmer_user_id?
+      user_ids_to_update << filmer_user_id_before_last_save if filmer_user_id_before_last_save
+      user_ids_to_update << filmer_user_id if filmer_user_id
+    end
+
+    # Check editor_user changes
+    if saved_change_to_editor_user_id?
+      user_ids_to_update << editor_user_id_before_last_save if editor_user_id_before_last_save
+      user_ids_to_update << editor_user_id if editor_user_id
+    end
+
+    # Check company_user changes
+    if saved_change_to_company_user_id?
+      user_ids_to_update << company_user_id_before_last_save if company_user_id_before_last_save
+      user_ids_to_update << company_user_id if company_user_id
+    end
+
+    # Update all affected users
+    User.where(id: user_ids_to_update.to_a).find_each(&:update_films_count!)
   end
 
   def video_source_exclusivity

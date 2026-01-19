@@ -1,4 +1,5 @@
 <% content_for :head do %>
+  <% theme = user_theme_styles %>
   <style>
     .albums-shell {
       max-width: 1200px;
@@ -73,11 +74,13 @@
     .album-card:hover {
       transform: translateY(-4px);
       box-shadow: 0 12px 32px rgba(0,0,0,0.4);
+      border-color: <%= theme[:primary_rgba].sub('ALPHA', '0.3') %>; /* Fallback for Chrome <111 */
       border-color: color-mix(in srgb, var(--accent) 30%, transparent);
     }
     .album-cover {
       width: 100%;
       aspect-ratio: 16/10;
+      background: linear-gradient(135deg, <%= theme[:primary_rgba].sub('ALPHA', '0.2') %>, <%= theme[:secondary_rgba].sub('ALPHA', '0.2') %>); /* Fallback for Chrome <111 */
       background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 20%, transparent), color-mix(in srgb, var(--accent-2) 20%, transparent));
       display: flex;
       align-items: center;

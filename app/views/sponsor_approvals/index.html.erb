@@ -1,4 +1,5 @@
 <% content_for :head do %>
+<% theme = user_theme_styles %>
 <style>
   .approvals-page {
     max-width: 1200px;
@@ -64,6 +65,7 @@
     height: 80px;
     border-radius: 50%;
     overflow: hidden;
+    background: linear-gradient(135deg, <%= theme[:primary_rgba].sub('ALPHA', '0.5') %>, <%= theme[:secondary_rgba].sub('ALPHA', '0.5') %>); /* Fallback for Chrome <111 */
     background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 50%, transparent), color-mix(in srgb, var(--accent-2) 50%, transparent));
     flex-shrink: 0;
   }

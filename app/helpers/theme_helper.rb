@@ -23,6 +23,30 @@ module ThemeHelper
     end
   end
 
+  # Generate CSS with fallback for older browsers (Chrome <111)
+  # Usage: color_mix_with_fallback('background', 'var(--accent)', '20%', theme[:primary_rgba], 0.2)
+  # Outputs: background: rgba(r,g,b,0.2); background: color-mix(in srgb, var(--accent) 20%, transparent);
+  def color_mix_with_fallback(property, css_var, percentage, fallback_rgba_template, fallback_alpha)
+    fallback = fallback_rgba_template.sub('ALPHA', fallback_alpha.to_s)
+    "#{property}: #{fallback}; #{property}: color-mix(in srgb, #{css_var} #{percentage}, transparent);"
+  end
+
+  # Shorthand for accent color-mix with fallback
+  # Usage: accent_color_mix('background', '20%', theme)
+  def accent_color_mix(property, percentage, theme = nil)
+    theme ||= user_theme_styles
+    alpha = percentage.to_i / 100.0
+    color_mix_with_fallback(property, 'var(--accent)', percentage, theme[:primary_rgba], alpha)
+  end
+
+  # Shorthand for border-color accent with fallback (common pattern)
+  def accent_border_fallback(percentage, theme = nil)
+    theme ||= user_theme_styles
+    alpha = percentage.to_i / 100.0
+    fallback = theme[:primary_rgba].sub('ALPHA', alpha.to_s)
+    "border-color: #{fallback}; border-color: color-mix(in srgb, var(--accent) #{percentage}, transparent);"
+  end
+
   private
 
   def default_theme_styles

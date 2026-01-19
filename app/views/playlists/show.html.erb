@@ -1,4 +1,5 @@
 <% content_for :head do %>
+  <% theme = user_theme_styles %>
   <style>
     .playlist-shell {
       max-width: 1200px;
@@ -43,11 +44,13 @@
     }
     .film-card:hover {
       background: rgba(255,255,255,0.08);
+      border-color: <%= theme[:primary_rgba].sub('ALPHA', '0.5') %>; /* Fallback for Chrome <111 */
       border-color: color-mix(in srgb, var(--accent) 50%, transparent);
       transform: translateY(-2px);
     }
     .film-thumbnail {
       width: 100%;
+      background: linear-gradient(135deg, <%= theme[:primary_rgba].sub('ALPHA', '0.3') %>, <%= theme[:secondary_rgba].sub('ALPHA', '0.3') %>); /* Fallback for Chrome <111 */
       background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 30%, transparent), color-mix(in srgb, var(--accent-2) 30%, transparent));
       display: flex;
       align-items: center;

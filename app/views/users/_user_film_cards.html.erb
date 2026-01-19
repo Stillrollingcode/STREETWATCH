@@ -14,6 +14,9 @@
     </div>
     <div class="film-info">
       <div class="film-title"><%= film.title %></div>
+      <% if film.release_date.present? %>
+        <div class="film-year"><%= film.release_date.year %></div>
+      <% end %>
       <div class="role-badges">
         <% roles = user.film_roles(film) %>
         <% roles.each do |role| %>

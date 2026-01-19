@@ -76,6 +76,7 @@ ActiveAdmin.register Film do
 
   controller do
     after_action :add_select_all_script, only: :index
+    after_action :auto_approve_all_tags, only: [:create, :update]
 
     def find_resource
       Film.find_by_friendly_or_id(params[:id])
@@ -85,6 +86,12 @@ ActiveAdmin.register Film do
       # Only load associations needed for the index page to avoid N+1 queries
       # Distinct is applied at the query level to prevent duplicates from joins
       super.includes(:filmer_user, :editor_user, :video_attachment).distinct
+    end
+
+    # Auto-approve all film approvals when created/updated via admin dashboard
+    def auto_approve_all_tags
+      return unless resource.persisted?
+      resource.film_approvals.pending.update_all(status: 'approved')
     end
 
     def index
@@ -1125,8 +1132,8 @@ ActiveAdmin.register Film do
                 resultsDiv.innerHTML = '<div class="autocomplete-item no-results">Loading...</div>';
                 resultsDiv.classList.add('show');
 
-                // Filter for company profile types only
-                fetch('/admin/users.json?q[username_cont]=' + encodeURIComponent(searchTerm) + '&q[profile_type_eq]=company&per_page=10')
+                // Filter for company and crew profile types
+                fetch('/admin/users.json?q[username_cont]=' + encodeURIComponent(searchTerm) + '&q[profile_type_in][]=company&q[profile_type_in][]=crew&per_page=10')
                   .then(res => res.json())
                   .then(data => {
                     const filtered = data.filter(u => !selectedCompanies.has(u.id));

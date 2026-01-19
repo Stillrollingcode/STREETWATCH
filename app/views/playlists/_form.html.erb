@@ -1,4 +1,5 @@
 <% content_for :head do %>
+  <% theme = user_theme_styles %>
   <style>
     .form-shell {
       max-width: 600px;
@@ -43,6 +44,7 @@
     .form-group input[type="text"]:focus,
     .form-group textarea:focus {
       outline: none;
+      border-color: <%= theme[:primary_rgba].sub('ALPHA', '0.5') %>; /* Fallback for Chrome <111 */
       border-color: color-mix(in srgb, var(--accent) 50%, transparent);
     }
     .form-actions {

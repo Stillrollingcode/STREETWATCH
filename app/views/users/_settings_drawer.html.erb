@@ -85,6 +85,7 @@
       width: 80px;
       height: 80px;
       border-radius: 50%;
+      background: linear-gradient(135deg, <%= user_theme_styles[:primary_rgba].sub('ALPHA', '0.5') %>, <%= user_theme_styles[:secondary_rgba].sub('ALPHA', '0.5') %>); /* Fallback for Chrome <111 */
       background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 50%, transparent), color-mix(in srgb, var(--accent-2) 50%, transparent));
       display: flex;
       align-items: center;

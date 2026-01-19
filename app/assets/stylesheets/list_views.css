@@ -45,11 +45,14 @@
 
 .group-btn:hover {
   background: rgba(255,255,255,0.08);
+  border-color: rgba(76, 175, 80, 0.5); /* Fallback for Chrome <111 */
   border-color: color-mix(in srgb, var(--accent) 50%, transparent);
 }
 
 .group-btn.active {
+  background: rgba(76, 175, 80, 0.2); /* Fallback for Chrome <111 */
   background: color-mix(in srgb, var(--accent) 20%, transparent);
+  border-color: rgba(76, 175, 80, 0.5); /* Fallback for Chrome <111 */
   border-color: color-mix(in srgb, var(--accent) 50%, transparent);
   color: var(--accent);
 }
@@ -84,6 +87,7 @@
 
 .search-box input:focus {
   outline: none;
+  border-color: rgba(76, 175, 80, 0.5); /* Fallback for Chrome <111 */
   border-color: color-mix(in srgb, var(--accent) 50%, transparent);
 }
 
@@ -174,7 +178,9 @@
 }
 
 .pagination .current {
+  background: rgba(76, 175, 80, 0.2); /* Fallback for Chrome <111 */
   background: color-mix(in srgb, var(--accent) 20%, transparent);
+  border-color: rgba(76, 175, 80, 0.5); /* Fallback for Chrome <111 */
   border-color: color-mix(in srgb, var(--accent) 50%, transparent);
   color: var(--accent);
   font-weight: 600;

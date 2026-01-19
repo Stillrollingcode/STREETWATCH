@@ -149,6 +149,7 @@
     border-radius: 50%;
     display: grid;
     place-items: center;
+    background: <%= theme[:primary_rgba].sub('ALPHA', '0.3') %>; /* Fallback for Chrome <111 */
     background: color-mix(in srgb, var(--accent) 30%, transparent);
     color: #050505;
     font-weight: 800;
@@ -252,7 +253,7 @@
      data-lazy-load-has-more-value="<%= @has_more %>"
      data-lazy-load-page-value="<%= @users.current_page + 1 %>">
   <div class="profiles-grid" data-lazy-load-target="container">
-    <%= render partial: 'profile_cards', locals: { users: @users } %>
+    <%= render partial: 'profile_cards', locals: { users: @users, following_ids: @following_ids } %>
 
     <% if @users.none? %>
       <div style="grid-column: 1 / -1; text-align: center; color: var(--muted); padding: 20px;">

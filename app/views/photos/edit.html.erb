@@ -178,8 +178,15 @@
       align-items: center;
       gap: 6px;
       padding: 6px 12px;
-      background: <%= user_theme_styles[:theme_name] == 'light' ? "hsl(#{user_theme_styles[:accent_hue]}, 50%, 35%)" : "color-mix(in srgb, var(--accent) 20%, transparent)" %>;
-      border: 1px solid <%= user_theme_styles[:theme_name] == 'light' ? "hsl(#{user_theme_styles[:accent_hue]}, 50%, 30%)" : "color-mix(in srgb, var(--accent) 40%, transparent)" %>;
+      <% if user_theme_styles[:theme_name] == 'light' %>
+      background: hsl(<%= user_theme_styles[:accent_hue] %>, 50%, 35%);
+      border: 1px solid hsl(<%= user_theme_styles[:accent_hue] %>, 50%, 30%);
+      <% else %>
+      background: <%= user_theme_styles[:primary_rgba].sub('ALPHA', '0.2') %>; /* Fallback for Chrome <111 */
+      background: color-mix(in srgb, var(--accent) 20%, transparent);
+      border: 1px solid <%= user_theme_styles[:primary_rgba].sub('ALPHA', '0.4') %>; /* Fallback for Chrome <111 */
+      border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+      <% end %>
       border-radius: 20px;
       font-size: 13px;
       font-weight: 600;

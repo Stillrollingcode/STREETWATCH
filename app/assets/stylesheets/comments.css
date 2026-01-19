@@ -33,6 +33,7 @@
 
 .comment-form textarea:focus {
   outline: none;
+  border-color: rgba(76, 175, 80, 0.5); /* Fallback for Chrome <111 */
   border-color: color-mix(in srgb, var(--accent) 50%, transparent);
 }
 

@@ -25,9 +25,17 @@ class UsersController < ApplicationController
                           .per(18)
         @has_more = @users.next_page.present?
 
+        # Preload following status to avoid N+1 queries in profile cards
+        if user_signed_in?
+          user_ids = @users.map(&:id)
+          @following_ids = current_user.active_follows.where(followed_id: user_ids).pluck(:followed_id).to_set
+        else
+          @following_ids = Set.new
+        end
+
         # If it's an AJAX request for pagination, render just the profile cards
         if (request.xhr? || request.headers['X-Requested-With'] == 'XMLHttpRequest') && params[:page].present? && params[:page].to_i > 1
-          render partial: 'profile_cards', locals: { users: @users }, layout: false, content_type: 'text/html'
+          render partial: 'profile_cards', locals: { users: @users, following_ids: @following_ids }, layout: false, content_type: 'text/html'
         else
           # Normal full page render
           render :index
@@ -120,6 +128,16 @@ class UsersController < ApplicationController
                .order(Arel.sql("LOWER(username) ASC"))
                .page(params[:page])
                .per(18)
+    @has_more = @users.next_page.present?
+
+    # Preload following status to avoid N+1 queries
+    if user_signed_in?
+      user_ids = @users.map(&:id)
+      @following_ids = current_user.active_follows.where(followed_id: user_ids).pluck(:followed_id).to_set
+    else
+      @following_ids = Set.new
+    end
+
     render 'index'
   end
 
@@ -132,6 +150,16 @@ class UsersController < ApplicationController
                .order(Arel.sql("LOWER(username) ASC"))
                .page(params[:page])
                .per(18)
+    @has_more = @users.next_page.present?
+
+    # Preload following status to avoid N+1 queries
+    if user_signed_in?
+      user_ids = @users.map(&:id)
+      @following_ids = current_user.active_follows.where(followed_id: user_ids).pluck(:followed_id).to_set
+    else
+      @following_ids = Set.new
+    end
+
     render 'index'
   end
 end

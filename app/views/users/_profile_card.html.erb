@@ -1,0 +1,40 @@
+<div class="profile-card">
+  <div class="profile-card-content">
+    <%= link_to user_path(profile_card), style: "text-decoration: none; color: inherit; display: block;" do %>
+      <div class="profile-card-header">
+        <div class="profile-avatar">
+          <% if profile_card.avatar.attached? %>
+            <%= image_tag profile_card.avatar, alt: profile_card.username.presence || profile_card.email %>
+          <% else %>
+            <%= (profile_card.username.presence || profile_card.email).first&.upcase %>
+          <% end %>
+        </div>
+        <div class="profile-info">
+          <div class="profile-name"><%= profile_card.name.presence || profile_card.username.presence || profile_card.email %></div>
+          <div class="profile-username">@<%= profile_card.username.presence || profile_card.email %></div>
+          <% if profile_card.profile_type == 'company' || profile_card.profile_type == 'crew' %>
+            <span class="profile-type-label"><%= profile_card.profile_type %></span>
+          <% end %>
+          <% if profile_card.bio.present? %>
+            <div class="profile-bio"><%= profile_card.bio %></div>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+  <% if user_signed_in? %>
+    <% if current_user.id != profile_card.id %>
+      <div class="profile-card-actions">
+        <% if following_ids.include?(profile_card.id) %>
+          <%= button_to unfollow_user_path(profile_card), method: :delete, class: "support-btn active", form: { style: "display: inline; width: 100%;" } do %>
+            ✓ Supported
+          <% end %>
+        <% else %>
+          <%= button_to follow_user_path(profile_card), method: :post, class: "support-btn", form: { style: "display: inline; width: 100%;" } do %>
+            + Support
+          <% end %>
+        <% end %>
+      </div>
+    <% end %>
+  <% end %>
+</div>

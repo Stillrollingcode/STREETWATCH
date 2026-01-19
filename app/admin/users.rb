@@ -61,9 +61,7 @@ ActiveAdmin.register User do
       user.avatar.attached? ? status_tag("yes", class: "ok") : status_tag("no")
     end
     column :subscription_active
-    column "Films" do |user|
-      user.all_films.count
-    end
+    column "Films", :films_count
     column :created_at
     actions
   end

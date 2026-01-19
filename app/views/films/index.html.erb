@@ -38,17 +38,20 @@
     }
     .group-btn:hover {
       background: rgba(255,255,255,0.08);
+      border-color: <%= theme[:primary_rgba].sub('ALPHA', '0.5') %>; /* Fallback for Chrome <111 */
       border-color: color-mix(in srgb, var(--accent) 50%, transparent);
     }
     .group-btn.active {
+      background: <%= theme[:primary_rgba].sub('ALPHA', '0.2') %>; /* Fallback for Chrome <111 */
       background: color-mix(in srgb, var(--accent) 20%, transparent);
+      border-color: <%= theme[:primary_rgba].sub('ALPHA', '0.5') %>; /* Fallback for Chrome <111 */
       border-color: color-mix(in srgb, var(--accent) 50%, transparent);
       color: var(--accent);
     }
     .filters-bar {
       display: flex;
       justify-content: space-between;
-      align-items: center;
+      align-items: stretch;
       margin-bottom: 24px;
       gap: 12px;
       flex-wrap: wrap;
@@ -57,19 +60,24 @@
       flex: 1;
       min-width: 250px;
       position: relative;
+      display: flex;
+      align-items: stretch;
     }
     .search-box input {
       width: 100%;
-      padding: 10px 12px 10px 36px;
+      padding: 0 12px 0 36px;
+      height: 42px;
       border-radius: 10px;
       border: 1px solid var(--border);
       background: rgba(255,255,255,0.04);
       color: var(--text);
       font-size: 14px;
       font-family: inherit;
+      box-sizing: border-box;
     }
     .search-box input:focus {
       outline: none;
+      border-color: <%= theme[:primary_rgba].sub('ALPHA', '0.5') %>; /* Fallback for Chrome <111 */
       border-color: color-mix(in srgb, var(--accent) 50%, transparent);
     }
     .search-box input::placeholder {
@@ -90,7 +98,8 @@
       flex-wrap: wrap;
     }
     .sort-select, .group-select, .type-select {
-      padding: 10px 32px 10px 12px;
+      padding: 0 32px 0 12px;
+      height: 42px;
       border-radius: 10px;
       border: 1px solid var(--border);
       background: rgba(255,255,255,0.04);
@@ -103,9 +112,11 @@
       background-repeat: no-repeat;
       background-position: right 12px center;
       min-width: 140px;
+      box-sizing: border-box;
     }
     .sort-select:focus, .group-select:focus, .type-select:focus {
       outline: none;
+      border-color: <%= theme[:primary_rgba].sub('ALPHA', '0.5') %>; /* Fallback for Chrome <111 */
       border-color: color-mix(in srgb, var(--accent) 50%, transparent);
     }
     .sort-select option, .group-select option, .type-select option {
@@ -338,7 +349,7 @@
     .films-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 30px;
+      gap: 16px;
     }
     .films-grid > a {
       display: flex;
@@ -368,6 +379,7 @@
       flex-direction: column;
       align-items: center;
       height: 100%;
+      padding: 0 16px;
       filter:
         drop-shadow(0 0 8px <%= "hsla(#{user_theme_styles[:accent_hue] || 145}, 70%, 60%, 0.15)" %>)
         drop-shadow(0 0 16px <%= "hsla(#{user_theme_styles[:accent_hue] || 145}, 70%, 60%, 0.08)" %>)

@@ -594,6 +594,7 @@
       }
       .global-search-input:focus {
         outline: none;
+        border-color: <%= theme[:primary_rgba].sub('ALPHA', '0.5') %>; /* Fallback for Chrome <111 */
         border-color: color-mix(in srgb, var(--accent) 50%, transparent);
         background: rgba(255,255,255,0.06);
         box-shadow: 0 4px 12px rgba(0,0,0,0.2);
@@ -658,6 +659,7 @@
       }
       .search-result-item:hover {
         background: rgba(255,255,255,0.08);
+        border-color: <%= theme[:primary_rgba].sub('ALPHA', '0.5') %>; /* Fallback for Chrome <111 */
         border-color: color-mix(in srgb, var(--accent) 50%, transparent);
         transform: translateX(2px);
       }
@@ -986,11 +988,19 @@
       })();
 
       function markNotificationsAsRead() {
+        const compactView = document.getElementById('activity-content-compact');
+        const expandedView = document.getElementById('activity-content-expanded');
+        if (!compactView) return;
+
         // Count notifications BEFORE removing them
-        const notificationItems = Array.from(document.querySelectorAll('.activity-item')).filter(item => {
+        const allUnreadNotificationItems = Array.from(document.querySelectorAll('.activity-item.unread')).filter(item => {
           return item.querySelector('.activity-type-badge.notification');
         });
-        const notificationCount = notificationItems.length;
+
+        const notificationItems = Array.from(compactView.querySelectorAll('.activity-item')).filter(item => {
+          return item.querySelector('.activity-type-badge.notification');
+        });
+        const notificationCount = allUnreadNotificationItems.length > 0 ? allUnreadNotificationItems.length : notificationItems.length;
 
         if (notificationCount === 0) {
           return; // No notifications to mark as read
@@ -1020,10 +1030,17 @@
           }
         }).then(response => {
           if (response.ok) {
-            // Remove notification items from the dropdown
+            // Remove unread notifications from the compact view only
             notificationItems.forEach(item => {
               item.remove();
             });
+
+            // Clear unread styling in the expanded view
+            if (expandedView) {
+              expandedView.querySelectorAll('.activity-item.unread').forEach(item => {
+                item.classList.remove('unread');
+              });
+            }
 
             // Hide the "Mark as Read" button
             const markReadBtn = document.getElementById('mark-read-btn');
@@ -1044,24 +1061,21 @@
               }
             }
 
-            // Check if activity menu is now empty
-            const activityMenu = document.querySelector('#activity-menu');
-            const remainingItems = activityMenu.querySelectorAll('.activity-item');
-
-            if (remainingItems.length === 0) {
-              // Find the content area (after the header) and show empty state
-              const header = activityMenu.querySelector('.activity-header');
-              if (header && header.nextElementSibling) {
-                // Remove everything after the header
-                while (header.nextElementSibling) {
-                  header.nextElementSibling.remove();
+            // Show empty state in compact view if nothing remains there
+            const remainingCompactItems = compactView.querySelectorAll('.activity-item');
+            if (remainingCompactItems.length === 0) {
+              const existingEmpty = compactView.querySelector('.activity-empty');
+              if (!existingEmpty) {
+                const emptyState = document.createElement('div');
+                emptyState.className = 'activity-empty';
+                emptyState.innerHTML = '<div style="font-size: 32px; margin-bottom: 8px; opacity: 0.3;">✓</div><div>No new activity</div>';
+                const expandBtn = document.getElementById('expand-notifications-btn');
+                if (expandBtn) {
+                  compactView.insertBefore(emptyState, expandBtn);
+                } else {
+                  compactView.appendChild(emptyState);
                 }
               }
-              // Add empty state
-              const emptyState = document.createElement('div');
-              emptyState.className = 'activity-empty';
-              emptyState.innerHTML = '<div style="font-size: 32px; margin-bottom: 8px; opacity: 0.3;">✓</div><div>No new activity</div>';
-              activityMenu.appendChild(emptyState);
             }
           }
         }).catch(error => {
