@@ -580,7 +580,9 @@
   .pagination .last {
     font-weight: 600;
   }
-  .film-card {
+  /* Film card for profile page - card with DVD disc inside */
+  /* Scoped to .profile-shell to match specificity of .films-shell in films.css */
+  .profile-shell .film-card {
     background: rgba(255,255,255,0.04);
     border: 1px solid var(--border);
     border-radius: 12px;
@@ -588,22 +590,25 @@
     transition: all 0.15s ease;
     text-decoration: none;
     color: inherit;
-    display: block;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     position: relative;
   }
-  .film-card:hover {
-    border-color: rgba(255,255,255,0.2);
+  .profile-shell .film-card:hover {
+    border-color: <%= theme[:primary_rgba].sub('ALPHA', '0.3') %>;
+    border-color: color-mix(in srgb, var(--accent) 30%, transparent);
     transform: translateY(-2px);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
   }
-  .film-card-rating {
+  .profile-shell .film-card-rating {
     color: <%= theme[:theme_name] == 'light' ? 'hsl(45, 100%, 35%)' : 'hsl(45, 100%, 51%)' %>;
     font-weight: 600;
   }
-  /* DVD disc made from film thumbnail */
-  .film-thumbnail {
-    /* controls */
-    --size: 260px;
+
+  /* DVD disc thumbnail - fits inside card */
+  .profile-shell .film-thumbnail {
+    --size: min(200px, 85%);
     --hole: 18%;
     --inner-ring: 28%;
     --bg: var(--bg);
@@ -613,23 +618,22 @@
     border-radius: 50%;
     position: relative;
     overflow: visible;
+    margin: 16px auto 0;
 
-    /* depth */
     box-shadow:
       inset 0 0 0 2px rgba(255,255,255,.10),
       inset 0 -14px 30px rgba(0,0,0,.35);
     transform: translateZ(0);
 
-    /* punch the center hole (best support is WebKit) */
     -webkit-mask-image: radial-gradient(
       circle at 50% 50%,
       transparent 0 calc(var(--hole) * 0.50),
-      #000      calc(var(--hole) * 0.52) 100%
+      #000 calc(var(--hole) * 0.52) 100%
     );
     mask-image: radial-gradient(
       circle at 50% 50%,
       transparent 0 calc(var(--hole) * 0.50),
-      #000      calc(var(--hole) * 0.52) 100%
+      #000 calc(var(--hole) * 0.52) 100%
     );
 
     display: flex;
@@ -637,24 +641,19 @@
     justify-content: center;
   }
 
-  /* Inner data ring circle - creates transparency for inner area like real DVDs */
-  .film-thumbnail .inner-ring {
+  .profile-shell .film-thumbnail .inner-ring {
     position: absolute;
     inset: 0;
     border-radius: 50%;
     pointer-events: none;
     z-index: 3;
-
-    /* Create uniform transparency overlay for inner area + visible ring border */
     background:
-      /* Inner semi-transparent overlay (uniform opacity up to ring) */
       radial-gradient(
         circle at 50% 50%,
         rgba(255, 255, 255, 0.20) 0 calc(var(--inner-ring) * 0.94),
         rgba(255, 255, 255, 0.20) calc(var(--inner-ring) * 0.96),
         transparent calc(var(--inner-ring) * 0.97),
         transparent calc(var(--inner-ring) * 0.98),
-        /* The actual ring border */
         rgba(180, 180, 200, 0.40) calc(var(--inner-ring) * 0.98),
         rgba(220, 220, 235, 0.50) calc(var(--inner-ring) * 1.00),
         rgba(180, 180, 200, 0.40) calc(var(--inner-ring) * 1.02),
@@ -662,8 +661,7 @@
       );
   }
 
-  /* rim + bevel + subtle radial "plastic" shading */
-  .film-thumbnail::before {
+  .profile-shell .film-thumbnail::before {
     content: "";
     position: absolute;
     inset: -2%;
@@ -681,8 +679,7 @@
     z-index: 1;
   }
 
-  /* glossy sweep + a faint "ring" texture */
-  .film-thumbnail::after {
+  .profile-shell .film-thumbnail::after {
     content: "";
     position: absolute;
     inset: 0;
@@ -703,13 +700,11 @@
     z-index: 2;
   }
 
-  /* fallback hole for browsers that ignore mask-image */
   @supports not (-webkit-mask-image: radial-gradient(circle, #000, transparent)) {
-    .film-thumbnail {
+    .profile-shell .film-thumbnail {
       clip-path: circle(50% at 50% 50%);
     }
-    .film-thumbnail::before {
-      /* keep rim; add a "fake" hole fill on top */
+    .profile-shell .film-thumbnail::before {
       background:
         radial-gradient(circle at 50% 50%,
           var(--bg) 0 calc(var(--hole) * 0.50),
@@ -725,19 +720,7 @@
     }
   }
 
-  .pending-arc-text {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));
-    z-index: 4;
-  }
-
-  /* Add yellow hue to pending films */
-  .film-thumbnail.pending-film::after {
+  .profile-shell .film-thumbnail.pending-film::after {
     background:
       conic-gradient(from 220deg,
         rgba(255,255,255,.00) 0 20%,
@@ -755,7 +738,7 @@
     opacity: 1;
   }
 
-  .film-thumbnail img {
+  .profile-shell .film-thumbnail img {
     width: 100%;
     height: 100%;
     object-fit: cover;
@@ -769,14 +752,14 @@
     to { opacity: 1; }
   }
 
-  .film-thumbnail .placeholder {
+  .profile-shell .film-thumbnail .placeholder {
     font-size: 48px;
     opacity: 0.3;
     z-index: 0;
   }
 
   /* Photo thumbnail styling (simple square, no DVD disc effects) */
-  .photo-thumbnail {
+  .profile-shell .photo-thumbnail {
     width: 100%;
     aspect-ratio: 1;
     border-radius: 8px;
@@ -788,23 +771,23 @@
     background: linear-gradient(135deg, <%= theme[:primary_rgba].sub('ALPHA', '0.2') %>, <%= theme[:secondary_rgba].sub('ALPHA', '0.2') %>); /* Fallback for Chrome <111 */
     background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 20%, transparent), color-mix(in srgb, var(--accent-2) 20%, transparent));
   }
-  .photo-thumbnail img {
+  .profile-shell .photo-thumbnail img {
     width: 100%;
     height: 100%;
     object-fit: cover;
     animation: fadeInImage 0.6s ease-in;
   }
 
-  .photo-thumbnail .placeholder {
+  .profile-shell .photo-thumbnail .placeholder {
     font-size: 36px;
     opacity: 0.3;
   }
 
-  .film-info { padding: 10px 12px; }
-  .film-title { font-weight: 700; font-size: 14px; margin-bottom: 4px; line-height: 1.3; }
-  .film-year { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
-  .role-badges { display: flex; gap: 4px; flex-wrap: wrap; }
-  .role-badge {
+  .profile-shell .film-info { padding: 10px 12px; width: 100%; box-sizing: border-box; text-align: center; }
+  .profile-shell .film-title { font-weight: 700; font-size: 14px; margin-bottom: 4px; line-height: 1.3; }
+  .profile-shell .film-year { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .profile-shell .role-badges { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }
+  .profile-shell .role-badge {
     font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -812,22 +795,22 @@
     border-radius: 6px;
     font-weight: 700;
   }
-  .role-badge.filmer {
+  .profile-shell .role-badge.filmer {
     background: <%= theme[:primary_rgba].sub('ALPHA', '0.15') %>;
     border: 1px solid <%= theme[:primary_rgba].sub('ALPHA', '0.3') %>;
     color: var(--accent);
   }
-  .role-badge.editor {
+  .profile-shell .role-badge.editor {
     background: <%= theme[:secondary_rgba].sub('ALPHA', '0.15') %>;
     border: 1px solid <%= theme[:secondary_rgba].sub('ALPHA', '0.3') %>;
     color: var(--accent);
   }
-  .role-badge.rider {
+  .profile-shell .role-badge.rider {
     background: <%= theme[:light_rgba].sub('ALPHA', '0.12') %>;
     border: 1px solid <%= theme[:light_rgba].sub('ALPHA', '0.25') %>;
     color: var(--accent);
   }
-  .role-badge.company {
+  .profile-shell .role-badge.company {
     background: rgba(156, 39, 176, 0.15);
     border: 1px solid rgba(156, 39, 176, 0.3);
     color: hsl(291, 64%, 60%);
@@ -920,38 +903,34 @@
           <% end %>
         </div>
       </div>
-      <% if user_signed_in? %>
-        <% if current_user.id == @user.id %>
-          <%= button_tag type: "button", class: "settings-btn", id: "toggle-settings" do %>
-            <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" style="flex-shrink: 0;">
-              <path d="M17.43 10.98a7.793 7.793 0 00.07-1.05c0-.34-.03-.68-.07-1.02l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46a.5.5 0 00-.61-.22l-2.49 1c-.52-.39-1.06-.73-1.69-.98l-.37-2.65A.488.488 0 0012 0h-4c-.25 0-.46.18-.49.42l-.37 2.65c-.63.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.12.22-.07.49.12.64L2.58 8.9c-.04.34-.07.68-.07 1.02 0 .34.03.68.07 1.02l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.39 1.06.73 1.69.98l.37 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.37-2.65c.63-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM10 13c-1.65 0-3-1.35-3-3s1.35-3 3-3 3 1.35 3 3-1.35 3-3 3z"/>
-            </svg>
-            <span>Settings</span>
-          <% end %>
-        <% else %>
-          <div class="profile-actions">
-            <% if current_user.following?(@user) %>
-              <%= button_to unfollow_user_path(@user), method: :delete, class: "unfollow-btn", form: { style: "display: inline;" } do %>
-                <span>✓</span>
-                <span>Following</span>
-              <% end %>
-            <% else %>
-              <%= button_to follow_user_path(@user), method: :post, class: "follow-btn", form: { style: "display: inline;" } do %>
-                <span>+</span>
-                <span>Follow</span>
-              <% end %>
-            <% end %>
-            <%
-              notification_setting = current_user.profile_notification_settings.find_by(target_user: @user)
-              has_notifications = notification_setting&.any_notifications_enabled?
-            %>
-            <%= link_to user_notification_setting_path(@user), class: "notification-btn #{has_notifications ? 'active' : ''}", title: "Notification Settings" do %>
-              <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 2C11.172 2 10.5 2.672 10.5 3.5V4.1C8.53 4.56 7 6.275 7 8.5V14L5 16V17H19V16L17 14V8.5C17 6.275 15.47 4.56 13.5 4.1V3.5C13.5 2.672 12.828 2 12 2ZM10 18C10 19.1 10.9 20 12 20C13.1 20 14 19.1 14 18H10Z"/>
-              </svg>
-            <% end %>
-          </div>
+      <%# Profile actions - preloaded in controller to avoid N+1 queries %>
+      <% if @is_own_profile %>
+        <%= button_tag type: "button", class: "settings-btn", id: "toggle-settings" do %>
+          <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" style="flex-shrink: 0;">
+            <path d="M17.43 10.98a7.793 7.793 0 00.07-1.05c0-.34-.03-.68-.07-1.02l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46a.5.5 0 00-.61-.22l-2.49 1c-.52-.39-1.06-.73-1.69-.98l-.37-2.65A.488.488 0 0012 0h-4c-.25 0-.46.18-.49.42l-.37 2.65c-.63.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.12.22-.07.49.12.64L2.58 8.9c-.04.34-.07.68-.07 1.02 0 .34.03.68.07 1.02l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.39 1.06.73 1.69.98l.37 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.37-2.65c.63-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM10 13c-1.65 0-3-1.35-3-3s1.35-3 3-3 3 1.35 3 3-1.35 3-3 3z"/>
+          </svg>
+          <span>Settings</span>
         <% end %>
+      <% elsif user_signed_in? %>
+        <div class="profile-actions">
+          <% if @is_following %>
+            <%= button_to unfollow_user_path(@user), method: :delete, class: "unfollow-btn", form: { style: "display: inline;" } do %>
+              <span>✓</span>
+              <span>Following</span>
+            <% end %>
+          <% else %>
+            <%= button_to follow_user_path(@user), method: :post, class: "follow-btn", form: { style: "display: inline;" } do %>
+              <span>+</span>
+              <span>Follow</span>
+            <% end %>
+          <% end %>
+          <% has_notifications = @notification_setting&.any_notifications_enabled? %>
+          <%= link_to user_notification_setting_path(@user), class: "notification-btn #{has_notifications ? 'active' : ''}", title: "Notification Settings" do %>
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2C11.172 2 10.5 2.672 10.5 3.5V4.1C8.53 4.56 7 6.275 7 8.5V14L5 16V17H19V16L17 14V8.5C17 6.275 15.47 4.56 13.5 4.1V3.5C13.5 2.672 12.828 2 12 2ZM10 18C10 19.1 10.9 20 12 20C13.1 20 14 19.1 14 18H10Z"/>
+            </svg>
+          <% end %>
+        </div>
       <% end %>
     </div>
 
@@ -974,30 +953,28 @@
       </div>
     <% end %>
 
-    <% if user_signed_in? && current_user.id == @user.id %>
-      <% pending_film_approvals = current_user.film_approvals.pending.count %>
-      <% pending_photo_approvals = current_user.photo_approvals.pending.count %>
-      <% pending_sponsor_approvals = current_user.company_type? ? current_user.sponsored_by_approvals.pending.count : 0 %>
-      <% total_pending = pending_film_approvals + pending_photo_approvals + pending_sponsor_approvals %>
+    <%# Approval counts are preloaded in controller to avoid N+1 queries %>
+    <% if @is_own_profile %>
+      <% total_pending = @pending_film_approvals + @pending_photo_approvals + @pending_sponsor_approvals %>
 
       <% if total_pending > 0 %>
         <div class="approval-buttons-container">
-          <% if pending_film_approvals > 0 %>
+          <% if @pending_film_approvals > 0 %>
             <%= link_to film_approvals_path, class: "compact-approval-btn" do %>
               <span>Film Approvals</span>
-              <span class="approval-badge"><%= pending_film_approvals %></span>
+              <span class="approval-badge"><%= @pending_film_approvals %></span>
             <% end %>
           <% end %>
-          <% if pending_photo_approvals > 0 %>
+          <% if @pending_photo_approvals > 0 %>
             <%= link_to photo_approvals_path, class: "compact-approval-btn" do %>
               <span>Photo Approvals</span>
-              <span class="approval-badge"><%= pending_photo_approvals %></span>
+              <span class="approval-badge"><%= @pending_photo_approvals %></span>
             <% end %>
           <% end %>
-          <% if pending_sponsor_approvals > 0 %>
+          <% if @pending_sponsor_approvals > 0 %>
             <%= link_to sponsor_approvals_path, class: "compact-approval-btn" do %>
               <span>Sponsorship Requests</span>
-              <span class="approval-badge"><%= pending_sponsor_approvals %></span>
+              <span class="approval-badge"><%= @pending_sponsor_approvals %></span>
             <% end %>
           <% end %>
         </div>
@@ -1007,29 +984,29 @@
     <!-- Profile Stats and Bio -->
     <div class="profile-section">
 
-      <!-- Profile Stats -->
+      <!-- Profile Stats - using preloaded counts from controller -->
       <div class="profile-stats">
-        <div class="stat">Supporters<strong><%= @user.followers.count %></strong></div>
+        <div class="stat">Supporters<strong><%= @followers_count %></strong></div>
         <div class="stat">
           <%= link_to following_user_path(@user), class: "stat-link" do %>
-            Supporter of <strong><%= @user.following.count %></strong>
+            Supporter of <strong><%= @following_count %></strong>
           <% end %>
         </div>
       </div>
 
-      <!-- Bio Section -->
-      <% if @user.bio.present? || @user.sponsor_requests.present? %>
+      <!-- Bio Section - using preloaded sponsors from controller -->
+      <% if @user.bio.present? || @approved_sponsors.any? %>
         <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border);">
           <% if @user.bio.present? %>
             <div class="bio-content" style="border: none; background: none; padding: 0; min-height: auto; margin-bottom: 12px;">
               <%= simple_format(@user.bio) %>
             </div>
           <% end %>
-          <% if @user.approved_sponsors.any? %>
+          <% if @approved_sponsors.any? %>
             <div style="color: var(--muted); font-size: 13px;">
               <strong style="color: var(--text);">Sponsors:</strong>
-              <% @user.approved_sponsors.each_with_index do |sponsor, index| %>
-                <%= link_to sponsor.username, user_path(sponsor), style: "color: var(--accent); text-decoration: none;" %><%= index < @user.approved_sponsors.size - 1 ? ', ' : '' %>
+              <% @approved_sponsors.each_with_index do |sponsor, index| %>
+                <%= link_to sponsor.username, user_path(sponsor), style: "color: var(--accent); text-decoration: none;" %><%= index < @approved_sponsors.size - 1 ? ', ' : '' %>
               <% end %>
             </div>
           <% end %>
@@ -1050,34 +1027,23 @@
 
     <!-- Films Content Section -->
     <div class="content-section <%= 'active' if ordered_tabs.first == 'films' %>" id="films-section">
-      <!-- Films Sub-tabs -->
+      <!-- Films Sub-tabs - counts removed for initial load speed, shown on click -->
       <div style="display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 8px; flex-wrap: wrap;">
         <a href="#" class="content-sub-tab active" data-subtab="all-films">All Films</a>
         <% if @user.profile_type == 'individual' %>
-          <%
-            rider_count = @user.rider_films.published.count
-            filmer_count = (@user.filmer_films.published.count + @user.filmed_films.published.count).to_i
-            editor_count = @user.edited_films.published.count
-          %>
-          <% if rider_count > 0 %>
-            <a href="#" class="content-sub-tab" data-subtab="as-rider">As Rider (<%= rider_count %>)</a>
-          <% end %>
-          <% if filmer_count > 0 %>
-            <a href="#" class="content-sub-tab" data-subtab="as-filmer">As Filmer (<%= filmer_count %>)</a>
-          <% end %>
-          <% if editor_count > 0 %>
-            <a href="#" class="content-sub-tab" data-subtab="as-editor">As Editor (<%= editor_count %>)</a>
-          <% end %>
+          <a href="#" class="content-sub-tab" data-subtab="as-rider" data-lazy-subtab="as-rider">As Rider</a>
+          <a href="#" class="content-sub-tab" data-subtab="as-filmer" data-lazy-subtab="as-filmer">As Filmer</a>
+          <a href="#" class="content-sub-tab" data-subtab="as-editor" data-lazy-subtab="as-editor">As Editor</a>
         <% end %>
-        <a href="#" class="content-sub-tab" data-subtab="playlists">Playlists</a>
+        <a href="#" class="content-sub-tab" data-subtab="playlists" data-lazy-subtab="playlists">Playlists</a>
         <% if @user.company_type? %>
-          <a href="#" class="content-sub-tab" data-subtab="brand-highlights">Brand Highlights</a>
+          <a href="#" class="content-sub-tab" data-subtab="brand-highlights" data-lazy-subtab="favorites">Brand Highlights</a>
         <% elsif @user.profile_type == 'individual' %>
-          <a href="#" class="content-sub-tab" data-subtab="favorite-projects">Favorite Projects</a>
+          <a href="#" class="content-sub-tab" data-subtab="favorite-projects" data-lazy-subtab="favorites">Favorite Projects</a>
         <% end %>
-        <% if user_signed_in? && current_user.id == @user.id %>
-          <a href="#" class="content-sub-tab" data-subtab="pending-films">Pending Approval</a>
-          <a href="#" class="content-sub-tab" data-subtab="hidden-films">Hidden</a>
+        <% if @is_own_profile %>
+          <a href="#" class="content-sub-tab" data-subtab="pending-films" data-lazy-subtab="pending-films">Pending Approval</a>
+          <a href="#" class="content-sub-tab" data-subtab="hidden-films" data-lazy-subtab="hidden-films">Hidden</a>
         <% end %>
       </div>
 
@@ -1110,16 +1076,16 @@
           <option value="alpha_desc" <%= 'selected' if params[:sort] == 'alpha_desc' %>>Z-A</option>
         </select>
       </div>
-      <% if @films.any? %>
+      <% if @films&.any? %>
         <div data-controller="lazy-load"
              data-lazy-load-url-value="<%= user_path(@user, format: :html) %>"
              data-lazy-load-has-more-value="<%= @films_has_more %>"
-             data-lazy-load-page-value="<%= @films.current_page + 1 %>"
+             data-lazy-load-page-value="<%= (@films&.current_page || 0) + 1 %>"
              data-lazy-load-page-param-value="films_page">
 
           <div class="film-grid" data-lazy-load-target="container">
             <% @films.each do |film| %>
-              <%= link_to film_path(film), class: "film-card" do %>
+              <%= link_to film_path(film, nav_context: 'profile', nav_id: @user.id), class: "film-card" do %>
                 <div class="film-thumbnail">
                   <% if film.display_thumbnail.present? %>
                     <% if film.display_thumbnail.respond_to?(:attachment) %>
@@ -1174,288 +1140,47 @@
       <% end %>
       </div>
 
-      <!-- As Rider Sub-section (individual only) -->
+      <!-- Lazy-loaded sub-sections - content loads on first click -->
       <% if @user.profile_type == 'individual' %>
-        <div class="content-sub-section" id="as-rider-section">
-          <% rider_films = @user.rider_films.published %>
-          <% if rider_films.any? %>
-            <div class="film-grid">
-              <% rider_films.each do |film| %>
-                <%= link_to film_path(film), class: "film-card" do %>
-                  <div class="film-thumbnail">
-                    <% if film.display_thumbnail.present? %>
-                      <% if film.display_thumbnail.respond_to?(:attachment) %>
-                        <%= image_tag film.display_thumbnail, alt: film.title, loading: "lazy" %>
-                      <% else %>
-                        <%= image_tag film.display_thumbnail, alt: film.title, loading: "lazy" %>
-                      <% end %>
-                    <% else %>
-                      <div class="placeholder">🎬</div>
-                    <% end %>
-                    <div class="inner-ring"></div>
-                  </div>
-                  <div class="film-info">
-                    <div class="film-title"><%= film.title %></div>
-                    <% if film.release_date.present? %>
-                      <div class="film-year"><%= film.release_date.year %></div>
-                    <% end %>
-                    <div class="role-badges">
-                      <span class="role-badge rider">Rider</span>
-                    </div>
-                  </div>
-                <% end %>
-              <% end %>
-            </div>
-          <% else %>
-            <div class="empty-state">No films as rider.</div>
-          <% end %>
+        <div class="content-sub-section" id="as-rider-section" data-lazy-url="<%= film_subtab_content_user_path(@user, subtab: 'as-rider') %>">
+          <div class="lazy-loader" style="text-align: center; padding: 2rem;">
+            <div style="display: inline-block; width: 3rem; height: 3rem; border: 4px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+          </div>
         </div>
-
-        <!-- As Filmer Sub-section (individual only) -->
-        <div class="content-sub-section" id="as-filmer-section">
-          <% filmer_films = (@user.filmer_films.published + @user.filmed_films.published).uniq %>
-          <% if filmer_films.any? %>
-            <div class="film-grid">
-              <% filmer_films.each do |film| %>
-                <%= link_to film_path(film), class: "film-card" do %>
-                  <div class="film-thumbnail">
-                    <% if film.display_thumbnail.present? %>
-                      <% if film.display_thumbnail.respond_to?(:attachment) %>
-                        <%= image_tag film.display_thumbnail, alt: film.title, loading: "lazy" %>
-                      <% else %>
-                        <%= image_tag film.display_thumbnail, alt: film.title, loading: "lazy" %>
-                      <% end %>
-                    <% else %>
-                      <div class="placeholder">🎬</div>
-                    <% end %>
-                    <div class="inner-ring"></div>
-                  </div>
-                  <div class="film-info">
-                    <div class="film-title"><%= film.title %></div>
-                    <% if film.release_date.present? %>
-                      <div class="film-year"><%= film.release_date.year %></div>
-                    <% end %>
-                    <div class="role-badges">
-                      <span class="role-badge filmer">Filmer</span>
-                    </div>
-                  </div>
-                <% end %>
-              <% end %>
-            </div>
-          <% else %>
-            <div class="empty-state">No films as filmer.</div>
-          <% end %>
+        <div class="content-sub-section" id="as-filmer-section" data-lazy-url="<%= film_subtab_content_user_path(@user, subtab: 'as-filmer') %>">
+          <div class="lazy-loader" style="text-align: center; padding: 2rem;">
+            <div style="display: inline-block; width: 3rem; height: 3rem; border: 4px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+          </div>
         </div>
-
-        <!-- As Editor Sub-section (individual only) -->
-        <div class="content-sub-section" id="as-editor-section">
-          <% editor_films = @user.edited_films.published %>
-          <% if editor_films.any? %>
-            <div class="film-grid">
-              <% editor_films.each do |film| %>
-                <%= link_to film_path(film), class: "film-card" do %>
-                  <div class="film-thumbnail">
-                    <% if film.display_thumbnail.present? %>
-                      <% if film.display_thumbnail.respond_to?(:attachment) %>
-                        <%= image_tag film.display_thumbnail, alt: film.title, loading: "lazy" %>
-                      <% else %>
-                        <%= image_tag film.display_thumbnail, alt: film.title, loading: "lazy" %>
-                      <% end %>
-                    <% else %>
-                      <div class="placeholder">🎬</div>
-                    <% end %>
-                    <div class="inner-ring"></div>
-                  </div>
-                  <div class="film-info">
-                    <div class="film-title"><%= film.title %></div>
-                    <% if film.release_date.present? %>
-                      <div class="film-year"><%= film.release_date.year %></div>
-                    <% end %>
-                    <div class="role-badges">
-                      <span class="role-badge editor">Editor</span>
-                    </div>
-                  </div>
-                <% end %>
-              <% end %>
-            </div>
-          <% else %>
-            <div class="empty-state">No films as editor.</div>
-          <% end %>
+        <div class="content-sub-section" id="as-editor-section" data-lazy-url="<%= film_subtab_content_user_path(@user, subtab: 'as-editor') %>">
+          <div class="lazy-loader" style="text-align: center; padding: 2rem;">
+            <div style="display: inline-block; width: 3rem; height: 3rem; border: 4px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+          </div>
         </div>
       <% end %>
 
-      <!-- Playlists Sub-section -->
-      <div class="content-sub-section" id="playlists-section">
-        <% playlists = @user.playlists.includes(:films).order(created_at: :desc) %>
-        <% unless user_signed_in? && current_user.id == @user.id %>
-          <% playlists = playlists.where(is_public: true) %>
-        <% end %>
-        <% if playlists.any? %>
-          <div class="film-grid">
-            <% playlists.each do |playlist| %>
-              <%= link_to playlist_path(playlist), class: "film-card" do %>
-                <div class="playlist-thumbnail" style="position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 12px; overflow: hidden; background: rgba(255,255,255,0.02);">
-                  <% if playlist.films.any? && playlist.films.first.display_thumbnail %>
-                    <% first_film = playlist.films.first %>
-                    <% if first_film.display_thumbnail.respond_to?(:attachment) %>
-                      <%= image_tag first_film.display_thumbnail, alt: playlist.name, loading: "lazy", style: "width: 100%; height: 100%; object-fit: cover;" %>
-                    <% else %>
-                      <img src="<%= first_film.display_thumbnail %>" alt="<%= playlist.name %>" style="width: 100%; height: 100%; object-fit: cover;">
-                    <% end %>
-                  <% else %>
-                    <div class="placeholder" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 48px;">🎬</div>
-                  <% end %>
-                  <div style="position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.7); color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;">
-                    <%= pluralize(playlist.films.count, 'film') %>
-                  </div>
-                  <% unless playlist.is_public %>
-                    <div style="position: absolute; top: 8px; left: 8px; background: rgba(100, 100, 100, 0.9); color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 4px;">
-                      <svg width="10" height="10" viewBox="0 0 12 16" fill="none" style="flex-shrink: 0;">
-                        <path fill-rule="evenodd" clip-rule="evenodd" d="M4 4v2h4V4a2 2 0 10-4 0zm6.5 2V4a3.5 3.5 0 10-7 0v2H2a1 1 0 00-1 1v8a1 1 0 001 1h10a1 1 0 001-1V7a1 1 0 00-1-1h-1.5z" fill="currentColor"/>
-                      </svg>
-                      Private
-                    </div>
-                  <% end %>
-                </div>
-                <div class="film-info">
-                  <div class="film-title"><%= playlist.name %></div>
-                  <% if playlist.description.present? %>
-                    <div style="color: var(--muted); font-size: 12px; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                      <%= playlist.description %>
-                    </div>
-                  <% end %>
-                </div>
-              <% end %>
-            <% end %>
-          </div>
-        <% else %>
-          <div class="empty-state">No playlists yet.</div>
-        <% end %>
-      </div>
-
-      <!-- Favorite Projects / Brand Highlights Sub-section -->
-      <div class="content-sub-section" id="<%= @user.company_type? ? 'brand-highlights' : 'favorite-projects' %>-section">
-        <%
-          # Find or create the special favorites playlist for this user
-          favorites_playlist_name = @user.company_type? ? "Brand Highlights" : "#{@user.username}'s Favorite Projects"
-          favorites_playlist = @user.playlists.find_or_initialize_by(name: favorites_playlist_name) do |playlist|
-            playlist.description = @user.company_type? ? "Highlighted projects from #{@user.username}" : "#{@user.username}'s hand-picked favorite films"
-            playlist.is_public = true
-          end
-          favorites_playlist.save if favorites_playlist.new_record?
-        %>
-        <% if favorites_playlist.films.any? %>
-          <div class="film-grid">
-            <% favorites_playlist.films.each do |film| %>
-              <%= link_to film_path(film), class: "film-card" do %>
-                <div class="film-thumbnail">
-                  <% if film.display_thumbnail.present? %>
-                    <% if film.display_thumbnail.respond_to?(:attachment) %>
-                      <%= image_tag film.display_thumbnail, alt: film.title, loading: "lazy" %>
-                    <% else %>
-                      <%= image_tag film.display_thumbnail, alt: film.title, loading: "lazy" %>
-                    <% end %>
-                  <% else %>
-                    <div class="placeholder">🎬</div>
-                  <% end %>
-                  <div class="inner-ring"></div>
-                </div>
-                <div class="film-info">
-                  <div class="film-title"><%= film.title %></div>
-                  <% if film.release_date.present? %>
-                    <div class="film-year"><%= film.release_date.year %></div>
-                  <% end %>
-                  <div class="role-badges">
-                    <% @user.film_roles(film).each do |role| %>
-                      <span class="role-badge <%= role.downcase %>"><%= role %></span>
-                    <% end %>
-                  </div>
-                </div>
-              <% end %>
-            <% end %>
-          </div>
-          <% if user_signed_in? && current_user.id == @user.id %>
-            <div style="margin-top: 16px; text-align: center;">
-              <%= link_to edit_playlist_path(favorites_playlist), style: "color: var(--accent); text-decoration: underline;" do %>
-                Manage <%= @user.company_type? ? 'Brand Highlights' : 'Favorite Projects' %>
-              <% end %>
-            </div>
-          <% end %>
-        <% else %>
-          <div class="empty-state">
-            <% if user_signed_in? && current_user.id == @user.id %>
-              No <%= @user.company_type? ? 'brand highlights' : 'favorite projects' %> yet.
-              <%= link_to "Add some films", edit_playlist_path(favorites_playlist), style: "color: var(--accent); text-decoration: underline;" %>
-            <% else %>
-              No <%= @user.company_type? ? 'brand highlights' : 'favorite projects' %> yet.
-            <% end %>
-          </div>
-        <% end %>
-      </div>
-
-      <!-- Pending Films Sub-section (only for profile owner) -->
-      <% if user_signed_in? && current_user.id == @user.id %>
-        <div class="content-sub-section" id="pending-films-section">
-          <% pending_films = Film.where(user_id: @user.id).where(id: Film.select(:id).joins(:film_approvals).where(film_approvals: { status: 'pending' }).distinct) %>
-          <% if pending_films.any? %>
-            <div class="film-grid">
-              <% pending_films.each do |film| %>
-                <%= link_to film_path(film), class: "film-card" do %>
-                  <%= render 'shared/film_thumbnail', film: film, show_pending: true, unique_id: "pending-#{film.id}" %>
-                  <div class="film-info">
-                    <div class="film-title"><%= film.title %></div>
-                    <% if film.release_date.present? %>
-                      <div class="film-year"><%= film.release_date.year %></div>
-                    <% end %>
-                    <div style="color: var(--muted); font-size: 12px; margin-top: 4px;">
-                      <%= pluralize(film.film_approvals.where(status: 'pending').count, 'approval') %> pending
-                    </div>
-                  </div>
-                <% end %>
-              <% end %>
-            </div>
-          <% else %>
-            <div class="empty-state">No films waiting for approval.</div>
-          <% end %>
+      <div class="content-sub-section" id="playlists-section" data-lazy-url="<%= film_subtab_content_user_path(@user, subtab: 'playlists') %>">
+        <div class="lazy-loader" style="text-align: center; padding: 2rem;">
+          <div style="display: inline-block; width: 3rem; height: 3rem; border: 4px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
         </div>
+      </div>
 
-        <!-- Hidden Films Sub-section (only for profile owner) -->
-        <div class="content-sub-section" id="hidden-films-section">
-          <% hidden_films = @user.hidden_films_from_profile %>
-          <% if hidden_films.any? %>
-            <div class="film-grid">
-              <% hidden_films.each do |film| %>
-                <%= link_to film_path(film), class: "film-card" do %>
-                  <div class="film-thumbnail">
-                    <% if film.display_thumbnail.present? %>
-                      <% if film.display_thumbnail.respond_to?(:attachment) %>
-                        <%= image_tag film.display_thumbnail, alt: film.title, loading: "lazy" %>
-                      <% else %>
-                        <%= image_tag film.display_thumbnail, alt: film.title, loading: "lazy" %>
-                      <% end %>
-                    <% else %>
-                      <div class="placeholder">🎬</div>
-                    <% end %>
-                    <div class="inner-ring"></div>
-                  </div>
-                  <div class="film-info">
-                    <div class="film-title"><%= film.title %></div>
-                    <% if film.release_date.present? %>
-                      <div class="film-year"><%= film.release_date.year %></div>
-                    <% end %>
-                    <div class="role-badges">
-                      <% roles = @user.film_roles(film) %>
-                      <% roles.each do |role| %>
-                        <span class="role-badge <%= role.downcase %>"><%= role %></span>
-                      <% end %>
-                    </div>
-                  </div>
-                <% end %>
-              <% end %>
-            </div>
-          <% else %>
-            <div class="empty-state">No hidden films.</div>
-          <% end %>
+      <div class="content-sub-section" id="<%= @user.company_type? ? 'brand-highlights' : 'favorite-projects' %>-section" data-lazy-url="<%= film_subtab_content_user_path(@user, subtab: 'favorites') %>">
+        <div class="lazy-loader" style="text-align: center; padding: 2rem;">
+          <div style="display: inline-block; width: 3rem; height: 3rem; border: 4px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+        </div>
+      </div>
+
+      <% if @is_own_profile %>
+        <div class="content-sub-section" id="pending-films-section" data-lazy-url="<%= film_subtab_content_user_path(@user, subtab: 'pending-films') %>">
+          <div class="lazy-loader" style="text-align: center; padding: 2rem;">
+            <div style="display: inline-block; width: 3rem; height: 3rem; border: 4px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+          </div>
+        </div>
+        <div class="content-sub-section" id="hidden-films-section" data-lazy-url="<%= film_subtab_content_user_path(@user, subtab: 'hidden-films') %>">
+          <div class="lazy-loader" style="text-align: center; padding: 2rem;">
+            <div style="display: inline-block; width: 3rem; height: 3rem; border: 4px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+          </div>
         </div>
       <% end %>
     </div>
@@ -1466,7 +1191,7 @@
       <div style="display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 8px;">
         <a href="#" class="content-sub-tab active" data-subtab="all-photos">All Photos</a>
         <a href="#" class="content-sub-tab" data-subtab="albums">Albums</a>
-        <% if user_signed_in? && current_user.id == @user.id %>
+        <% if @is_own_profile %>
           <a href="#" class="content-sub-tab" data-subtab="pending-photos">Pending Approval</a>
           <a href="#" class="content-sub-tab" data-subtab="hidden-photos">Hidden</a>
         <% end %>
@@ -1484,11 +1209,11 @@
         </span>
         <input type="text" id="photos-search" placeholder="Search photos..." value="<%= @query %>">
       </div>
-      <% if @photos.any? %>
+      <% if @photos&.any? %>
         <div data-controller="lazy-load"
              data-lazy-load-url-value="<%= user_path(@user, format: :html) %>"
              data-lazy-load-has-more-value="<%= @photos_has_more %>"
-             data-lazy-load-page-value="<%= @photos.current_page + 1 %>">
+             data-lazy-load-page-value="<%= (@photos&.current_page || 0) + 1 %>">
 
           <div class="film-grid" data-lazy-load-target="container">
             <% @photos.each do |photo| %>
@@ -1535,7 +1260,7 @@
       <!-- Albums Sub-section -->
       <div class="content-sub-section" id="albums-section">
       <% albums = @user.albums.includes(photos: :image_attachment).order(created_at: :desc) %>
-      <% unless user_signed_in? && current_user.id == @user.id %>
+      <% unless @is_own_profile %>
         <% albums = albums.where(is_public: true) %>
       <% end %>
       <% if albums.any? %>
@@ -1577,7 +1302,7 @@
       </div>
 
       <!-- Pending Photos Sub-section (only for profile owner) -->
-      <% if user_signed_in? && current_user.id == @user.id %>
+      <% if @is_own_profile %>
         <div class="content-sub-section" id="pending-photos-section">
           <% pending_photos = Photo.where(user_id: @user.id).where(id: Photo.select(:id).joins(:photo_approvals).where(photo_approvals: { status: 'pending' }).distinct) %>
           <% if pending_photos.any? %>
@@ -1651,7 +1376,7 @@
   </div>
 </div>
 
-<% if user_signed_in? && current_user.id == @user.id %>
+<% if @is_own_profile %>
   <%= render "users/settings_drawer", resource: current_user %>
 <% end %>
 
@@ -1678,7 +1403,7 @@
       });
     });
 
-    // Sub-tab switching
+    // Sub-tab switching with lazy loading
     subTabs.forEach(subTab => {
       subTab.addEventListener('click', (e) => {
         e.preventDefault();
@@ -1695,7 +1420,25 @@
 
         // Add active class to clicked sub-tab and corresponding sub-section
         subTab.classList.add('active');
-        document.getElementById(`${targetSubTab}-section`).classList.add('active');
+        const targetSection = document.getElementById(`${targetSubTab}-section`);
+        targetSection.classList.add('active');
+
+        // Lazy load content if section has a lazy-url and hasn't been loaded
+        const lazyUrl = targetSection.dataset.lazyUrl;
+        if (lazyUrl && !targetSection.dataset.loaded) {
+          fetch(lazyUrl, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+          })
+          .then(response => response.text())
+          .then(html => {
+            targetSection.innerHTML = html;
+            targetSection.dataset.loaded = 'true';
+          })
+          .catch(err => {
+            console.error('[Lazy Load] Error loading sub-tab:', err);
+            targetSection.innerHTML = '<div class="empty-state">Error loading content. Please try again.</div>';
+          });
+        }
       });
     });
 
@@ -1732,7 +1475,7 @@
       });
     });
 
-    // Sub-tab switching
+    // Sub-tab switching with lazy loading
     subTabs.forEach(subTab => {
       subTab.addEventListener('click', (e) => {
         e.preventDefault();
@@ -1749,7 +1492,25 @@
 
         // Add active class to clicked sub-tab and corresponding sub-section
         subTab.classList.add('active');
-        document.getElementById(`${targetSubTab}-section`).classList.add('active');
+        const targetSection = document.getElementById(`${targetSubTab}-section`);
+        targetSection.classList.add('active');
+
+        // Lazy load content if section has a lazy-url and hasn't been loaded
+        const lazyUrl = targetSection.dataset.lazyUrl;
+        if (lazyUrl && !targetSection.dataset.loaded) {
+          fetch(lazyUrl, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+          })
+          .then(response => response.text())
+          .then(html => {
+            targetSection.innerHTML = html;
+            targetSection.dataset.loaded = 'true';
+          })
+          .catch(err => {
+            console.error('[Lazy Load] Error loading sub-tab:', err);
+            targetSection.innerHTML = '<div class="empty-state">Error loading content. Please try again.</div>';
+          });
+        }
       });
     });
 

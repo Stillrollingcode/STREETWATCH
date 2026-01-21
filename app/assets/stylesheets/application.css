@@ -12,14 +12,16 @@
 @import url("list_views.css");
 @import url("cards.css");
 @import url("comments.css");
+@import url("films.css");
 
-nav {
+/* Scoped to main header nav only - footer has its own styles */
+header nav:not(.footer-nav) {
   background: #333;
   padding: 10px;
   color: white;
 }
 
-nav a {
+header nav:not(.footer-nav) a {
   color: white;
   margin: 0 10px;
 }
@@ -48,7 +50,8 @@ nav a {
 }
 
 .auth-card {
-  width: min(420px, 95vw);
+  width: 95vw;
+  max-width: 420px;
   background: #242426;
   border: 1px solid #33343a;
   border-radius: 14px;

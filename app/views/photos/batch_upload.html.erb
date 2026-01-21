@@ -570,7 +570,29 @@
 
 <script>
   // Embed user data for autocomplete
-  const users = <%= User.order(:username).select(:id, :username, :name, :profile_type).map { |u| { id: u.id, username: u.username.presence || u.name, profile_type: u.profile_type } }.to_json.html_safe %>;
+  const users = <%= User.order(:username).select(:id, :username, :name, :profile_type).map { |u| { id: u.id, username: u.username.presence || u.name, name: u.name, profile_type: u.profile_type } }.to_json.html_safe %>;
+
+  function normalizeUserSearch(value) {
+    return (value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  }
+
+  function userMatchesQuery(user, query) {
+    const queryLower = query.toLowerCase();
+    const username = (user.username || '').toLowerCase();
+    const name = (user.name || '').toLowerCase();
+
+    if (username.includes(queryLower) || name.includes(queryLower)) {
+      return true;
+    }
+
+    const compactQuery = normalizeUserSearch(queryLower);
+    if (!compactQuery) {
+      return false;
+    }
+
+    return normalizeUserSearch(username).includes(compactQuery) ||
+      normalizeUserSearch(name).includes(compactQuery);
+  }
 
   const fileUploadArea = document.getElementById('file-upload-area');
   const fileInput = document.getElementById('file-input');
@@ -910,7 +932,7 @@
         return;
       }
 
-      const matches = users.filter(u => u.username.toLowerCase().includes(query)).slice(0, 10);
+      const matches = users.filter(u => userMatchesQuery(u, query)).slice(0, 10);
       if (matches.length === 0) {
         resultsDiv.classList.remove('show');
         return;
@@ -954,7 +976,7 @@
         return;
       }
 
-      const matches = users.filter(u => u.profile_type === 'company' && u.username.toLowerCase().includes(query)).slice(0, 10);
+      const matches = users.filter(u => u.profile_type === 'company' && userMatchesQuery(u, query)).slice(0, 10);
       if (matches.length === 0) {
         resultsDiv.classList.remove('show');
         return;
@@ -997,7 +1019,7 @@
         return;
       }
 
-      const matches = users.filter(u => !ridersMap.has(u.id) && u.username.toLowerCase().includes(query)).slice(0, 10);
+      const matches = users.filter(u => !ridersMap.has(u.id) && userMatchesQuery(u, query)).slice(0, 10);
       if (matches.length === 0) {
         resultsDiv.classList.remove('show');
         return;

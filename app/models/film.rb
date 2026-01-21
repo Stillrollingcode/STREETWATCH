@@ -113,7 +113,8 @@ class Film < ApplicationRecord
   end
 
   def filmers_display_names
-    filmer_names = filmers.pluck(:username)
+    # Use .map instead of .pluck to avoid N+1 when association is already loaded
+    filmer_names = filmers.loaded? ? filmers.map(&:username) : filmers.pluck(:username)
     custom_filmer_list = custom_filmer_name.to_s.split(',').map(&:strip).reject(&:blank?)
     all_filmers = (filmer_names + custom_filmer_list).uniq
     all_filmers.empty? ? [filmer_display_name].compact : all_filmers
@@ -128,14 +129,16 @@ class Film < ApplicationRecord
   end
 
   def companies_display_names
-    company_names = companies.pluck(:username)
+    # Use .map instead of .pluck to avoid N+1 when association is already loaded
+    company_names = companies.loaded? ? companies.map(&:username) : companies.pluck(:username)
     custom_company_list = company.to_s.split(',').map(&:strip).reject(&:blank?)
     all_companies = (company_names + custom_company_list).uniq
     all_companies.empty? ? [company_display_name].compact : all_companies
   end
 
   def all_riders_display
-    profile_riders = riders.pluck(:username)
+    # Use .map instead of .pluck to avoid N+1 when association is already loaded
+    profile_riders = riders.loaded? ? riders.map(&:username) : riders.pluck(:username)
     custom_rider_list = custom_riders.to_s.split("\n").map(&:strip).reject(&:blank?)
     (profile_riders + custom_rider_list).uniq
   end
@@ -239,19 +242,62 @@ class Film < ApplicationRecord
     users.uniq
   end
 
-  # Review methods
+  # Review methods - use cached values for performance on index pages
   def average_rating
-    return 0 if film_reviews.empty?
-    (film_reviews.average(:rating).to_f * 10).round / 10.0
+    # Use cached column if available, fall back to calculation
+    if has_attribute?(:average_rating_cache) && average_rating_cache.present?
+      average_rating_cache.to_f
+    else
+      return 0 if film_reviews.empty?
+      (film_reviews.average(:rating).to_f * 10).round / 10.0
+    end
   end
 
   def review_count
-    film_reviews.count
+    # Use counter cache if available
+    if has_attribute?(:reviews_count)
+      reviews_count
+    else
+      film_reviews.count
+    end
   end
 
   def user_review(user)
     return nil unless user
     film_reviews.find_by(user: user)
+  end
+
+  # Get a random related film for navigation at list boundaries
+  # Prefers films by same company/filmer, falls back to same type, then any film
+  def random_related_film_id(exclude_ids: [])
+    exclude_ids = Array(exclude_ids) + [id]
+
+    # Try to find a film by the same company or filmer first
+    related_user_ids = (companies.pluck(:id) + filmers.pluck(:id)).uniq
+    if related_user_ids.any?
+      related = Film.joins('LEFT JOIN film_companies ON film_companies.film_id = films.id')
+                    .joins('LEFT JOIN film_filmers ON film_filmers.film_id = films.id')
+                    .where('film_companies.user_id IN (?) OR film_filmers.user_id IN (?)', related_user_ids, related_user_ids)
+                    .where.not(id: exclude_ids)
+                    .order(Arel.sql('RANDOM()'))
+                    .limit(1)
+                    .pick(:id)
+      return related if related
+    end
+
+    # Fallback to same film type
+    same_type = Film.where(film_type: film_type)
+                    .where.not(id: exclude_ids)
+                    .order(Arel.sql('RANDOM()'))
+                    .limit(1)
+                    .pick(:id)
+    return same_type if same_type
+
+    # Final fallback: any film
+    Film.where.not(id: exclude_ids)
+        .order(Arel.sql('RANDOM()'))
+        .limit(1)
+        .pick(:id)
   end
 
   private
@@ -314,42 +360,11 @@ class Film < ApplicationRecord
   end
 
   def populate_youtube_metadata
-    # YouTube's oEmbed doesn't include publish date, so we'll use a workaround
-    # We can scrape the page or use YouTube Data API if available
-    # For now, we'll use a simple page scrape approach
-    require 'open-uri'
-    require 'json'
+    upload_date = self.class.fetch_youtube_upload_date(youtube_video_id)
 
-    begin
-      # YouTube embeds JSON-LD structured data in the page which includes uploadDate
-      video_page_url = "https://www.youtube.com/watch?v=#{youtube_video_id}"
-      page_content = URI.open(video_page_url, 'User-Agent' => 'Mozilla/5.0').read
-
-      # Extract JSON-LD data which contains uploadDate
-      if page_content =~ /"uploadDate":"([^"]+)"/
-        upload_date_str = $1
-
-        updates = {}
-
-        # Populate release date if not set
-        if release_date.blank?
-          begin
-            parsed_date = Date.parse(upload_date_str)
-            updates[:release_date] = parsed_date
-            Rails.logger.info "[FILM #{id}] Setting release date from YouTube: #{parsed_date}"
-          rescue ArgumentError => e
-            Rails.logger.warn "[FILM #{id}] Could not parse YouTube upload date: #{upload_date_str}"
-          end
-        end
-
-        # Apply updates if any exist
-        update_columns(updates) if updates.any?
-      else
-        Rails.logger.warn "[FILM #{id}] Could not find upload date in YouTube page"
-      end
-    rescue => e
-      Rails.logger.error "[FILM #{id}] Failed to fetch YouTube metadata: #{e.class} - #{e.message}"
-      # Don't raise - metadata population failure shouldn't break the thumbnail download
+    if upload_date.present? && release_date.blank?
+      Rails.logger.info "[FILM #{id}] Setting release date from YouTube: #{upload_date}"
+      update_columns(release_date: upload_date)
     end
   end
 
@@ -429,12 +444,10 @@ class Film < ApplicationRecord
 
     # Populate release date if not set and upload_date is available
     if release_date.blank? && oembed_data['upload_date'].present?
-      begin
-        parsed_date = Date.parse(oembed_data['upload_date'])
+      parsed_date = self.class.extract_vimeo_upload_date(oembed_data)
+      if parsed_date
         updates[:release_date] = parsed_date
         Rails.logger.info "[FILM #{id}] Setting release date from Vimeo: #{parsed_date}"
-      rescue ArgumentError => e
-        Rails.logger.warn "[FILM #{id}] Could not parse Vimeo upload date: #{oembed_data['upload_date']}"
       end
     end
 
@@ -656,5 +669,64 @@ class Film < ApplicationRecord
 
   def self.ransackable_associations(auth_object = nil)
     ["riders", "filmers", "companies", "filmer_user", "editor_user", "company_user", "favorites", "comments", "playlists"]
+  end
+
+  def self.fetch_upload_date_from_url(url)
+    return nil if url.blank?
+
+    film = new(youtube_url: url)
+    case film.video_platform
+    when :youtube
+      fetch_youtube_upload_date(film.youtube_video_id)
+    when :vimeo
+      fetch_vimeo_upload_date(film.vimeo_video_id)
+    end
+  end
+
+  def self.fetch_youtube_upload_date(video_id)
+    return nil if video_id.blank?
+
+    require 'open-uri'
+
+    begin
+      video_page_url = "https://www.youtube.com/watch?v=#{video_id}"
+      page_content = URI.open(video_page_url, 'User-Agent' => 'Mozilla/5.0').read
+
+      if page_content =~ /"uploadDate":"([^"]+)"/
+        Date.parse(Regexp.last_match(1))
+      else
+        Rails.logger.warn "[FILM] Could not find upload date in YouTube page"
+        nil
+      end
+    rescue => e
+      Rails.logger.error "[FILM] Failed to fetch YouTube upload date: #{e.class} - #{e.message}"
+      nil
+    end
+  end
+
+  def self.fetch_vimeo_upload_date(video_id)
+    return nil if video_id.blank?
+
+    require 'open-uri'
+    require 'json'
+
+    begin
+      oembed_url = "https://vimeo.com/api/oembed.json?url=https://vimeo.com/#{video_id}"
+      oembed_response = URI.open(oembed_url).read
+      oembed_data = JSON.parse(oembed_response)
+      extract_vimeo_upload_date(oembed_data)
+    rescue => e
+      Rails.logger.error "[FILM] Failed to fetch Vimeo upload date: #{e.class} - #{e.message}"
+      nil
+    end
+  end
+
+  def self.extract_vimeo_upload_date(oembed_data)
+    return nil unless oembed_data.is_a?(Hash) && oembed_data['upload_date'].present?
+
+    Date.parse(oembed_data['upload_date'])
+  rescue ArgumentError
+    Rails.logger.warn "[FILM] Could not parse Vimeo upload date: #{oembed_data['upload_date']}"
+    nil
   end
 end

@@ -896,6 +896,28 @@
       }
     });
 
+    function normalizeUserSearch(value) {
+      return (value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    }
+
+    function userMatchesQuery(user, query) {
+      const queryLower = query.toLowerCase();
+      const username = (user.username || '').toLowerCase();
+      const name = (user.name || '').toLowerCase();
+
+      if (username.includes(queryLower) || name.includes(queryLower)) {
+        return true;
+      }
+
+      const compactQuery = normalizeUserSearch(queryLower);
+      if (!compactQuery) {
+        return false;
+      }
+
+      return normalizeUserSearch(username).includes(compactQuery) ||
+        normalizeUserSearch(name).includes(compactQuery);
+    }
+
     function showResults(searchTerm) {
       if (!companyUsers || companyUsers.length === 0) {
         resultsDiv.innerHTML = '<div class="autocomplete-item no-results" style="padding: 10px 12px; color: var(--muted); text-align: center;">Loading companies...</div>';
@@ -904,7 +926,7 @@
       }
 
       const filtered = companyUsers.filter(u =>
-        u.username && u.username.toLowerCase().includes(searchTerm.toLowerCase()) &&
+        userMatchesQuery(u, searchTerm) &&
         !selectedSponsors.has(u.id)
       );
 

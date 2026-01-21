@@ -1,7 +1,7 @@
 class FilmsController < ApplicationController
-  before_action :set_film, only: [:show, :edit, :update, :destroy, :hide_from_profile, :unhide_from_profile]
+  before_action :set_film, only: [:show, :edit, :update, :destroy, :hide_from_profile, :unhide_from_profile, :navigation]
   before_action :increment_views, only: [:show]
-  before_action :authenticate_user!, except: [:index, :show]
+  before_action :authenticate_user!, except: [:index, :show, :navigation]
   before_action :authorize_user!, only: [:edit, :update, :destroy]
 
   def index
@@ -35,21 +35,21 @@ class FilmsController < ApplicationController
            EXISTS (
              SELECT 1 FROM film_riders
              JOIN users ON users.id = film_riders.user_id
-             WHERE film_riders.film_id = films.id AND COALESCE(users.username, '') ILIKE :q
+             WHERE film_riders.film_id = films.id AND (COALESCE(users.username, '') ILIKE :q OR COALESCE(users.name, '') ILIKE :q)
            ) OR
            EXISTS (
              SELECT 1 FROM film_filmers
              JOIN users ON users.id = film_filmers.user_id
-             WHERE film_filmers.film_id = films.id AND COALESCE(users.username, '') ILIKE :q
+             WHERE film_filmers.film_id = films.id AND (COALESCE(users.username, '') ILIKE :q OR COALESCE(users.name, '') ILIKE :q)
            ) OR
            EXISTS (
              SELECT 1 FROM film_companies
              JOIN users ON users.id = film_companies.user_id
-             WHERE film_companies.film_id = films.id AND COALESCE(users.username, '') ILIKE :q
+             WHERE film_companies.film_id = films.id AND (COALESCE(users.username, '') ILIKE :q OR COALESCE(users.name, '') ILIKE :q)
            ) OR
-           EXISTS (SELECT 1 FROM users WHERE users.id = films.filmer_user_id AND COALESCE(users.username, '') ILIKE :q) OR
-           EXISTS (SELECT 1 FROM users WHERE users.id = films.editor_user_id AND COALESCE(users.username, '') ILIKE :q) OR
-           EXISTS (SELECT 1 FROM users WHERE users.id = films.company_user_id AND COALESCE(users.username, '') ILIKE :q)",
+           EXISTS (SELECT 1 FROM users WHERE users.id = films.filmer_user_id AND (COALESCE(users.username, '') ILIKE :q OR COALESCE(users.name, '') ILIKE :q)) OR
+           EXISTS (SELECT 1 FROM users WHERE users.id = films.editor_user_id AND (COALESCE(users.username, '') ILIKE :q OR COALESCE(users.name, '') ILIKE :q)) OR
+           EXISTS (SELECT 1 FROM users WHERE users.id = films.company_user_id AND (COALESCE(users.username, '') ILIKE :q OR COALESCE(users.name, '') ILIKE :q))",
           # SQLite version
           "LOWER(films.title) LIKE :q OR
            LOWER(COALESCE(films.company, '')) LIKE :q OR
@@ -60,21 +60,21 @@ class FilmsController < ApplicationController
            EXISTS (
              SELECT 1 FROM film_riders
              JOIN users ON users.id = film_riders.user_id
-             WHERE film_riders.film_id = films.id AND LOWER(COALESCE(users.username, '')) LIKE :q
+             WHERE film_riders.film_id = films.id AND (LOWER(COALESCE(users.username, '')) LIKE :q OR LOWER(COALESCE(users.name, '')) LIKE :q)
            ) OR
            EXISTS (
              SELECT 1 FROM film_filmers
              JOIN users ON users.id = film_filmers.user_id
-             WHERE film_filmers.film_id = films.id AND LOWER(COALESCE(users.username, '')) LIKE :q
+             WHERE film_filmers.film_id = films.id AND (LOWER(COALESCE(users.username, '')) LIKE :q OR LOWER(COALESCE(users.name, '')) LIKE :q)
            ) OR
            EXISTS (
              SELECT 1 FROM film_companies
              JOIN users ON users.id = film_companies.user_id
-             WHERE film_companies.film_id = films.id AND LOWER(COALESCE(users.username, '')) LIKE :q
+             WHERE film_companies.film_id = films.id AND (LOWER(COALESCE(users.username, '')) LIKE :q OR LOWER(COALESCE(users.name, '')) LIKE :q)
            ) OR
-           EXISTS (SELECT 1 FROM users WHERE users.id = films.filmer_user_id AND LOWER(COALESCE(users.username, '')) LIKE :q) OR
-           EXISTS (SELECT 1 FROM users WHERE users.id = films.editor_user_id AND LOWER(COALESCE(users.username, '')) LIKE :q) OR
-           EXISTS (SELECT 1 FROM users WHERE users.id = films.company_user_id AND LOWER(COALESCE(users.username, '')) LIKE :q)"
+           EXISTS (SELECT 1 FROM users WHERE users.id = films.filmer_user_id AND (LOWER(COALESCE(users.username, '')) LIKE :q OR LOWER(COALESCE(users.name, '')) LIKE :q)) OR
+           EXISTS (SELECT 1 FROM users WHERE users.id = films.editor_user_id AND (LOWER(COALESCE(users.username, '')) LIKE :q OR LOWER(COALESCE(users.name, '')) LIKE :q)) OR
+           EXISTS (SELECT 1 FROM users WHERE users.id = films.company_user_id AND (LOWER(COALESCE(users.username, '')) LIKE :q OR LOWER(COALESCE(users.name, '')) LIKE :q))"
         )
       end
 
@@ -95,8 +95,9 @@ class FilmsController < ApplicationController
       # Apply grouping or pagination
       if params[:group_by].present?
         # Limit to 200 records before grouping, then eager load
+        # Note: film_reviews removed - we use cached reviews_count and average_rating_cache columns now
         films_to_group = @films.limit(200)
-                               .includes(:riders, :filmers, :companies, :filmer_user, :editor_user, :company_user, :film_reviews, thumbnail_attachment: :blob)
+                               .includes(:riders, :filmers, :companies, :filmer_user, :editor_user, :company_user, thumbnail_attachment: :blob)
                                .to_a
 
         # Determine group sort order (A-Z or Z-A)
@@ -176,8 +177,9 @@ class FilmsController < ApplicationController
         end
       else
         # Paginate first, then eager load only the 18 films needed
+        # Note: film_reviews removed - we use cached reviews_count and average_rating_cache columns now
         @films = @films.page(params[:page]).per(18)
-                       .includes(:riders, :filmers, :companies, :company_user, :filmer_user, :editor_user, :film_reviews, thumbnail_attachment: :blob)
+                       .includes(:riders, :filmers, :companies, thumbnail_attachment: :blob)
 
         # Add variables for lazy loading support
         @total_count = @films.total_count
@@ -190,7 +192,7 @@ class FilmsController < ApplicationController
       # Fallback to simple query
       @films = Film.order(created_at: :desc)
                    .page(params[:page]).per(18)
-                   .includes(:film_reviews, thumbnail_attachment: :blob)
+                   .includes(thumbnail_attachment: :blob)
 
       flash.now[:alert] = "There was an error with your search. Showing all films instead."
     end
@@ -222,6 +224,11 @@ class FilmsController < ApplicationController
       flash[:alert] = "This film is pending approval and cannot be viewed yet."
       redirect_to films_path
     end
+  end
+
+  def video_metadata
+    release_date = Film.fetch_upload_date_from_url(params[:url])
+    render json: { release_date: release_date&.iso8601 }
   end
 
   def new
@@ -281,7 +288,81 @@ class FilmsController < ApplicationController
     end
   end
 
+  # AJAX endpoint for prev/next navigation - called after page load
+  def navigation
+    context = params[:nav_context] || 'films'
+    film_ids = []
+    prev_id = nil
+    next_id = nil
+
+    # Random mode: always return random films (used when navigating via random)
+    if context == 'random'
+      prev_id = @film.random_related_film_id(exclude_ids: [@film.id])
+      next_id = @film.random_related_film_id(exclude_ids: [@film.id, prev_id].compact)
+    else
+      case context
+      when 'playlist'
+        playlist = Playlist.find_by(id: params[:nav_id])
+        film_ids = playlist&.playlist_films&.ordered&.pluck(:film_id) || []
+      when 'profile'
+        user = User.find_by(id: params[:nav_id])
+        film_ids = user&.all_film_ids_sorted || [] if user
+      else # 'films' or default
+        film_ids = films_index_ids(params[:nav_sort], params[:nav_type])
+      end
+
+      current_idx = film_ids.index(@film.id)
+
+      if current_idx
+        prev_id = film_ids[current_idx - 1] if current_idx > 0
+        next_id = film_ids[current_idx + 1] if current_idx < film_ids.length - 1
+
+        # Handle boundaries based on context
+        if context == 'films'
+          # Random related film at boundaries - switch to random mode
+          if current_idx == 0
+            prev_id = @film.random_related_film_id(exclude_ids: film_ids)
+          end
+          if current_idx == film_ids.length - 1
+            next_id = @film.random_related_film_id(exclude_ids: film_ids)
+          end
+        else
+          # Loop around for playlist/profile
+          prev_id ||= film_ids.last if current_idx == 0
+          next_id ||= film_ids.first if current_idx == film_ids.length - 1
+        end
+      else
+        # Film not in list (e.g., arrived via random) - provide random navigation
+        prev_id = @film.random_related_film_id(exclude_ids: [@film.id])
+        next_id = @film.random_related_film_id(exclude_ids: [@film.id, prev_id].compact)
+        context = 'random' # Switch to random mode for subsequent navigations
+      end
+    end
+
+    render json: {
+      prev_id: prev_id ? Film.find_by(id: prev_id)&.friendly_id : nil,
+      next_id: next_id ? Film.find_by(id: next_id)&.friendly_id : nil,
+      context: context
+    }
+  end
+
   private
+
+  def films_index_ids(sort, film_type)
+    films = Film.all
+    films = films.where(film_type: film_type) if film_type.present?
+
+    case sort
+    when 'date_asc'
+      films.order(Arel.sql('COALESCE(films.release_date, films.created_at) ASC')).pluck(:id)
+    when 'alpha_asc'
+      films.order(Arel.sql('LOWER(films.title) ASC')).pluck(:id)
+    when 'alpha_desc'
+      films.order(Arel.sql('LOWER(films.title) DESC')).pluck(:id)
+    else # 'date_desc' or default
+      films.order(Arel.sql('COALESCE(films.release_date, films.created_at) DESC')).pluck(:id)
+    end
+  end
 
   def set_film
     @film = Film.includes(

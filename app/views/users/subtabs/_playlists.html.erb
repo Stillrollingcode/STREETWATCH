@@ -1,0 +1,41 @@
+<% if playlists.any? %>
+  <div class="film-grid">
+    <% playlists.each do |playlist| %>
+      <%= link_to playlist_path(playlist), class: "film-card" do %>
+        <div class="playlist-thumbnail" style="position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 12px; overflow: hidden; background: rgba(255,255,255,0.02);">
+          <% if playlist.films.any? && playlist.films.first.display_thumbnail %>
+            <% first_film = playlist.films.first %>
+            <% if first_film.display_thumbnail.respond_to?(:attachment) %>
+              <%= image_tag first_film.display_thumbnail, alt: playlist.name, loading: "lazy", style: "width: 100%; height: 100%; object-fit: cover;" %>
+            <% else %>
+              <img src="<%= first_film.display_thumbnail %>" alt="<%= playlist.name %>" style="width: 100%; height: 100%; object-fit: cover;">
+            <% end %>
+          <% else %>
+            <div class="placeholder" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 48px;">🎬</div>
+          <% end %>
+          <div style="position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.7); color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;">
+            <%= pluralize(playlist.films.count, 'film') %>
+          </div>
+          <% unless playlist.is_public %>
+            <div style="position: absolute; top: 8px; left: 8px; background: rgba(100, 100, 100, 0.9); color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 4px;">
+              <svg width="10" height="10" viewBox="0 0 12 16" fill="none" style="flex-shrink: 0;">
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M4 4v2h4V4a2 2 0 10-4 0zm6.5 2V4a3.5 3.5 0 10-7 0v2H2a1 1 0 00-1 1v8a1 1 0 001 1h10a1 1 0 001-1V7a1 1 0 00-1-1h-1.5z" fill="currentColor"/>
+              </svg>
+              Private
+            </div>
+          <% end %>
+        </div>
+        <div class="film-info">
+          <div class="film-title"><%= playlist.name %></div>
+          <% if playlist.description.present? %>
+            <div style="color: var(--muted); font-size: 12px; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+              <%= playlist.description %>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+    <% end %>
+  </div>
+<% else %>
+  <div class="empty-state">No playlists yet.</div>
+<% end %>

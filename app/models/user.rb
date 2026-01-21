@@ -121,6 +121,36 @@ class User < ApplicationRecord
         .recent
   end
 
+  # Get all film IDs for this user (sorted by release date desc) - lightweight for navigation
+  def all_film_ids_sorted
+    film_ids_sql = <<~SQL
+      SELECT DISTINCT film_id FROM (
+        SELECT film_id FROM film_riders WHERE user_id = :user_id
+        UNION
+        SELECT film_id FROM film_filmers WHERE user_id = :user_id
+        UNION
+        SELECT id AS film_id FROM films WHERE filmer_user_id = :user_id
+        UNION
+        SELECT id AS film_id FROM films WHERE editor_user_id = :user_id
+        UNION
+        SELECT film_id FROM film_companies WHERE user_id = :user_id
+        UNION
+        SELECT id AS film_id FROM films WHERE company_user_id = :user_id
+      ) AS all_film_ids
+      WHERE film_id NOT IN (
+        SELECT film_id FROM hidden_profile_films WHERE user_id = :user_id
+      )
+    SQL
+
+    film_ids = Film.connection.select_values(
+      Film.sanitize_sql([film_ids_sql, { user_id: id }])
+    )
+
+    Film.where(id: film_ids)
+        .order(Arel.sql('COALESCE(films.release_date, films.created_at) DESC'))
+        .pluck(:id)
+  end
+
   # Get films hidden from profile (only for own profile)
   def hidden_films_from_profile
     Film.published

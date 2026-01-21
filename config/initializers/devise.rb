@@ -187,7 +187,13 @@ Devise.setup do |config|
 
   # Options to be passed to the created cookie. For instance, you can set
   # secure: true in order to force SSL only cookies.
-  # config.rememberable_options = {}
+  # Set domain for remember_me cookie to work on custom domain (streetwatch.mov)
+  config.rememberable_options = {
+    domain: :all,
+    tld_length: 2,
+    secure: Rails.env.production?,
+    same_site: :lax
+  }
 
   # ==> Configuration for :validatable
   # Range for password length.

@@ -9,14 +9,9 @@ class UsersController < ApplicationController
     @query = params[:q].to_s.strip
 
     # Base query with search
-    base_query = User.search_by_fields(@query, :username, :email)
-                     .order(Arel.sql("LOWER(username) ASC NULLS LAST"))
-
-    # Apply profile_type filter if provided (for company autocomplete)
-    if params[:profile_type].present?
-      profile_types = params[:profile_type].to_s.split(',').map(&:strip)
-      base_query = base_query.where(profile_type: profile_types)
-    end
+    base_query = User.search_by_fields(@query, :username, :email, :name)
+    base_query = apply_user_filters(base_query)
+    base_query = apply_user_sort(base_query)
 
     respond_to do |format|
       format.html do
@@ -44,8 +39,8 @@ class UsersController < ApplicationController
       format.json do
         # For JSON autocomplete, return more results and simpler data
         users = base_query.limit(50)
-                         .select(:id, :username, :profile_type)
-                         .map { |u| { id: u.id, username: u.username, profile_type: u.profile_type } }
+                         .select(:id, :username, :name, :profile_type)
+                         .map { |u| { id: u.id, username: u.username, name: u.name, profile_type: u.profile_type } }
         render json: users
       end
     end
@@ -58,58 +53,72 @@ class UsersController < ApplicationController
       response.headers['Vary'] = 'Accept-Encoding'
     end
 
-    @user = User.includes(avatar_attachment: :blob).find_by_friendly_or_id(params[:id])
+    # Minimal user load with only avatar - counts will use cached columns
+    @user = User.includes({ avatar_attachment: :blob }, :preference).find_by_friendly_or_id(params[:id])
     @query = params[:q].to_s.strip
 
-    # Get all films and photos for the user (unpaginated ActiveRecord relations)
-    # Eager load associations to prevent N+1 queries
-    @films = @user.all_films(viewing_user: current_user)
-               .includes(:riders, :filmers, :companies, :company_user, :filmer_user, :editor_user, :film_reviews, thumbnail_attachment: :blob)
-    @photos = @user.all_photos(viewing_user: current_user)
-               .includes(:album, image_attachment: :blob)
+    # Preload counts using counter caches or single queries (not N+1)
+    # These are cheap: just reading integers from user record or single COUNT queries
+    @followers_count = @user.passive_follows.count
+    @following_count = @user.active_follows.count
 
-    # Apply film type filter if present
-    if params[:film_type].present?
-      @films = @films.where(film_type: params[:film_type])
+    # Preload approved sponsors (usually 0-5, very small)
+    @approved_sponsors = @user.approved_sponsors.includes(avatar_attachment: :blob).to_a
+
+    # Preload data for logged-in user viewing profiles
+    # This prevents multiple queries in the view template
+    @is_own_profile = user_signed_in? && current_user.id == @user.id
+    if @is_own_profile
+      # Own profile: preload pending approval counts
+      @pending_film_approvals = current_user.film_approvals.pending.count
+      @pending_photo_approvals = current_user.photo_approvals.pending.count
+      @pending_sponsor_approvals = current_user.company_type? ? current_user.sponsored_by_approvals.pending.count : 0
+      @is_following = false
+      @notification_setting = nil
+    elsif user_signed_in?
+      # Viewing someone else's profile: preload follow status and notification settings
+      @pending_film_approvals = 0
+      @pending_photo_approvals = 0
+      @pending_sponsor_approvals = 0
+      @is_following = current_user.following?(@user)
+      @notification_setting = current_user.profile_notification_settings.find_by(target_user: @user)
+    else
+      # Not logged in
+      @pending_film_approvals = 0
+      @pending_photo_approvals = 0
+      @pending_sponsor_approvals = 0
+      @is_following = false
+      @notification_setting = nil
     end
 
-    # Apply search BEFORE pagination if query present
-    # This ensures we search across ALL content, not just the first page
-    if @query.present?
-      @films = @films.where("LOWER(title) LIKE ?", "%#{@query.downcase}%")
-      @photos = @photos.where("LOWER(title) LIKE ?", "%#{@query.downcase}%")
+    # Only load films/photos for the ACTIVE tab (determined by preference or default)
+    ordered_tabs = @user.preference&.ordered_tabs || ["films", "photos", "articles"]
+    @active_tab = ordered_tabs.first
+
+    # For initial page load: only load data for the first visible tab
+    # Other tabs will load via Turbo Frames when clicked
+    @films = nil
+    @photos = nil
+    @films_has_more = false
+    @photos_has_more = false
+
+    if @active_tab == 'films' || params[:films_page].present?
+      load_films_data
     end
 
-    # Apply sorting to films (use reorder to override any existing order)
-    case params[:sort]
-    when 'date_asc'
-      @films = @films.reorder(release_date: :asc, created_at: :asc)
-    when 'alpha_asc'
-      @films = @films.reorder(Arel.sql("LOWER(title) ASC"))
-    when 'alpha_desc'
-      @films = @films.reorder(Arel.sql("LOWER(title) DESC"))
-    else # date_desc (default)
-      @films = @films.reorder(release_date: :desc, created_at: :desc)
+    if @active_tab == 'photos' || params[:photos_page].present?
+      load_photos_data
     end
-
-    # Paginate films and photos (3x6 = 18 per page)
-    # Pagination happens AFTER search filtering
-    @films = @films.page(params[:films_page]).per(18)
-    @photos = @photos.page(params[:photos_page]).per(18)
-
-    # Add variables for lazy loading support
-    @films_total_count = @films.total_count
-    @films_has_more = @films.next_page.present?
-    @photos_total_count = @photos.total_count
-    @photos_has_more = @photos.next_page.present?
 
     # Handle AJAX requests for lazy loading
     respond_to do |format|
       format.html do
         # If it's an AJAX request for pagination, render just the film or photo cards
         if (request.xhr? || request.headers['X-Requested-With'] == 'XMLHttpRequest') && params[:films_page].present? && params[:films_page].to_i > 1
+          load_films_data unless @films
           render partial: 'user_film_cards', locals: { films: @films, user: @user }, layout: false, content_type: 'text/html'
         elsif (request.xhr? || request.headers['X-Requested-With'] == 'XMLHttpRequest') && params[:photos_page].present? && params[:photos_page].to_i > 1
+          load_photos_data unless @photos
           render partial: 'user_photo_cards', locals: { photos: @photos, user: @user }, layout: false, content_type: 'text/html'
         else
           # Normal full page render
@@ -119,15 +128,77 @@ class UsersController < ApplicationController
     end
   end
 
+  # Turbo Frame endpoint for loading tab content lazily
+  def tab_content
+    @user = User.find_by_friendly_or_id(params[:id])
+    @query = params[:q].to_s.strip
+    tab = params[:tab]
+
+    case tab
+    when 'films'
+      load_films_data
+      render partial: 'users/tabs/films_content', locals: { user: @user, films: @films, films_has_more: @films_has_more, query: @query }
+    when 'photos'
+      load_photos_data
+      render partial: 'users/tabs/photos_content', locals: { user: @user, photos: @photos, photos_has_more: @photos_has_more, query: @query }
+    when 'articles'
+      render partial: 'users/tabs/articles_content', locals: { user: @user }
+    else
+      head :not_found
+    end
+  end
+
+  # Endpoint for loading film sub-tab content (as-rider, as-filmer, etc.)
+  def film_subtab_content
+    @user = User.find_by_friendly_or_id(params[:id])
+    subtab = params[:subtab]
+
+    case subtab
+    when 'as-rider'
+      @films = @user.rider_films.published.includes(thumbnail_attachment: :blob).recent
+      render partial: 'users/subtabs/role_films', locals: { films: @films, role: 'Rider', user: @user }
+    when 'as-filmer'
+      @films = (@user.filmer_films.published + @user.filmed_films.published).uniq
+      render partial: 'users/subtabs/role_films', locals: { films: @films, role: 'Filmer', user: @user }
+    when 'as-editor'
+      @films = @user.edited_films.published.includes(thumbnail_attachment: :blob).recent
+      render partial: 'users/subtabs/role_films', locals: { films: @films, role: 'Editor', user: @user }
+    when 'playlists'
+      playlists = @user.playlists.includes(films: { thumbnail_attachment: :blob }).order(created_at: :desc)
+      playlists = playlists.where(is_public: true) unless user_signed_in? && current_user.id == @user.id
+      render partial: 'users/subtabs/playlists', locals: { playlists: playlists, user: @user }
+    when 'favorites'
+      favorites_name = @user.company_type? ? "Brand Highlights" : "#{@user.username}'s Favorite Projects"
+      playlist = @user.playlists.find_or_create_by(name: favorites_name) do |p|
+        p.description = @user.company_type? ? "Highlighted projects" : "Favorite films"
+        p.is_public = true
+      end
+      render partial: 'users/subtabs/favorites', locals: { playlist: playlist, user: @user }
+    when 'pending-films'
+      films = Film.where(user_id: @user.id)
+                  .joins(:film_approvals)
+                  .where(film_approvals: { status: 'pending' })
+                  .distinct
+                  .includes(thumbnail_attachment: :blob)
+      render partial: 'users/subtabs/pending_films', locals: { films: films, user: @user }
+    when 'hidden-films'
+      films = @user.hidden_films_from_profile.includes(thumbnail_attachment: :blob)
+      render partial: 'users/subtabs/hidden_films', locals: { films: films, user: @user }
+    else
+      head :not_found
+    end
+  end
+
   def following
     @user = User.find_by_friendly_or_id(params[:id])
     @query = params[:q].to_s.strip
     @users = @user.following
-               .includes(avatar_attachment: :blob)
-               .search_by_fields(@query, :username, :email)
-               .order(Arel.sql("LOWER(username) ASC"))
-               .page(params[:page])
-               .per(18)
+                 .includes(avatar_attachment: :blob)
+                 .search_by_fields(@query, :username, :email, :name)
+    @users = apply_user_filters(@users)
+    @users = apply_user_sort(@users)
+    @users = @users.page(params[:page])
+                   .per(18)
     @has_more = @users.next_page.present?
 
     # Preload following status to avoid N+1 queries
@@ -145,11 +216,12 @@ class UsersController < ApplicationController
     @user = User.find_by_friendly_or_id(params[:id])
     @query = params[:q].to_s.strip
     @users = @user.followers
-               .includes(avatar_attachment: :blob)
-               .search_by_fields(@query, :username, :email)
-               .order(Arel.sql("LOWER(username) ASC"))
-               .page(params[:page])
-               .per(18)
+                 .includes(avatar_attachment: :blob)
+                 .search_by_fields(@query, :username, :email, :name)
+    @users = apply_user_filters(@users)
+    @users = apply_user_sort(@users)
+    @users = @users.page(params[:page])
+                   .per(18)
     @has_more = @users.next_page.present?
 
     # Preload following status to avoid N+1 queries
@@ -161,5 +233,89 @@ class UsersController < ApplicationController
     end
 
     render 'index'
+  end
+
+  private
+
+  def load_films_data
+    # Optimized: removed :film_reviews from includes - using cached columns now
+    @films = @user.all_films(viewing_user: current_user)
+                  .includes(:riders, :filmers, :companies, thumbnail_attachment: :blob)
+
+    # Apply film type filter if present
+    @films = @films.where(film_type: params[:film_type]) if params[:film_type].present?
+
+    # Apply search if query present
+    @films = @films.where("LOWER(title) LIKE ?", "%#{@query.downcase}%") if @query.present?
+
+    # Apply sorting
+    @films = case params[:sort]
+             when 'date_asc' then @films.reorder(release_date: :asc, created_at: :asc)
+             when 'alpha_asc' then @films.reorder(Arel.sql("LOWER(title) ASC"))
+             when 'alpha_desc' then @films.reorder(Arel.sql("LOWER(title) DESC"))
+             else @films.reorder(release_date: :desc, created_at: :desc)
+             end
+
+    # Paginate
+    @films = @films.page(params[:films_page]).per(18)
+    @films_total_count = @films.total_count
+    @films_has_more = @films.next_page.present?
+  end
+
+  def load_photos_data
+    @photos = @user.all_photos(viewing_user: current_user)
+                   .includes(:album, image_attachment: :blob)
+
+    @photos = @photos.where("LOWER(title) LIKE ?", "%#{@query.downcase}%") if @query.present?
+
+    @photos = @photos.page(params[:photos_page]).per(18)
+    @photos_total_count = @photos.total_count
+    @photos_has_more = @photos.next_page.present?
+  end
+
+  def apply_user_filters(scope)
+    filtered = scope
+
+    if params[:profile_type].present?
+      profile_types = params[:profile_type].to_s.split(',').map(&:strip)
+      filtered = filtered.where(profile_type: profile_types)
+    end
+
+    if params[:supporting].present? && user_signed_in?
+      follower_id = current_user.id
+      case params[:supporting]
+      when 'supporting'
+        filtered = filtered.joins(
+          User.sanitize_sql_array([
+            "INNER JOIN follows AS current_user_follows ON current_user_follows.followed_id = users.id AND current_user_follows.follower_id = ?",
+            follower_id
+          ])
+        )
+      when 'not_supporting'
+        filtered = filtered.joins(
+          User.sanitize_sql_array([
+            "LEFT JOIN follows AS current_user_follows ON current_user_follows.followed_id = users.id AND current_user_follows.follower_id = ?",
+            follower_id
+          ])
+        ).where("current_user_follows.id IS NULL")
+      end
+    end
+
+    filtered
+  end
+
+  def apply_user_sort(scope)
+    sort_key = params[:sort].presence || 'alpha_asc'
+
+    case sort_key
+    when 'alpha_desc'
+      scope.order(Arel.sql("LOWER(COALESCE(NULLIF(users.name, ''), users.username)) DESC"))
+    when 'followers_desc'
+      scope.joins("LEFT JOIN follows AS follower_counts ON follower_counts.followed_id = users.id")
+           .group("users.id")
+           .order(Arel.sql("COUNT(follower_counts.id) DESC, LOWER(COALESCE(NULLIF(users.name, ''), users.username)) ASC"))
+    else
+      scope.order(Arel.sql("LOWER(COALESCE(NULLIF(users.name, ''), users.username)) ASC"))
+    end
   end
 end

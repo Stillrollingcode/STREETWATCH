@@ -2,6 +2,8 @@
 //= link_tree ../../javascript .js
 //= link active_admin.css
 //= link active_admin.js
+//= link application.css
 //= link list_views.css
 //= link cards.css
 //= link comments.css
+//= link films.css

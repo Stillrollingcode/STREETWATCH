@@ -1,0 +1,27 @@
+<% if films.any? %>
+  <div class="film-grid">
+    <% films.each do |film| %>
+      <%= link_to film_path(film), class: "film-card" do %>
+        <div class="film-thumbnail">
+          <% if film.display_thumbnail.present? %>
+            <%= image_tag film.display_thumbnail, alt: film.title, loading: "lazy" %>
+          <% else %>
+            <div class="placeholder">🎬</div>
+          <% end %>
+          <div class="inner-ring"></div>
+        </div>
+        <div class="film-info">
+          <div class="film-title"><%= film.title %></div>
+          <% if film.release_date.present? %>
+            <div class="film-year"><%= film.release_date.year %></div>
+          <% end %>
+          <div class="role-badges">
+            <span class="role-badge <%= role.downcase %>"><%= role %></span>
+          </div>
+        </div>
+      <% end %>
+    <% end %>
+  </div>
+<% else %>
+  <div class="empty-state">No films as <%= role.downcase %>.</div>
+<% end %>

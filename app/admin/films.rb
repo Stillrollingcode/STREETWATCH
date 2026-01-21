@@ -58,7 +58,22 @@ ActiveAdmin.register Film do
     column "ID", :friendly_id
     column :title
     column :film_type
-    column :company
+    column "Company" do |film|
+      company_names = film.companies.map { |company| company.username.presence || company.name }.compact
+      if film.company_user
+        company_names << (film.company_user.username.presence || film.company_user.name)
+      end
+      company_names += film.company.to_s.split(',').map(&:strip).reject(&:blank?)
+      company_names = company_names.uniq
+      company_names.any? ? company_names.join(", ") : status_tag("empty", class: "warning")
+    end
+    column "Owner" do |film|
+      owner = film.user
+      owner ? link_to(owner.username.presence || owner.email, admin_user_path(owner)) : status_tag("none")
+    end
+    column "Published" do |film|
+      film.published? ? status_tag("Yes", class: "ok") : status_tag("No", class: "warning")
+    end
     column :release_date
     column "Filmer" do |film|
       film.filmer_display_name
@@ -85,7 +100,7 @@ ActiveAdmin.register Film do
     def scoped_collection
       # Only load associations needed for the index page to avoid N+1 queries
       # Distinct is applied at the query level to prevent duplicates from joins
-      super.includes(:filmer_user, :editor_user, :video_attachment).distinct
+      super.includes(:filmer_user, :editor_user, :company_user, :user, :companies, :pending_approvals, :video_attachment).distinct
     end
 
     # Auto-approve all film approvals when created/updated via admin dashboard

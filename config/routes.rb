@@ -42,6 +42,9 @@ Rails.application.routes.draw do
       get 'following', to: 'users#following'
       get 'followers', to: 'users#followers'
       post 'claim', to: 'profile_claims#create'
+      # Lazy loading endpoints for profile tabs
+      get 'tab/:tab', to: 'users#tab_content', as: :tab_content
+      get 'film_subtab/:subtab', to: 'users#film_subtab_content', as: :film_subtab_content
     end
     resource :notification_setting, only: [:show, :update, :destroy], controller: 'profile_notification_settings'
   end
@@ -50,9 +53,13 @@ Rails.application.routes.draw do
     resource :favorite, only: [:create, :destroy]
     resources :tag_requests, only: [:create]
     resources :film_reviews, only: [:index, :create, :update, :destroy]
+    collection do
+      get 'video_metadata', to: 'films#video_metadata'
+    end
     member do
       post 'hide_from_profile', to: 'films#hide_from_profile'
       delete 'unhide_from_profile', to: 'films#unhide_from_profile'
+      get 'navigation', to: 'films#navigation'
     end
   end
 

@@ -1,0 +1,20 @@
+<% if films.any? %>
+  <div class="film-grid">
+    <% films.each do |film| %>
+      <%= link_to film_path(film), class: "film-card" do %>
+        <%= render 'shared/film_thumbnail', film: film, show_pending: true, unique_id: "pending-#{film.id}" %>
+        <div class="film-info">
+          <div class="film-title"><%= film.title %></div>
+          <% if film.release_date.present? %>
+            <div class="film-year"><%= film.release_date.year %></div>
+          <% end %>
+          <div style="color: var(--muted); font-size: 12px; margin-top: 4px;">
+            <%= pluralize(film.film_approvals.where(status: 'pending').count, 'approval') %> pending
+          </div>
+        </div>
+      <% end %>
+    <% end %>
+  </div>
+<% else %>
+  <div class="empty-state">No films waiting for approval.</div>
+<% end %>

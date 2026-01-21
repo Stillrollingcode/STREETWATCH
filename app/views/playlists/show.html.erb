@@ -108,7 +108,7 @@
     <div class="films-grid">
       <% @films.each do |film| %>
         <div class="film-card">
-          <%= link_to film, style: "text-decoration: none; color: inherit;" do %>
+          <%= link_to film_path(film, nav_context: 'playlist', nav_id: @playlist.id), style: "text-decoration: none; color: inherit;" do %>
             <div class="film-thumbnail" style="aspect-ratio: <%= film.aspect_ratio_css %>;">
               <% if film.thumbnail.attached? %>
                 <%= image_tag film.thumbnail %>

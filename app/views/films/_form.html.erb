@@ -579,12 +579,34 @@
   let companyUsers = [];
 
   try {
-    users = <%= User.order(:username).select(:id, :username, :profile_type).map { |u| { id: u.id, username: u.username, profile_type: u.profile_type } }.to_json.html_safe %>;
+    users = <%= User.order(:username).select(:id, :username, :name, :profile_type).map { |u| { id: u.id, username: u.username.presence || u.name, name: u.name, profile_type: u.profile_type } }.to_json.html_safe %>;
     companyUsers = users.filter(u => u.profile_type === 'company' || u.profile_type === 'crew');
     console.log('[Film Form] Successfully loaded ' + users.length + ' users for autocomplete');
     console.log('[Film Form] Company users: ' + companyUsers.length);
   } catch (error) {
     console.error('[Film Form] Failed to load users:', error);
+  }
+
+  function normalizeUserSearch(value) {
+    return (value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  }
+
+  function userMatchesQuery(user, query) {
+    const queryLower = query.toLowerCase();
+    const username = (user.username || '').toLowerCase();
+    const name = (user.name || '').toLowerCase();
+
+    if (username.includes(queryLower) || name.includes(queryLower)) {
+      return true;
+    }
+
+    const compactQuery = normalizeUserSearch(queryLower);
+    if (!compactQuery) {
+      return false;
+    }
+
+    return normalizeUserSearch(username).includes(compactQuery) ||
+      normalizeUserSearch(name).includes(compactQuery);
   }
 
   function initForm() {
@@ -616,6 +638,9 @@
 
     // Initialize mutual exclusivity for video upload and YouTube URL
     initVideoSourceExclusivity();
+
+    // Auto-fill release date from YouTube/Vimeo URL when possible
+    initReleaseDateAutofill();
   }
 
   // Make video upload and YouTube URL mutually exclusive
@@ -678,6 +703,101 @@
       youtubeInput.dispatchEvent(new Event('input'));
     }
     */
+  }
+
+  function initReleaseDateAutofill() {
+    const youtubeInput = document.getElementById('youtube_url_input');
+    const releaseDateInput = document.getElementById('film_release_date');
+
+    if (!youtubeInput || !releaseDateInput) return;
+
+    let debounceTimer = null;
+    let lastFetchedUrl = null;
+    let inFlightController = null;
+    let isAutoSetting = false;
+
+    releaseDateInput.dataset.manual = releaseDateInput.value ? 'true' : 'false';
+    releaseDateInput.dataset.autofilled = 'false';
+
+    releaseDateInput.addEventListener('input', () => {
+      if (isAutoSetting) return;
+      if (releaseDateInput.value) {
+        releaseDateInput.dataset.manual = 'true';
+        releaseDateInput.dataset.autofilled = 'false';
+      } else {
+        releaseDateInput.dataset.manual = 'false';
+        releaseDateInput.dataset.autofilled = 'false';
+      }
+    });
+
+    function isVideoUrl(value) {
+      return /(?:youtube\.com|youtu\.be|vimeo\.com)/i.test(value || '');
+    }
+
+    function shouldAutofill() {
+      if (releaseDateInput.dataset.manual === 'true') return false;
+      if (!releaseDateInput.value) return true;
+      return releaseDateInput.dataset.autofilled === 'true';
+    }
+
+    function requestReleaseDate(url) {
+      if (!shouldAutofill()) return;
+      if (url === lastFetchedUrl) return;
+
+      lastFetchedUrl = url;
+
+      if (inFlightController) {
+        inFlightController.abort();
+      }
+
+      inFlightController = new AbortController();
+
+      fetch(`/films/video_metadata?url=${encodeURIComponent(url)}`, {
+        headers: { 'Accept': 'application/json' },
+        credentials: 'same-origin',
+        signal: inFlightController.signal
+      })
+        .then(response => (response.ok ? response.json() : null))
+        .then(data => {
+          if (!data || !data.release_date) return;
+          if (youtubeInput.value.trim() !== url) return;
+          if (!shouldAutofill()) return;
+
+          isAutoSetting = true;
+          releaseDateInput.value = data.release_date;
+          releaseDateInput.dataset.autofilled = 'true';
+          releaseDateInput.dataset.manual = 'false';
+          isAutoSetting = false;
+        })
+        .catch(error => {
+          if (error.name !== 'AbortError') {
+            console.warn('[Film Form] Failed to fetch release date:', error);
+          }
+        });
+    }
+
+    function handleUrlInput() {
+      const url = youtubeInput.value.trim();
+
+      if (debounceTimer) clearTimeout(debounceTimer);
+
+      if (!url || !isVideoUrl(url)) {
+        lastFetchedUrl = null;
+        if (inFlightController) inFlightController.abort();
+        return;
+      }
+
+      debounceTimer = setTimeout(() => {
+        requestReleaseDate(url);
+      }, 600);
+    }
+
+    youtubeInput.addEventListener('input', handleUrlInput);
+    youtubeInput.addEventListener('blur', handleUrlInput);
+
+    if (youtubeInput.value.trim()) {
+      handleUrlInput();
+    }
   }
 
   function initAutocomplete() {
@@ -771,9 +891,7 @@
         const userList = field === 'company' ? companyUsers : users;
         console.log(`[${field}] Searching for "${searchTerm}" in ${userList.length} users`);
 
-        const filtered = userList.filter(u =>
-          u.username && u.username.toLowerCase().includes(searchTerm.toLowerCase())
-        );
+        const filtered = userList.filter(u => userMatchesQuery(u, searchTerm));
 
         console.log(`[${field}] Found ${filtered.length} matching users`);
 
@@ -922,7 +1040,7 @@
       console.log(`[Riders] Searching for "${searchTerm}" in ${users.length} users`);
 
       const filtered = users.filter(u =>
-        u.username && u.username.toLowerCase().includes(searchTerm.toLowerCase()) &&
+        userMatchesQuery(u, searchTerm) &&
         !selectedRiders.has(u.id) // Don't show already selected riders
       );
 
@@ -1106,7 +1224,7 @@
 
     function showResults(searchTerm) {
       const filtered = users.filter(u =>
-        u.username && u.username.toLowerCase().includes(searchTerm.toLowerCase()) &&
+        userMatchesQuery(u, searchTerm) &&
         !selectedFilmers.has(u.id)
       );
       resultsDiv.innerHTML = '';
@@ -1277,7 +1395,7 @@
 
     function showResults(searchTerm) {
       const filtered = companyUsers.filter(u =>
-        u.username && u.username.toLowerCase().includes(searchTerm.toLowerCase()) &&
+        userMatchesQuery(u, searchTerm) &&
         !selectedCompanies.has(u.id)
       );
       resultsDiv.innerHTML = '';

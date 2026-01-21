@@ -973,6 +973,93 @@
       background: <%= theme[:primary_rgba].sub('ALPHA', '0.1') %> !important; /* Fallback for Chrome <111 */
       background: color-mix(in srgb, var(--accent) 10%, transparent) !important;
     }
+    /* Film navigation bar */
+    .film-nav-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: rgba(255,255,255,0.04);
+      border-top: 1px solid var(--border);
+      gap: 12px;
+    }
+    .film-nav-btn {
+      padding: 8px 16px;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+      color: var(--text);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+    .film-nav-btn:hover {
+      background: <%= theme[:primary_rgba].sub('ALPHA', '0.15') %>; /* Fallback for Chrome <111 */
+      background: color-mix(in srgb, var(--accent) 15%, transparent);
+      border-color: <%= theme[:primary_rgba].sub('ALPHA', '0.4') %>; /* Fallback for Chrome <111 */
+      border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+      color: var(--accent);
+    }
+    .film-nav-center {
+      flex: 1;
+      text-align: center;
+    }
+    .film-nav-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .autoplay-toggle {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      user-select: none;
+    }
+    .autoplay-toggle:hover {
+      background: rgba(255,255,255,0.1);
+    }
+    .autoplay-toggle.active {
+      background: <%= theme[:primary_rgba].sub('ALPHA', '0.2') %>;
+      background: color-mix(in srgb, var(--accent) 20%, transparent);
+      border-color: <%= theme[:primary_rgba].sub('ALPHA', '0.4') %>;
+      border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+      color: var(--accent);
+    }
+    .autoplay-toggle-icon {
+      font-size: 14px;
+    }
+    @media (max-width: 480px) {
+      .film-nav-bar {
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .film-nav-btn {
+        padding: 6px 12px;
+        font-size: 13px;
+      }
+      .film-nav-center {
+        order: -1;
+        width: 100%;
+        margin-bottom: 4px;
+      }
+      .film-nav-right {
+        gap: 6px;
+      }
+      .autoplay-toggle {
+        padding: 6px 10px;
+        font-size: 12px;
+      }
+    }
   </style>
 <% end %>
 
@@ -982,6 +1069,7 @@
       <div class="video-player-wrapper">
         <% if @film.video_platform == :youtube %>
           <iframe
+            id="youtube-player"
             src="https://www.youtube-nocookie.com/embed/<%= @film.youtube_video_id %>?autoplay=1&origin=<%= request.base_url %>&enablejsapi=1"
             frameborder="0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
@@ -989,28 +1077,57 @@
             allowfullscreen
             style="width: 100%; height: 100%;">
           </iframe>
-          <div style="text-align: center; padding: 12px; background: rgba(255,255,255,0.04); border-top: 1px solid var(--border);">
-            <a href="<%= @film.youtube_url %>" target="_blank" rel="noopener" class="pill-btn" style="display: inline-flex; align-items: center; gap: 6px;">
-              <span>Watch on YouTube</span>
-              <span>↗</span>
-            </a>
-            <p style="color: var(--muted); font-size: 12px; margin: 8px 0 0;">
-              Note: YouTube embedded videos may not load depending on channel settings
-            </p>
+          <div class="film-nav-bar" data-film-id="<%= @film.friendly_id %>"
+               data-nav-context="<%= params[:nav_context] %>"
+               data-nav-id="<%= params[:nav_id] %>"
+               data-nav-sort="<%= params[:nav_sort] %>"
+               data-nav-type="<%= params[:nav_type] %>">
+            <a href="#" class="film-nav-btn prev-btn" style="visibility: hidden;">← Prev</a>
+            <div class="film-nav-center">
+              <a href="<%= @film.youtube_url %>" target="_blank" rel="noopener" class="pill-btn" style="display: inline-flex; align-items: center; gap: 6px;">
+                <span>Watch on YouTube</span>
+                <span>↗</span>
+              </a>
+              <p style="color: var(--muted); font-size: 12px; margin: 8px 0 0;">
+                Note: YouTube embedded videos may not load depending on channel settings
+              </p>
+            </div>
+            <div class="film-nav-right">
+              <button type="button" class="autoplay-toggle" id="autoplay-toggle" title="Auto-play next video when current finishes">
+                <span class="autoplay-toggle-icon">▶</span>
+                <span>Autoplay</span>
+              </button>
+              <a href="#" class="film-nav-btn next-btn" style="visibility: hidden;">Next →</a>
+            </div>
           </div>
         <% elsif @film.video_platform == :vimeo %>
           <iframe
+            id="vimeo-player"
             src="https://player.vimeo.com/video/<%= @film.vimeo_video_id %>?autoplay=1&title=0&byline=0&portrait=0"
             frameborder="0"
             allow="autoplay; fullscreen; picture-in-picture"
             allowfullscreen
             style="width: 100%; height: 100%;">
           </iframe>
-          <div style="text-align: center; padding: 12px; background: rgba(255,255,255,0.04); border-top: 1px solid var(--border);">
-            <a href="<%= @film.youtube_url %>" target="_blank" rel="noopener" class="pill-btn" style="display: inline-flex; align-items: center; gap: 6px;">
-              <span>Watch on Vimeo</span>
-              <span>↗</span>
-            </a>
+          <div class="film-nav-bar" data-film-id="<%= @film.friendly_id %>"
+               data-nav-context="<%= params[:nav_context] %>"
+               data-nav-id="<%= params[:nav_id] %>"
+               data-nav-sort="<%= params[:nav_sort] %>"
+               data-nav-type="<%= params[:nav_type] %>">
+            <a href="#" class="film-nav-btn prev-btn" style="visibility: hidden;">← Prev</a>
+            <div class="film-nav-center">
+              <a href="<%= @film.youtube_url %>" target="_blank" rel="noopener" class="pill-btn" style="display: inline-flex; align-items: center; gap: 6px;">
+                <span>Watch on Vimeo</span>
+                <span>↗</span>
+              </a>
+            </div>
+            <div class="film-nav-right">
+              <button type="button" class="autoplay-toggle" id="autoplay-toggle" title="Auto-play next video when current finishes">
+                <span class="autoplay-toggle-icon">▶</span>
+                <span>Autoplay</span>
+              </button>
+              <a href="#" class="film-nav-btn next-btn" style="visibility: hidden;">Next →</a>
+            </div>
           </div>
         <% end %>
       </div>
@@ -1222,6 +1339,22 @@
           color: var(--text);
         }
       </style>
+
+      <div class="film-nav-bar" data-film-id="<%= @film.friendly_id %>"
+           data-nav-context="<%= params[:nav_context] %>"
+           data-nav-id="<%= params[:nav_id] %>"
+           data-nav-sort="<%= params[:nav_sort] %>"
+           data-nav-type="<%= params[:nav_type] %>">
+        <a href="#" class="film-nav-btn prev-btn" style="visibility: hidden;">← Prev</a>
+        <div class="film-nav-center"></div>
+        <div class="film-nav-right">
+          <button type="button" class="autoplay-toggle" id="autoplay-toggle" title="Auto-play next video when current finishes">
+            <span class="autoplay-toggle-icon">▶</span>
+            <span>Autoplay</span>
+          </button>
+          <a href="#" class="film-nav-btn next-btn" style="visibility: hidden;">Next →</a>
+        </div>
+      </div>
     <% else %>
       <div class="film-hero">
         <% if @film.thumbnail.attached? %>
@@ -1248,7 +1381,8 @@
                   <%= approval.status == 'approved' ? '✓' : '⏳' %>
                 </div>
                 <div class="approval-item-text">
-                  <strong><%= link_to approval.approver.username, user_path(approval.approver), style: "color: var(--accent); text-decoration: none;" %></strong>
+                  <% approver_name = approval.approver.name.presence || approval.approver.username %>
+                  <strong><%= link_to approver_name, user_path(approval.approver), style: "color: var(--accent); text-decoration: none;" %></strong>
                   (tagged as <%= approval.approval_type.titleize %>)
                   <% if approval.status == 'pending' && approval.approver_id == current_user.id %>
                     - <%= button_to "Approve now", approve_film_approval_path(approval), method: :post, style: "color: var(--accent); background: none; border: none; padding: 0; font: inherit; cursor: pointer; text-decoration: underline;" %>
@@ -1275,7 +1409,8 @@
               <div class="approval-item" style="padding: 12px; background: rgba(255,255,255,0.02); border-radius: 8px; margin-bottom: 8px;">
                 <div class="approval-item-text" style="display: flex; flex-direction: column; gap: 6px;">
                   <div>
-                    <strong><%= link_to tag_request.requester.username, user_path(tag_request.requester), style: "color: var(--accent); text-decoration: none;" %></strong>
+                    <% requester_name = tag_request.requester.name.presence || tag_request.requester.username %>
+                    <strong><%= link_to requester_name, user_path(tag_request.requester), style: "color: var(--accent); text-decoration: none;" %></strong>
                     wants to be tagged as <strong><%= tag_request.role.titleize %></strong>
                   </div>
                   <% if tag_request.message.present? %>
@@ -1298,15 +1433,28 @@
         <div class="film-title-section">
           <h1><%= @film.title %></h1>
           <div class="film-company-tag">
-            <% company_names = @film.companies_display_names %>
-            <% if company_names.any? %>
-              <% company_names.each_with_index do |company_name, index| %>
-                <% company_user = @film.companies.find { |c| c.username == company_name } %>
-                <% company_user ||= @film.company_user if @film.company_user&.username == company_name %>
-                <% if company_user %>
-                  <%= link_to company_name, user_path(company_user), class: "crew-link" %><%= index < company_names.length - 1 ? ',' : '' %>
+            <%
+              company_users = @film.companies.to_a
+              if @film.company_user && company_users.none? { |u| u.id == @film.company_user_id }
+                company_users << @film.company_user
+              end
+              custom_company_names = @film.company.to_s.split(',').map(&:strip).reject(&:blank?)
+              company_entries = []
+              company_users.each do |user|
+                label = user.name.presence || user.username
+                company_entries << { label: label, user: user, key: "user-#{user.id}" }
+              end
+              custom_company_names.each do |name|
+                company_entries << { label: name, user: nil, key: "custom-#{name.downcase}" }
+              end
+              company_entries = company_entries.uniq { |entry| entry[:key] }
+            %>
+            <% if company_entries.any? %>
+              <% company_entries.each_with_index do |entry, index| %>
+                <% if entry[:user] %>
+                  <%= link_to entry[:label], user_path(entry[:user]), class: "crew-link" %><%= index < company_entries.length - 1 ? ',' : '' %>
                 <% else %>
-                  <span class="crew-text-only"><%= company_name %><%= index < company_names.length - 1 ? ',' : '' %></span>
+                  <span class="crew-text-only"><%= entry[:label] %><%= index < company_entries.length - 1 ? ',' : '' %></span>
                 <% end %>
               <% end %>
             <% end %>
@@ -1464,31 +1612,45 @@
             <div class="meta-value"><%= @film.formatted_runtime %></div>
           </div>
         <% end %>
-        <% filmer_names = @film.filmers_display_names %>
-        <% if filmer_names.any? %>
+        <%
+          filmer_users = @film.filmers.to_a
+          if @film.filmer_user && filmer_users.none? { |u| u.id == @film.filmer_user_id }
+            filmer_users << @film.filmer_user
+          end
+          custom_filmer_names = @film.custom_filmer_name.to_s.split(',').map(&:strip).reject(&:blank?)
+          filmer_entries = []
+          filmer_users.each do |user|
+            label = user.name.presence || user.username
+            filmer_entries << { label: label, user: user, key: "user-#{user.id}" }
+          end
+          custom_filmer_names.each do |name|
+            filmer_entries << { label: name, user: nil, key: "custom-#{name.downcase}" }
+          end
+          filmer_entries = filmer_entries.uniq { |entry| entry[:key] }
+        %>
+        <% if filmer_entries.any? %>
           <div class="meta-item">
-            <div class="meta-label"><%= filmer_names.length == 1 ? 'Filmer' : 'Filmers' %></div>
+            <div class="meta-label"><%= filmer_entries.length == 1 ? 'Filmer' : 'Filmers' %></div>
             <div class="meta-value">
-              <% filmer_names.each_with_index do |filmer_name, index| %>
-                <% filmer_user = @film.filmers.find { |f| f.username == filmer_name } %>
-                <% filmer_user ||= @film.filmer_user if @film.filmer_user&.username == filmer_name %>
-                <% if filmer_user %>
-                  <%= link_to filmer_name, user_path(filmer_user), class: "crew-link" %><%= index < filmer_names.length - 1 ? ', ' : '' %>
+              <% filmer_entries.each_with_index do |entry, index| %>
+                <% if entry[:user] %>
+                  <%= link_to entry[:label], user_path(entry[:user]), class: "crew-link" %><%= index < filmer_entries.length - 1 ? ', ' : '' %>
                 <% else %>
-                  <span class="crew-text-only"><%= filmer_name %></span><%= index < filmer_names.length - 1 ? ', ' : '' %>
+                  <span class="crew-text-only"><%= entry[:label] %></span><%= index < filmer_entries.length - 1 ? ', ' : '' %>
                 <% end %>
               <% end %>
             </div>
           </div>
         <% end %>
-        <% if @film.editor_display_name.present? %>
+        <% if @film.editor_user.present? || @film.custom_editor_name.present? %>
           <div class="meta-item">
             <div class="meta-label">Editor</div>
             <div class="meta-value">
               <% if @film.editor_user %>
-                <%= link_to @film.editor_display_name, user_path(@film.editor_user), class: "crew-link" %>
+                <% editor_label = @film.editor_user.name.presence || @film.editor_user.username %>
+                <%= link_to editor_label, user_path(@film.editor_user), class: "crew-link" %>
               <% else %>
-                <span class="crew-text-only"><%= @film.editor_display_name %></span>
+                <span class="crew-text-only"><%= @film.custom_editor_name %></span>
               <% end %>
             </div>
           </div>
@@ -1513,10 +1675,10 @@
                     <% if rider.avatar.attached? %>
                       <%= image_tag rider.avatar %>
                     <% else %>
-                      <%= (rider.username || rider.email).first&.upcase %>
+                      <%= (rider.name.presence || rider.username || rider.email).first&.upcase %>
                     <% end %>
                   </div>
-                  <div class="rider-name"><%= rider.username || rider.name %></div>
+                  <div class="rider-name"><%= rider.name.presence || rider.username %></div>
                 </div>
               <% end %>
             <% end %>
@@ -2155,6 +2317,156 @@
     }
   });
 })(); // End IIFE
+</script>
+
+<script>
+// Film navigation with autoplay support
+(function() {
+  let nextUrl = null;
+  let autoplayEnabled = localStorage.getItem('filmAutoplay') === 'true';
+  let ytPlayer = null;
+  let vimeoPlayer = null;
+
+  function updateAutoplayUI() {
+    const toggle = document.getElementById('autoplay-toggle');
+    if (toggle) {
+      toggle.classList.toggle('active', autoplayEnabled);
+    }
+  }
+
+  function goToNextFilm() {
+    if (nextUrl && autoplayEnabled) {
+      window.location.href = nextUrl;
+    }
+  }
+
+  function setupYouTubePlayer() {
+    const iframe = document.getElementById('youtube-player');
+    if (!iframe || typeof YT === 'undefined') return;
+
+    ytPlayer = new YT.Player('youtube-player', {
+      events: {
+        'onStateChange': function(event) {
+          // YT.PlayerState.ENDED = 0
+          if (event.data === 0) {
+            goToNextFilm();
+          }
+        }
+      }
+    });
+  }
+
+  function setupVimeoPlayer() {
+    const iframe = document.getElementById('vimeo-player');
+    if (!iframe || typeof Vimeo === 'undefined') return;
+
+    vimeoPlayer = new Vimeo.Player(iframe);
+    vimeoPlayer.on('ended', function() {
+      goToNextFilm();
+    });
+  }
+
+  function setupVideoJsPlayer() {
+    const videoElement = document.getElementById('film-video-player');
+    if (!videoElement || typeof videojs === 'undefined') return;
+
+    // Get the Video.js player instance
+    const player = videojs.getPlayer('film-video-player');
+    if (player) {
+      player.on('ended', function() {
+        goToNextFilm();
+      });
+    }
+  }
+
+  function loadFilmNavigation() {
+    const navBar = document.querySelector('.film-nav-bar');
+    if (!navBar || navBar.dataset.loaded) return;
+    navBar.dataset.loaded = 'true';
+
+    // Setup autoplay toggle
+    const autoplayToggle = document.getElementById('autoplay-toggle');
+    if (autoplayToggle) {
+      updateAutoplayUI();
+      autoplayToggle.addEventListener('click', function() {
+        autoplayEnabled = !autoplayEnabled;
+        localStorage.setItem('filmAutoplay', autoplayEnabled);
+        updateAutoplayUI();
+      });
+    }
+
+    // Delay navigation fetch to prioritize video loading
+    setTimeout(() => {
+      const filmId = navBar.dataset.filmId;
+      const params = new URLSearchParams();
+      if (navBar.dataset.navContext) params.set('nav_context', navBar.dataset.navContext);
+      if (navBar.dataset.navId) params.set('nav_id', navBar.dataset.navId);
+      if (navBar.dataset.navSort) params.set('nav_sort', navBar.dataset.navSort);
+      if (navBar.dataset.navType) params.set('nav_type', navBar.dataset.navType);
+
+      fetch(`/films/${filmId}/navigation?${params.toString()}`)
+        .then(r => r.json())
+        .then(data => {
+          const prevBtn = navBar.querySelector('.prev-btn');
+          const nextBtn = navBar.querySelector('.next-btn');
+
+          // Build URL with nav context preserved (use returned context for random mode)
+          const buildUrl = (id) => {
+            const url = new URL(`/films/${id}`, window.location.origin);
+            url.searchParams.set('nav_context', data.context);
+            if (data.context !== 'random') {
+              if (navBar.dataset.navId) url.searchParams.set('nav_id', navBar.dataset.navId);
+              if (navBar.dataset.navSort) url.searchParams.set('nav_sort', navBar.dataset.navSort);
+              if (navBar.dataset.navType) url.searchParams.set('nav_type', navBar.dataset.navType);
+            }
+            return url.toString();
+          };
+
+          if (data.prev_id && prevBtn) {
+            prevBtn.href = buildUrl(data.prev_id);
+            prevBtn.style.visibility = 'visible';
+          }
+          if (data.next_id && nextBtn) {
+            const url = buildUrl(data.next_id);
+            nextBtn.href = url;
+            nextBtn.style.visibility = 'visible';
+            nextUrl = url; // Store for autoplay
+          }
+
+          // Setup video player APIs for autoplay
+          if (document.getElementById('youtube-player')) {
+            // Load YouTube API if not already loaded
+            if (typeof YT === 'undefined') {
+              const tag = document.createElement('script');
+              tag.src = 'https://www.youtube.com/iframe_api';
+              document.head.appendChild(tag);
+              window.onYouTubeIframeAPIReady = setupYouTubePlayer;
+            } else {
+              setupYouTubePlayer();
+            }
+          } else if (document.getElementById('vimeo-player')) {
+            // Load Vimeo API if not already loaded
+            if (typeof Vimeo === 'undefined') {
+              const tag = document.createElement('script');
+              tag.src = 'https://player.vimeo.com/api/player.js';
+              tag.onload = setupVimeoPlayer;
+              document.head.appendChild(tag);
+            } else {
+              setupVimeoPlayer();
+            }
+          } else if (document.getElementById('film-video-player')) {
+            // Setup Video.js player for uploaded videos
+            setupVideoJsPlayer();
+          }
+        })
+        .catch(err => console.warn('Navigation fetch failed:', err));
+    }, 1000);
+  }
+
+  // Run on both Turbo navigations and full page loads
+  document.addEventListener('turbo:load', loadFilmNavigation);
+  document.addEventListener('DOMContentLoaded', loadFilmNavigation);
+})();
 </script>
 
 <%

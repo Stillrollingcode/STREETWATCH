@@ -14,12 +14,97 @@
     margin: 0;
     color: var(--muted);
   }
+  .profiles-layout {
+    display: grid;
+    grid-template-columns: 240px minmax(0, 1fr);
+    gap: 24px;
+    align-items: start;
+    padding-right: 24px;
+    margin-top: 12px;
+  }
+  .profiles-filters {
+    position: sticky;
+    top: 96px;
+    align-self: start;
+  }
+  .profiles-main {
+    min-width: 0;
+    padding-right: 0;
+  }
+  .profiles-filters-inner {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+    background: rgba(255,255,255,0.03);
+    display: grid;
+    gap: 16px;
+  }
+  .profiles-filters-form {
+    display: grid;
+    gap: 14px;
+  }
+  .profiles-filters h3 {
+    margin: 0;
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .filter-group {
+    display: grid;
+    gap: 6px;
+  }
+  .filter-label {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+  }
+  .filter-select {
+    width: 100%;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    padding: 9px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    appearance: none;
+  }
+  .filter-actions {
+    display: grid;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .filter-apply {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: none;
+    background: linear-gradient(120deg, var(--accent), var(--accent-2));
+    color: <%= theme[:theme_name] == 'light' ? '#0b0b0d' : 'white' %>;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .filter-reset {
+    text-align: center;
+    font-size: 12px;
+    color: var(--muted);
+    text-decoration: none;
+  }
+  .filter-note {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.4;
+  }
   .profiles-toolbar {
     display: grid;
     gap: 12px;
     align-items: center;
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    margin: 12px 0 20px;
+    margin: 0 0 20px;
   }
   .profiles-search {
     display: flex;
@@ -40,14 +125,27 @@
   }
   .profiles-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 12px;
     margin-bottom: 32px;
+    padding-right: 24px;
   }
 
   @media (max-width: 900px) {
+    .profiles-layout {
+      grid-template-columns: 1fr;
+      padding-right: 0;
+    }
+    .profiles-filters {
+      position: static;
+      order: -1;
+    }
+    .profiles-main {
+      padding-right: 0;
+    }
     .profiles-grid {
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: 1fr;
+      padding-right: 0;
     }
   }
 
@@ -107,10 +205,8 @@
     border-radius: 14px;
     padding: 16px;
     background: rgba(255,255,255,0.02);
-    display: flex;
-    flex-direction: row;
-    gap: 12px;
-    align-items: center;
+    display: grid;
+    gap: 10px;
     transition: all 0.15s ease;
     text-decoration: none;
     color: inherit;
@@ -120,26 +216,37 @@
     border-color: rgba(255,255,255,0.15);
     box-shadow: 0 10px 30px rgba(0,0,0,0.35);
   }
-  .profile-card-content {
+  .profile-card-top {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+  }
+  .profile-card-link {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
     flex: 1;
     min-width: 0;
-  }
-  .profile-card-header {
-    display: flex;
-    gap: 12px;
-    align-items: flex-start;
+    text-decoration: none;
+    color: inherit;
   }
   .profile-card-actions {
     flex-shrink: 0;
+    margin-left: auto;
+    margin-top: 2px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
   }
 
   @media (max-width: 768px) {
-    .profile-card {
-      flex-direction: column;
-      align-items: stretch;
-    }
     .profile-card-actions {
       width: 100%;
+    }
+    .profile-card-top {
+      align-items: flex-start;
+      flex-direction: column;
     }
   }
   .profile-avatar {
@@ -169,14 +276,20 @@
   }
   .profile-name {
     font-weight: 700;
-    font-size: 15px;
+    font-size: 14px;
     margin-bottom: 2px;
     color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .profile-username {
     color: var(--muted);
     font-size: 13px;
     margin-bottom: 8px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .profile-bio {
     color: var(--muted);
@@ -187,6 +300,7 @@
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
+    margin-left: 72px;
   }
   .support-btn {
     padding: 8px 16px;
@@ -224,7 +338,16 @@
     border: 1px solid rgba(255,255,255,0.1);
     margin-top: 4px;
   }
+  .profile-card-actions .profile-type-label {
+    margin-top: 0;
+  }
+  @media (max-width: 768px) {
+    .profile-bio {
+      margin-left: 0;
+    }
+  }
 </style>
+<%= render 'shared/autocomplete_styles' %>
 
 <div class="profiles-hero">
   <% if @user.present? %>
@@ -236,54 +359,119 @@
   <% end %>
 </div>
 
-<div class="profiles-toolbar">
-  <div class="profiles-search">
-    <span style="opacity: 0.7;">
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="7" cy="7" r="4.5" stroke="currentColor" stroke-width="1.5"/>
-        <path d="M10.5 10.5L13.5 13.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-      </svg>
-    </span>
-    <input type="text" id="profiles-search-input" placeholder="Search riders by username or email" value="<%= @query %>">
-  </div>
-</div>
+<div class="profiles-layout">
+  <aside class="profiles-filters">
+    <div class="profiles-filters-inner">
+      <h3>Sort & Filter</h3>
+      <form class="profiles-filters-form" method="get" action="<%= request.path %>">
+        <input type="hidden" name="q" value="<%= @query %>">
 
-<div data-controller="lazy-load"
-     data-lazy-load-url-value="<%= users_path(format: :html) %>"
-     data-lazy-load-has-more-value="<%= @has_more %>"
-     data-lazy-load-page-value="<%= @users.current_page + 1 %>">
-  <div class="profiles-grid" data-lazy-load-target="container">
-    <%= render partial: 'profile_cards', locals: { users: @users, following_ids: @following_ids } %>
+        <div class="filter-group">
+          <label class="filter-label" for="profiles-sort">Sort</label>
+          <select class="filter-select" id="profiles-sort" name="sort">
+            <option value="alpha_asc" <%= params[:sort].blank? || params[:sort] == 'alpha_asc' ? 'selected' : '' %>>A-Z</option>
+            <option value="alpha_desc" <%= params[:sort] == 'alpha_desc' ? 'selected' : '' %>>Z-A</option>
+            <option value="followers_desc" <%= params[:sort] == 'followers_desc' ? 'selected' : '' %>>Most Followed</option>
+          </select>
+        </div>
 
-    <% if @users.none? %>
-      <div style="grid-column: 1 / -1; text-align: center; color: var(--muted); padding: 20px;">
-        No profiles match that search.
-      </div>
-    <% end %>
-  </div>
+        <div class="filter-group">
+          <label class="filter-label" for="profiles-type">Profile Type</label>
+          <select class="filter-select" id="profiles-type" name="profile_type">
+            <option value="" <%= params[:profile_type].blank? ? 'selected' : '' %>>All Types</option>
+            <option value="individual" <%= params[:profile_type] == 'individual' ? 'selected' : '' %>>Individual</option>
+            <option value="crew" <%= params[:profile_type] == 'crew' ? 'selected' : '' %>>Crew</option>
+            <option value="company" <%= params[:profile_type] == 'company' ? 'selected' : '' %>>Company</option>
+          </select>
+        </div>
 
-  <div data-lazy-load-target="loader" style="display: none; text-align: center; padding: 20px;">
-    <div style="display: inline-block; width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite;"></div>
-  </div>
+        <div class="filter-group">
+          <label class="filter-label" for="profiles-supporting">Supporting</label>
+          <% if user_signed_in? %>
+            <select class="filter-select" id="profiles-supporting" name="supporting">
+              <option value="" <%= params[:supporting].blank? ? 'selected' : '' %>>All Profiles</option>
+              <option value="supporting" <%= params[:supporting] == 'supporting' ? 'selected' : '' %>>Supporting</option>
+              <option value="not_supporting" <%= params[:supporting] == 'not_supporting' ? 'selected' : '' %>>Not Supporting</option>
+            </select>
+          <% else %>
+            <select class="filter-select" id="profiles-supporting" disabled>
+              <option>Sign in to filter</option>
+            </select>
+            <div class="filter-note">Sign in to filter by who you support.</div>
+          <% end %>
+        </div>
 
-  <% if @has_more %>
-    <div style="text-align: center; margin: 32px 0;">
-      <button data-action="click->lazy-load#loadMore"
-              data-lazy-load-target="loadButton"
-              style="padding: 12px 32px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,0.04); color: var(--text); font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.15s ease;">
-        Load More Profiles
-      </button>
+        <div class="filter-actions">
+          <button type="submit" class="filter-apply">Apply Filters</button>
+          <a class="filter-reset" href="<%= request.path %>">Reset</a>
+        </div>
+      </form>
     </div>
-  <% end %>
+  </aside>
+
+  <div class="profiles-main">
+    <div class="profiles-toolbar">
+      <div class="profiles-search autocomplete-wrapper">
+        <span style="opacity: 0.7;">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="7" cy="7" r="4.5" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M10.5 10.5L13.5 13.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <input type="text" id="profiles-search-input" placeholder="Search riders by name, username, or email" value="<%= @query %>">
+        <div class="autocomplete-results" id="profiles-search-results"></div>
+      </div>
+    </div>
+
+    <div data-controller="lazy-load"
+         data-lazy-load-url-value="<%= users_path(format: :html) %>"
+         data-lazy-load-has-more-value="<%= @has_more %>"
+         data-lazy-load-page-value="<%= @users.current_page + 1 %>">
+      <div class="profiles-grid" data-lazy-load-target="container">
+        <%= render partial: 'profile_cards', locals: { users: @users, following_ids: @following_ids } %>
+
+        <% if @users.none? %>
+          <div style="grid-column: 1 / -1; text-align: center; color: var(--muted); padding: 20px;">
+            No profiles match that search.
+          </div>
+        <% end %>
+      </div>
+
+      <div data-lazy-load-target="loader" style="display: none; text-align: center; padding: 20px;">
+        <div style="display: inline-block; width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite;"></div>
+      </div>
+
+      <% if @has_more %>
+        <div style="text-align: center; margin: 32px 0;">
+          <button data-action="click->lazy-load#loadMore"
+                  data-lazy-load-target="loadButton"
+                  style="padding: 12px 32px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,0.04); color: var(--text); font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.15s ease;">
+            Load More Profiles
+          </button>
+        </div>
+      <% end %>
+    </div>
+  </div>
 </div>
 
 <script>
   let usersIndexSearchTimeout;
+  let usersIndexAutocompleteTimeout;
+  let profilesSearchInput = null;
+  let profilesSearchResults = null;
+  let profilesSearchCloseHandlerBound = false;
+  let followToggleInitialized = false;
+  const followSyncState = new WeakMap();
 
   function initializeUsersSearch() {
     const input = document.getElementById('profiles-search-input');
+    const resultsDiv = document.getElementById('profiles-search-results');
     if (!input) {
       console.log('[Users Index Search] Input not found');
+      return;
+    }
+    if (!resultsDiv) {
+      console.log('[Users Index Search] Results container not found');
       return;
     }
 
@@ -292,6 +480,10 @@
     // Remove existing event listeners by cloning
     const newInput = input.cloneNode(true);
     input.parentNode.replaceChild(newInput, input);
+
+    // Track the active input/results for shared handlers
+    profilesSearchInput = newInput;
+    profilesSearchResults = resultsDiv;
 
     // Refocus after page reload if we just searched
     if (sessionStorage.getItem('profilesSearchFocus') === 'true') {
@@ -304,9 +496,31 @@
       }, 60);
     }
 
-    function navigateWithQuery() {
+    function normalizeSearchValue(value) {
+      return (value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    }
+
+    function userMatchesQuery(user, query) {
+      const queryLower = query.toLowerCase();
+      const username = (user.username || '').toLowerCase();
+      const name = (user.name || '').toLowerCase();
+
+      if (username.includes(queryLower) || name.includes(queryLower)) {
+        return true;
+      }
+
+      const compactQuery = normalizeSearchValue(queryLower);
+      if (!compactQuery) {
+        return false;
+      }
+
+      return normalizeSearchValue(username).includes(compactQuery) ||
+        normalizeSearchValue(name).includes(compactQuery);
+    }
+
+    function navigateWithQuery(valueOverride) {
       const params = new URLSearchParams(window.location.search);
-      const value = newInput.value.trim();
+      const value = (valueOverride || newInput.value).trim();
       if (value) {
         params.set('q', value);
       } else {
@@ -320,10 +534,45 @@
       window.location = newUrl;
     }
 
+    function updateAutocomplete(query) {
+      const trimmed = query.trim();
+      if (trimmed.length < 2) {
+        resultsDiv.classList.remove('show');
+        resultsDiv.innerHTML = '';
+        return;
+      }
+
+      clearTimeout(usersIndexAutocompleteTimeout);
+      usersIndexAutocompleteTimeout = setTimeout(() => {
+        fetch(`/users.json?q=${encodeURIComponent(trimmed)}`)
+          .then(response => (response.ok ? response.json() : []))
+          .then(users => {
+            const filtered = users.filter(user => userMatchesQuery(user, trimmed));
+            if (filtered.length === 0) {
+              resultsDiv.innerHTML = '<div class="autocomplete-result-item">No matches</div>';
+              resultsDiv.classList.add('show');
+              return;
+            }
+
+            resultsDiv.innerHTML = filtered.slice(0, 8).map(user => `
+              <div class="autocomplete-result-item" data-search-value="${user.name || user.username}">
+                <span class="autocomplete-result-username">${user.username || user.name}</span>
+                <span class="autocomplete-result-type">${user.name || ''}</span>
+              </div>
+            `).join('');
+            resultsDiv.classList.add('show');
+          })
+          .catch(error => {
+            console.error('[Users Index Search] Autocomplete error:', error);
+          });
+      }, 150);
+    }
+
     newInput.addEventListener('input', function() {
       console.log('[Users Index Search] Input changed:', this.value);
       clearTimeout(usersIndexSearchTimeout);
       usersIndexSearchTimeout = setTimeout(navigateWithQuery, 2000);
+      updateAutocomplete(this.value);
     });
 
     newInput.addEventListener('keydown', function(e) {
@@ -335,24 +584,175 @@
       }
     });
 
+    if (!resultsDiv.dataset.initialized) {
+      resultsDiv.dataset.initialized = 'true';
+      resultsDiv.addEventListener('click', function(e) {
+        const item = e.target.closest('.autocomplete-result-item');
+        if (!item) return;
+        const searchValue = item.dataset.searchValue || '';
+        resultsDiv.classList.remove('show');
+        navigateWithQuery(searchValue);
+      });
+    }
+
+    if (!profilesSearchCloseHandlerBound) {
+      profilesSearchCloseHandlerBound = true;
+      document.addEventListener('click', function(e) {
+        if (!profilesSearchInput || !profilesSearchResults) return;
+        if (!profilesSearchInput.contains(e.target) && !profilesSearchResults.contains(e.target)) {
+          profilesSearchResults.classList.remove('show');
+        }
+      });
+    }
+
     console.log('[Users Index Search] Initialization complete');
+  }
+
+  function initializeFollowToggles() {
+    if (followToggleInitialized) return;
+    followToggleInitialized = true;
+
+    document.addEventListener('submit', function(event) {
+      const form = event.target;
+      if (!form || !form.matches('form[data-follow-toggle="true"]')) return;
+
+      event.preventDefault();
+      const state = getFollowSyncState(form);
+      const nextState = form.dataset.following !== 'true';
+
+      state.desired = nextState;
+      setFollowState(form, nextState);
+      scheduleFollowSync(form, state);
+    }, true);
+  }
+
+  function getFollowSyncState(form) {
+    let state = followSyncState.get(form);
+    if (!state) {
+      const initial = form.dataset.following === 'true';
+      state = {
+        desired: initial,
+        confirmed: initial,
+        timer: null,
+        inFlight: false,
+        needsSync: false
+      };
+      followSyncState.set(form, state);
+    }
+    return state;
+  }
+
+  function scheduleFollowSync(form, state) {
+    if (state.timer) clearTimeout(state.timer);
+    state.timer = setTimeout(() => {
+      state.timer = null;
+      syncFollowState(form);
+    }, 200);
+  }
+
+  function getCsrfToken() {
+    return document.querySelector('meta[name="csrf-token"]')?.content || '';
+  }
+
+  function syncFollowState(form) {
+    const state = getFollowSyncState(form);
+
+    if (state.inFlight) {
+      state.needsSync = true;
+      return;
+    }
+
+    if (state.confirmed === state.desired) return;
+
+    const targetState = state.desired;
+    const followUrl = form.dataset.followUrl || form.getAttribute('action');
+    const unfollowUrl = form.dataset.unfollowUrl || form.getAttribute('action');
+    const requestUrl = targetState ? followUrl : unfollowUrl;
+    const requestMethod = targetState ? 'POST' : 'DELETE';
+    const csrfToken = getCsrfToken();
+    const headers = { 'X-Requested-With': 'XMLHttpRequest' };
+    if (csrfToken) {
+      headers['X-CSRF-Token'] = csrfToken;
+    }
+
+    state.inFlight = true;
+    state.needsSync = false;
+
+    fetch(requestUrl, {
+      method: requestMethod,
+      credentials: 'same-origin',
+      headers
+    })
+      .then(response => {
+        if (!response.ok) throw new Error(`Follow toggle failed: ${response.status}`);
+        state.confirmed = targetState;
+      })
+      .catch(error => {
+        console.error('[Users Index] Follow toggle error:', error);
+        if (state.desired === targetState) {
+          state.desired = state.confirmed;
+          setFollowState(form, state.confirmed);
+        }
+      })
+      .finally(() => {
+        state.inFlight = false;
+        if (state.needsSync || state.confirmed !== state.desired) {
+          syncFollowState(form);
+        }
+      });
+  }
+
+  function setFollowState(form, isFollowing) {
+    const followUrl = form.dataset.followUrl || form.getAttribute('action');
+    const unfollowUrl = form.dataset.unfollowUrl || form.getAttribute('action');
+    const button = form.querySelector('.support-btn');
+    const methodInput = form.querySelector('input[name="_method"]');
+
+    if (isFollowing) {
+      form.dataset.following = 'true';
+      form.setAttribute('action', unfollowUrl);
+      if (methodInput) {
+        methodInput.value = 'delete';
+      } else {
+        const hidden = document.createElement('input');
+        hidden.type = 'hidden';
+        hidden.name = '_method';
+        hidden.value = 'delete';
+        form.appendChild(hidden);
+      }
+      if (button) {
+        button.classList.add('active');
+        button.textContent = '✓ Supported';
+      }
+    } else {
+      form.dataset.following = 'false';
+      form.setAttribute('action', followUrl);
+      if (methodInput) methodInput.remove();
+      if (button) {
+        button.classList.remove('active');
+        button.textContent = '+ Support';
+      }
+    }
   }
 
   // Initialize on DOMContentLoaded
   document.addEventListener('DOMContentLoaded', function() {
     console.log('[Users Index Search] DOMContentLoaded fired');
     initializeUsersSearch();
+    initializeFollowToggles();
   });
 
   // Also initialize on Turbo navigation
   document.addEventListener('turbo:load', function() {
     console.log('[Users Index Search] turbo:load fired');
     initializeUsersSearch();
+    initializeFollowToggles();
   });
 
   // Fallback initialization
   setTimeout(function() {
     console.log('[Users Index Search] Fallback initialization');
     initializeUsersSearch();
+    initializeFollowToggles();
   }, 500);
 </script>

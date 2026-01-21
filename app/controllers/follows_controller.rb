@@ -16,7 +16,7 @@ class FollowsController < ApplicationController
     end
 
     respond_to do |format|
-      format.html { redirect_to redirect_path, notice: "You are now following #{@user.username}." }
+      format.html { redirect_to redirect_path }
       format.turbo_stream
     end
   end
@@ -26,7 +26,7 @@ class FollowsController < ApplicationController
     current_user.unfollow(@user)
 
     respond_to do |format|
-      format.html { redirect_to redirect_path, notice: "You unfollowed #{@user.username}." }
+      format.html { redirect_to redirect_path }
       format.turbo_stream
     end
   end

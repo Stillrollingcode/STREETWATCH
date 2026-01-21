@@ -1,0 +1,43 @@
+<% if playlist.films.any? %>
+  <div class="film-grid">
+    <% playlist.films.each do |film| %>
+      <%= link_to film_path(film), class: "film-card" do %>
+        <div class="film-thumbnail">
+          <% if film.display_thumbnail.present? %>
+            <%= image_tag film.display_thumbnail, alt: film.title, loading: "lazy" %>
+          <% else %>
+            <div class="placeholder">🎬</div>
+          <% end %>
+          <div class="inner-ring"></div>
+        </div>
+        <div class="film-info">
+          <div class="film-title"><%= film.title %></div>
+          <% if film.release_date.present? %>
+            <div class="film-year"><%= film.release_date.year %></div>
+          <% end %>
+          <div class="role-badges">
+            <% user.film_roles(film).each do |role| %>
+              <span class="role-badge <%= role.downcase %>"><%= role %></span>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    <% end %>
+  </div>
+  <% if user_signed_in? && current_user.id == user.id %>
+    <div style="margin-top: 16px; text-align: center;">
+      <%= link_to edit_playlist_path(playlist), style: "color: var(--accent); text-decoration: underline;" do %>
+        Manage <%= user.company_type? ? 'Brand Highlights' : 'Favorite Projects' %>
+      <% end %>
+    </div>
+  <% end %>
+<% else %>
+  <div class="empty-state">
+    <% if user_signed_in? && current_user.id == user.id %>
+      No <%= user.company_type? ? 'brand highlights' : 'favorite projects' %> yet.
+      <%= link_to "Add some films", edit_playlist_path(playlist), style: "color: var(--accent); text-decoration: underline;" %>
+    <% else %>
+      No <%= user.company_type? ? 'brand highlights' : 'favorite projects' %> yet.
+    <% end %>
+  </div>
+<% end %>
