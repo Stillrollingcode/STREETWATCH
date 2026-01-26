@@ -829,14 +829,32 @@
       return;
     }
 
-    // Fetch company users for sponsor search
-    let companyUsers = [];
-    fetch('/users.json')
-      .then(response => response.json())
-      .then(data => {
-        companyUsers = data.filter(u => u.profile_type === 'company' || u.profile_type === 'crew');
-      })
-      .catch(error => console.error('Error fetching users:', error));
+    // Fetch company users for sponsor search on demand
+    let companyUsers = null;
+    let companyUsersLoading = false;
+
+    function ensureCompanyUsers() {
+      if (companyUsersLoading || companyUsers) {
+        return;
+      }
+
+      companyUsersLoading = true;
+      fetch('/users.json')
+        .then(response => response.json())
+        .then(data => {
+          companyUsers = data.filter(u => u.profile_type === 'company' || u.profile_type === 'crew');
+        })
+        .catch(error => {
+          console.error('Error fetching users:', error);
+          companyUsers = [];
+        })
+        .finally(() => {
+          companyUsersLoading = false;
+          if (searchInput.value.trim().length > 0) {
+            showResults(searchInput.value.trim());
+          }
+        });
+    }
 
     const selectedSponsors = new Map(); // Map of id -> {id, username, status}
     let currentFocus = -1;
@@ -919,7 +937,8 @@
     }
 
     function showResults(searchTerm) {
-      if (!companyUsers || companyUsers.length === 0) {
+      if (companyUsers === null) {
+        ensureCompanyUsers();
         resultsDiv.innerHTML = '<div class="autocomplete-item no-results" style="padding: 10px 12px; color: var(--muted); text-align: center;">Loading companies...</div>';
         resultsDiv.style.display = 'block';
         return;

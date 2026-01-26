@@ -24,6 +24,8 @@ Rails.application.routes.draw do
   get "/settings", to: "settings#show"
   patch "/settings", to: "settings#update"
   post "/notifications/mark_as_read", to: "notifications#mark_as_read"
+  get "/notifications/menu", to: "notifications#menu", as: :notifications_menu
+  get "/notifications/counts", to: "notifications#counts", as: :notifications_counts
 
   # Policy pages
   get "/about", to: "pages#about", as: :about
@@ -45,6 +47,7 @@ Rails.application.routes.draw do
       # Lazy loading endpoints for profile tabs
       get 'tab/:tab', to: 'users#tab_content', as: :tab_content
       get 'film_subtab/:subtab', to: 'users#film_subtab_content', as: :film_subtab_content
+      get 'photo_subtab/:subtab', to: 'users#photo_subtab_content', as: :photo_subtab_content
     end
     resource :notification_setting, only: [:show, :update, :destroy], controller: 'profile_notification_settings'
   end
@@ -55,6 +58,7 @@ Rails.application.routes.draw do
     resources :film_reviews, only: [:index, :create, :update, :destroy]
     collection do
       get 'video_metadata', to: 'films#video_metadata'
+      get 'autocomplete', to: 'films#autocomplete'
     end
     member do
       post 'hide_from_profile', to: 'films#hide_from_profile'

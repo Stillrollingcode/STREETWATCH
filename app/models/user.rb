@@ -92,7 +92,12 @@ class User < ApplicationRecord
   def all_films(viewing_user: nil)
     # Build a single query to get all film IDs where user is associated
     # This replaces 6 separate pluck queries with one efficient UNION
-    film_ids_sql = <<~SQL
+    film_ids = cached_user_ids(
+      key: "all_film_ids:v1",
+      viewing_user: viewing_user,
+      expires_in: viewing_user.present? ? 2.minutes : 5.minutes
+    ) do
+      film_ids_sql = <<~SQL
       SELECT DISTINCT film_id FROM (
         SELECT film_id FROM film_riders WHERE user_id = :user_id
         UNION
@@ -111,9 +116,10 @@ class User < ApplicationRecord
       )
     SQL
 
-    film_ids = Film.connection.select_values(
-      Film.sanitize_sql([film_ids_sql, { user_id: id }])
-    )
+      Film.connection.select_values(
+        Film.sanitize_sql([film_ids_sql, { user_id: id }])
+      )
+    end
 
     Film.published
         .where(id: film_ids)
@@ -122,8 +128,13 @@ class User < ApplicationRecord
   end
 
   # Get all film IDs for this user (sorted by release date desc) - lightweight for navigation
-  def all_film_ids_sorted
-    film_ids_sql = <<~SQL
+  def all_film_ids_sorted(viewing_user: nil)
+    cached_user_ids(
+      key: "all_film_ids_sorted:v1",
+      viewing_user: viewing_user,
+      expires_in: 2.minutes
+    ) do
+      film_ids_sql = <<~SQL
       SELECT DISTINCT film_id FROM (
         SELECT film_id FROM film_riders WHERE user_id = :user_id
         UNION
@@ -142,13 +153,14 @@ class User < ApplicationRecord
       )
     SQL
 
-    film_ids = Film.connection.select_values(
-      Film.sanitize_sql([film_ids_sql, { user_id: id }])
-    )
+      film_ids = Film.connection.select_values(
+        Film.sanitize_sql([film_ids_sql, { user_id: id }])
+      )
 
-    Film.where(id: film_ids)
-        .order(Arel.sql('COALESCE(films.release_date, films.created_at) DESC'))
-        .pluck(:id)
+      Film.where(id: film_ids)
+          .order(Arel.sql('COALESCE(films.release_date, films.created_at) DESC'))
+          .pluck(:id)
+    end
   end
 
   # Get films hidden from profile (only for own profile)
@@ -190,13 +202,19 @@ class User < ApplicationRecord
       )
     SQL
 
-    photo_ids = Photo.connection.select_values(
-      Photo.sanitize_sql([photo_ids_sql, { user_id: id }])
-    )
+    photo_ids = cached_user_ids(
+      key: "all_photo_ids:v1",
+      viewing_user: viewing_user,
+      expires_in: viewing_user.present? ? 2.minutes : 5.minutes
+    ) do
+      Photo.connection.select_values(
+        Photo.sanitize_sql([photo_ids_sql, { user_id: id }])
+      )
+    end
 
     Photo.published
          .where(id: photo_ids)
-         .includes(image_attachment: :blob)
+         .includes(:riders, image_attachment: :blob)
          .recent
   end
 
@@ -205,7 +223,7 @@ class User < ApplicationRecord
     Photo.published
          .joins("INNER JOIN hidden_profile_photos ON hidden_profile_photos.photo_id = photos.id")
          .where(hidden_profile_photos: { user_id: id })
-         .includes(image_attachment: :blob)
+         .includes(:riders, image_attachment: :blob)
          .recent
   end
 
@@ -365,6 +383,13 @@ class User < ApplicationRecord
 
   def normalize_username
     self.username = username&.strip&.downcase
+  end
+
+  def cached_user_ids(key:, viewing_user:, expires_in:)
+    return yield if viewing_user&.id == id
+
+    cache_key = CacheKeyHelpers.user_cache_key(self, key)
+    Rails.cache.fetch(cache_key, expires_in: expires_in) { yield }
   end
 
   def self.generate_available_username(base)

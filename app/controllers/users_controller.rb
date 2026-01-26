@@ -57,13 +57,15 @@ class UsersController < ApplicationController
     @user = User.includes({ avatar_attachment: :blob }, :preference).find_by_friendly_or_id(params[:id])
     @query = params[:q].to_s.strip
 
-    # Preload counts using counter caches or single queries (not N+1)
-    # These are cheap: just reading integers from user record or single COUNT queries
-    @followers_count = @user.passive_follows.count
-    @following_count = @user.active_follows.count
+    # Preload counts from counter cache columns
+    @followers_count = @user.followers_count
+    @following_count = @user.following_count
 
-    # Preload approved sponsors (usually 0-5, very small)
-    @approved_sponsors = @user.approved_sponsors.includes(avatar_attachment: :blob).to_a
+    # Preload approved sponsors (usually 0-5, small list)
+    sponsors_ttl = user_signed_in? ? 2.minutes : 10.minutes
+    @approved_sponsors = fetch_user_cache("approved_sponsors:v1", expires_in: sponsors_ttl) do
+      @user.approved_sponsors.includes(avatar_attachment: :blob).to_a
+    end
 
     # Preload data for logged-in user viewing profiles
     # This prevents multiple queries in the view template
@@ -189,6 +191,34 @@ class UsersController < ApplicationController
     end
   end
 
+  # Endpoint for loading photo sub-tab content (albums, pending, hidden)
+  def photo_subtab_content
+    @user = User.find_by_friendly_or_id(params[:id])
+    subtab = params[:subtab]
+    is_own_profile = user_signed_in? && current_user.id == @user.id
+
+    case subtab
+    when 'albums'
+      albums = @user.albums.includes(photos: :image_attachment).order(created_at: :desc)
+      albums = albums.where(is_public: true) unless is_own_profile
+      render partial: 'users/subtabs/albums', locals: { albums: albums, user: @user }
+    when 'pending-photos'
+      return head :not_found unless is_own_profile
+      photos = Photo.where(user_id: @user.id)
+                    .joins(:photo_approvals)
+                    .where(photo_approvals: { status: 'pending' })
+                    .distinct
+                    .includes(:photo_approvals, :riders, image_attachment: :blob)
+      render partial: 'users/subtabs/pending_photos', locals: { photos: photos, user: @user }
+    when 'hidden-photos'
+      return head :not_found unless is_own_profile
+      photos = @user.hidden_photos_from_profile.includes(:riders, image_attachment: :blob)
+      render partial: 'users/subtabs/hidden_photos', locals: { photos: photos, user: @user }
+    else
+      head :not_found
+    end
+  end
+
   def following
     @user = User.find_by_friendly_or_id(params[:id])
     @query = params[:q].to_s.strip
@@ -264,7 +294,7 @@ class UsersController < ApplicationController
 
   def load_photos_data
     @photos = @user.all_photos(viewing_user: current_user)
-                   .includes(:album, image_attachment: :blob)
+                   .includes(:album, :riders, image_attachment: :blob)
 
     @photos = @photos.where("LOWER(title) LIKE ?", "%#{@query.downcase}%") if @query.present?
 
@@ -311,11 +341,14 @@ class UsersController < ApplicationController
     when 'alpha_desc'
       scope.order(Arel.sql("LOWER(COALESCE(NULLIF(users.name, ''), users.username)) DESC"))
     when 'followers_desc'
-      scope.joins("LEFT JOIN follows AS follower_counts ON follower_counts.followed_id = users.id")
-           .group("users.id")
-           .order(Arel.sql("COUNT(follower_counts.id) DESC, LOWER(COALESCE(NULLIF(users.name, ''), users.username)) ASC"))
+      scope.order(Arel.sql("users.followers_count DESC, LOWER(COALESCE(NULLIF(users.name, ''), users.username)) ASC"))
     else
       scope.order(Arel.sql("LOWER(COALESCE(NULLIF(users.name, ''), users.username)) ASC"))
     end
+  end
+
+  def fetch_user_cache(key, expires_in:)
+    cache_key = CacheKeyHelpers.user_cache_key(@user, key)
+    Rails.cache.fetch(cache_key, expires_in: expires_in) { yield }
   end
 end

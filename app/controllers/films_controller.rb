@@ -1,7 +1,7 @@
 class FilmsController < ApplicationController
   before_action :set_film, only: [:show, :edit, :update, :destroy, :hide_from_profile, :unhide_from_profile, :navigation]
   before_action :increment_views, only: [:show]
-  before_action :authenticate_user!, except: [:index, :show, :navigation]
+  before_action :authenticate_user!, except: [:index, :show, :navigation, :autocomplete]
   before_action :authorize_user!, only: [:edit, :update, :destroy]
 
   def index
@@ -23,59 +23,7 @@ class FilmsController < ApplicationController
 
       # Apply search filter using Searchable concern
       if params[:q].present?
-        @films = @films.search_with_sql(
-          params[:q],
-          # PostgreSQL version
-          "films.title ILIKE :q OR
-           COALESCE(films.company, '') ILIKE :q OR
-           COALESCE(films.description, '') ILIKE :q OR
-           COALESCE(films.custom_filmer_name, '') ILIKE :q OR
-           COALESCE(films.custom_editor_name, '') ILIKE :q OR
-           COALESCE(films.custom_riders, '') ILIKE :q OR
-           EXISTS (
-             SELECT 1 FROM film_riders
-             JOIN users ON users.id = film_riders.user_id
-             WHERE film_riders.film_id = films.id AND (COALESCE(users.username, '') ILIKE :q OR COALESCE(users.name, '') ILIKE :q)
-           ) OR
-           EXISTS (
-             SELECT 1 FROM film_filmers
-             JOIN users ON users.id = film_filmers.user_id
-             WHERE film_filmers.film_id = films.id AND (COALESCE(users.username, '') ILIKE :q OR COALESCE(users.name, '') ILIKE :q)
-           ) OR
-           EXISTS (
-             SELECT 1 FROM film_companies
-             JOIN users ON users.id = film_companies.user_id
-             WHERE film_companies.film_id = films.id AND (COALESCE(users.username, '') ILIKE :q OR COALESCE(users.name, '') ILIKE :q)
-           ) OR
-           EXISTS (SELECT 1 FROM users WHERE users.id = films.filmer_user_id AND (COALESCE(users.username, '') ILIKE :q OR COALESCE(users.name, '') ILIKE :q)) OR
-           EXISTS (SELECT 1 FROM users WHERE users.id = films.editor_user_id AND (COALESCE(users.username, '') ILIKE :q OR COALESCE(users.name, '') ILIKE :q)) OR
-           EXISTS (SELECT 1 FROM users WHERE users.id = films.company_user_id AND (COALESCE(users.username, '') ILIKE :q OR COALESCE(users.name, '') ILIKE :q))",
-          # SQLite version
-          "LOWER(films.title) LIKE :q OR
-           LOWER(COALESCE(films.company, '')) LIKE :q OR
-           LOWER(COALESCE(films.description, '')) LIKE :q OR
-           LOWER(COALESCE(films.custom_filmer_name, '')) LIKE :q OR
-           LOWER(COALESCE(films.custom_editor_name, '')) LIKE :q OR
-           LOWER(COALESCE(films.custom_riders, '')) LIKE :q OR
-           EXISTS (
-             SELECT 1 FROM film_riders
-             JOIN users ON users.id = film_riders.user_id
-             WHERE film_riders.film_id = films.id AND (LOWER(COALESCE(users.username, '')) LIKE :q OR LOWER(COALESCE(users.name, '')) LIKE :q)
-           ) OR
-           EXISTS (
-             SELECT 1 FROM film_filmers
-             JOIN users ON users.id = film_filmers.user_id
-             WHERE film_filmers.film_id = films.id AND (LOWER(COALESCE(users.username, '')) LIKE :q OR LOWER(COALESCE(users.name, '')) LIKE :q)
-           ) OR
-           EXISTS (
-             SELECT 1 FROM film_companies
-             JOIN users ON users.id = film_companies.user_id
-             WHERE film_companies.film_id = films.id AND (LOWER(COALESCE(users.username, '')) LIKE :q OR LOWER(COALESCE(users.name, '')) LIKE :q)
-           ) OR
-           EXISTS (SELECT 1 FROM users WHERE users.id = films.filmer_user_id AND (LOWER(COALESCE(users.username, '')) LIKE :q OR LOWER(COALESCE(users.name, '')) LIKE :q)) OR
-           EXISTS (SELECT 1 FROM users WHERE users.id = films.editor_user_id AND (LOWER(COALESCE(users.username, '')) LIKE :q OR LOWER(COALESCE(users.name, '')) LIKE :q)) OR
-           EXISTS (SELECT 1 FROM users WHERE users.id = films.company_user_id AND (LOWER(COALESCE(users.username, '')) LIKE :q OR LOWER(COALESCE(users.name, '')) LIKE :q))"
-        )
+        @films = @films.search_with_sql(params[:q], *film_search_sql)
       end
 
       # Apply sorting (override default if specified)
@@ -231,6 +179,18 @@ class FilmsController < ApplicationController
     render json: { release_date: release_date&.iso8601 }
   end
 
+  def autocomplete
+    query = params[:q].to_s.strip
+    return render json: [] if query.length < 2
+
+    films = Film.search_with_sql(query, *film_search_sql)
+                .select(:id, :title)
+                .order(Arel.sql('COALESCE(films.release_date, films.created_at) DESC'))
+                .limit(8)
+
+    render json: films.map { |film| { id: film.id, title: film.title } }
+  end
+
   def new
     @film = Film.new
   end
@@ -306,7 +266,7 @@ class FilmsController < ApplicationController
         film_ids = playlist&.playlist_films&.ordered&.pluck(:film_id) || []
       when 'profile'
         user = User.find_by(id: params[:nav_id])
-        film_ids = user&.all_film_ids_sorted || [] if user
+        film_ids = user&.all_film_ids_sorted(viewing_user: current_user) || [] if user
       else # 'films' or default
         film_ids = films_index_ids(params[:nav_sort], params[:nav_type])
       end
@@ -349,19 +309,80 @@ class FilmsController < ApplicationController
   private
 
   def films_index_ids(sort, film_type)
-    films = Film.all
-    films = films.where(film_type: film_type) if film_type.present?
+    sort_key = sort.presence || 'date_desc'
+    type_key = film_type.presence || 'all'
+    cache_key = CacheKeyHelpers.versioned_key("films_index_ids:#{sort_key}:#{type_key}", 1)
 
-    case sort
-    when 'date_asc'
-      films.order(Arel.sql('COALESCE(films.release_date, films.created_at) ASC')).pluck(:id)
-    when 'alpha_asc'
-      films.order(Arel.sql('LOWER(films.title) ASC')).pluck(:id)
-    when 'alpha_desc'
-      films.order(Arel.sql('LOWER(films.title) DESC')).pluck(:id)
-    else # 'date_desc' or default
-      films.order(Arel.sql('COALESCE(films.release_date, films.created_at) DESC')).pluck(:id)
+    Rails.cache.fetch(cache_key, expires_in: 2.minutes) do
+      films = Film.all
+      films = films.where(film_type: film_type) if film_type.present?
+
+      case sort_key
+      when 'date_asc'
+        films.order(Arel.sql('COALESCE(films.release_date, films.created_at) ASC')).pluck(:id)
+      when 'alpha_asc'
+        films.order(Arel.sql('LOWER(films.title) ASC')).pluck(:id)
+      when 'alpha_desc'
+        films.order(Arel.sql('LOWER(films.title) DESC')).pluck(:id)
+      else # 'date_desc' or default
+        films.order(Arel.sql('COALESCE(films.release_date, films.created_at) DESC')).pluck(:id)
+      end
     end
+  end
+
+  def film_search_sql
+    [
+      # PostgreSQL version
+      "films.title ILIKE :q OR
+       COALESCE(films.company, '') ILIKE :q OR
+       COALESCE(films.description, '') ILIKE :q OR
+       COALESCE(films.custom_filmer_name, '') ILIKE :q OR
+       COALESCE(films.custom_editor_name, '') ILIKE :q OR
+       COALESCE(films.custom_riders, '') ILIKE :q OR
+       EXISTS (
+         SELECT 1 FROM film_riders
+         JOIN users ON users.id = film_riders.user_id
+         WHERE film_riders.film_id = films.id AND (COALESCE(users.username, '') ILIKE :q OR COALESCE(users.name, '') ILIKE :q)
+       ) OR
+       EXISTS (
+         SELECT 1 FROM film_filmers
+         JOIN users ON users.id = film_filmers.user_id
+         WHERE film_filmers.film_id = films.id AND (COALESCE(users.username, '') ILIKE :q OR COALESCE(users.name, '') ILIKE :q)
+       ) OR
+       EXISTS (
+         SELECT 1 FROM film_companies
+         JOIN users ON users.id = film_companies.user_id
+         WHERE film_companies.film_id = films.id AND (COALESCE(users.username, '') ILIKE :q OR COALESCE(users.name, '') ILIKE :q)
+       ) OR
+       EXISTS (SELECT 1 FROM users WHERE users.id = films.filmer_user_id AND (COALESCE(users.username, '') ILIKE :q OR COALESCE(users.name, '') ILIKE :q)) OR
+       EXISTS (SELECT 1 FROM users WHERE users.id = films.editor_user_id AND (COALESCE(users.username, '') ILIKE :q OR COALESCE(users.name, '') ILIKE :q)) OR
+       EXISTS (SELECT 1 FROM users WHERE users.id = films.company_user_id AND (COALESCE(users.username, '') ILIKE :q OR COALESCE(users.name, '') ILIKE :q))",
+      # SQLite version
+      "LOWER(films.title) LIKE :q OR
+       LOWER(COALESCE(films.company, '')) LIKE :q OR
+       LOWER(COALESCE(films.description, '')) LIKE :q OR
+       LOWER(COALESCE(films.custom_filmer_name, '')) LIKE :q OR
+       LOWER(COALESCE(films.custom_editor_name, '')) LIKE :q OR
+       LOWER(COALESCE(films.custom_riders, '')) LIKE :q OR
+       EXISTS (
+         SELECT 1 FROM film_riders
+         JOIN users ON users.id = film_riders.user_id
+         WHERE film_riders.film_id = films.id AND (LOWER(COALESCE(users.username, '')) LIKE :q OR LOWER(COALESCE(users.name, '')) LIKE :q)
+       ) OR
+       EXISTS (
+         SELECT 1 FROM film_filmers
+         JOIN users ON users.id = film_filmers.user_id
+         WHERE film_filmers.film_id = films.id AND (LOWER(COALESCE(users.username, '')) LIKE :q OR LOWER(COALESCE(users.name, '')) LIKE :q)
+       ) OR
+       EXISTS (
+         SELECT 1 FROM film_companies
+         JOIN users ON users.id = film_companies.user_id
+         WHERE film_companies.film_id = films.id AND (LOWER(COALESCE(users.username, '')) LIKE :q OR LOWER(COALESCE(users.name, '')) LIKE :q)
+       ) OR
+       EXISTS (SELECT 1 FROM users WHERE users.id = films.filmer_user_id AND (LOWER(COALESCE(users.username, '')) LIKE :q OR LOWER(COALESCE(users.name, '')) LIKE :q)) OR
+       EXISTS (SELECT 1 FROM users WHERE users.id = films.editor_user_id AND (LOWER(COALESCE(users.username, '')) LIKE :q OR LOWER(COALESCE(users.name, '')) LIKE :q)) OR
+       EXISTS (SELECT 1 FROM users WHERE users.id = films.company_user_id AND (LOWER(COALESCE(users.username, '')) LIKE :q OR LOWER(COALESCE(users.name, '')) LIKE :q))"
+    ]
   end
 
   def set_film

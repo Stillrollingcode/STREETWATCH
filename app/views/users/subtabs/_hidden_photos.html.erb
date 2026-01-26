@@ -1,0 +1,26 @@
+<% if photos.any? %>
+  <div class="film-grid">
+    <% photos.each do |photo| %>
+      <%= link_to photo_path(photo), class: "film-card" do %>
+        <div class="photo-thumbnail">
+          <% if photo.image.attached? %>
+            <%= image_tag url_for(photo.image), alt: photo.title, loading: "lazy" %>
+          <% else %>
+            <div class="placeholder">📷</div>
+          <% end %>
+        </div>
+        <div class="film-info">
+          <div class="film-title"><%= photo.title %></div>
+          <div class="role-badges">
+            <% roles = user.photo_roles(photo) %>
+            <% roles.each do |role| %>
+              <span class="role-badge <%= role.downcase %>"><%= role %></span>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    <% end %>
+  </div>
+<% else %>
+  <div class="empty-state">No hidden photos.</div>
+<% end %>

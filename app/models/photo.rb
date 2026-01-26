@@ -28,7 +28,7 @@ class Photo < ApplicationRecord
   scope :by_date, -> { order(date_taken: :desc) }
   scope :published, -> {
     joins(:image_attachment)
-    .where(id: Photo.select(:id).left_joins(:photo_approvals).group(:id).having('COUNT(CASE WHEN photo_approvals.status = ? THEN 1 END) = 0', 'pending'))
+      .where.not(id: PhotoApproval.pending.select(:photo_id))
   }
 
   def photographer_name

@@ -81,7 +81,7 @@ class Film < ApplicationRecord
   scope :recent, -> { order(release_date: :desc, created_at: :desc) }
   scope :by_company, ->(company) { where(company: company) if company.present? }
   scope :by_type, ->(type) { where(film_type: type) if type.present? }
-  scope :published, -> { where(id: Film.select(:id).left_joins(:film_approvals).group(:id).having('COUNT(CASE WHEN film_approvals.status = ? THEN 1 END) = 0', 'pending')) }
+  scope :published, -> { where.not(id: FilmApproval.pending.select(:film_id)) }
 
   def formatted_runtime
     return nil unless runtime.present?

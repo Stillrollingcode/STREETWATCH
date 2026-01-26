@@ -757,7 +757,7 @@
       </div>
       <%# Auto-hide flash %>
       <script>
-        const hideFlashes = () => {
+        function hideFlashes() {
           const flashes = document.querySelectorAll(".flash-banner");
           flashes.forEach((el) => {
             setTimeout(() => {
@@ -770,7 +770,7 @@
               }, 300);
             }, 2500);
           });
-        };
+        }
         document.addEventListener("DOMContentLoaded", hideFlashes);
         document.addEventListener("turbo:load", hideFlashes);
         document.addEventListener("turbo:render", hideFlashes);
@@ -796,84 +796,23 @@
         <div class="nav-actions">
           <% if user_signed_in? %>
             <%
-              pending_approvals_count = current_user.film_approvals.pending.count
-              unread_notifications_count = current_user.notifications.where(read_at: nil).count
-              total_activity_count = pending_approvals_count + unread_notifications_count
+              total_activity_count = 0
             %>
-            <div class="activity-dropdown">
-              <button type="button" class="activity-btn" id="activity-btn">
+            <div class="activity-dropdown" data-controller="activity-menu" data-activity-menu-url-value="<%= notifications_menu_path %>" data-activity-menu-counts-url-value="<%= notifications_counts_path %>">
+              <button type="button" class="activity-btn" data-action="click->activity-menu#toggle">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0;">
                   <path d="M8 2C6.34 2 5 3.34 5 5V7.17L3.83 10H12.17L11 7.17V5C11 3.34 9.66 2 8 2Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                   <path d="M9.5 10C9.5 10.83 8.83 11.5 8 11.5C7.17 11.5 6.5 10.83 6.5 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
                 <span>Activity</span>
                 <% if total_activity_count > 0 %>
-                  <span class="activity-badge"><%= total_activity_count %></span>
+                  <span class="activity-badge" data-activity-menu-target="badge"><%= total_activity_count %></span>
+                <% else %>
+                  <span class="activity-badge" data-activity-menu-target="badge" style="display: none;"></span>
                 <% end %>
               </button>
-              <div class="activity-menu" id="activity-menu">
-                <div class="activity-header">
-                  <span>Recent Activity</span>
-                  <% if unread_notifications_count > 0 %>
-                    <button type="button" class="mark-read-btn" id="mark-read-btn" onclick="markNotificationsAsRead()">
-                      Mark as Read
-                    </button>
-                  <% end %>
-                </div>
-                <%
-                  # Fetch notifications for grouping
-                  unread_notifications = current_user.notifications.where(read_at: nil).order(created_at: :desc).limit(5)
-                  all_notifications = current_user.notifications.order(created_at: :desc).limit(20)
-                  unread_grouped = group_notifications(unread_notifications)
-                  all_grouped = group_notifications(all_notifications)
-                  # Show expand button if there are any read notifications (not just unread)
-                  has_more_notifications = current_user.notifications.where.not(read_at: nil).exists? || current_user.notifications.count > 5
-                %>
-
-                <div class="activity-content-compact" id="activity-content-compact">
-                  <% if total_activity_count > 0 %>
-                    <% if pending_approvals_count > 0 %>
-                      <% current_user.film_approvals.pending.includes(:film).limit(5).each do |approval| %>
-                        <%= link_to film_path(approval.film), class: "activity-item" do %>
-                          <div class="activity-type-badge approval">Approval Needed</div>
-                          <div class="activity-item-title"><%= approval.film.title %></div>
-                          <div class="activity-item-desc">You've been tagged as <%= approval.approval_type.titleize %></div>
-                          <div class="activity-item-time"><%= time_ago_in_words(approval.created_at) %> ago</div>
-                        <% end %>
-                      <% end %>
-                    <% end %>
-                    <% unread_grouped.each do |group| %>
-                      <%= render partial: 'shared/notification_group', locals: { group: group, is_unread: true } %>
-                    <% end %>
-                  <% else %>
-                    <div class="activity-empty">
-                      <div style="font-size: 32px; margin-bottom: 8px; opacity: 0.3;">✓</div>
-                      <div>No new activity</div>
-                    </div>
-                  <% end %>
-
-                  <% if has_more_notifications %>
-                    <button type="button" class="expand-notifications-btn" id="expand-notifications-btn" onclick="toggleNotificationsExpand()">
-                      <span class="expand-text">Show All Notifications</span>
-                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-left: 4px;">
-                        <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                      </svg>
-                    </button>
-                  <% end %>
-                </div>
-
-                <div class="activity-content-expanded" id="activity-content-expanded" style="display: none;">
-                  <% all_grouped.each do |group| %>
-                    <%= render partial: 'shared/notification_group', locals: { group: group, is_unread: group[:notifications].any? { |n| n.read_at.nil? } } %>
-                  <% end %>
-
-                  <button type="button" class="expand-notifications-btn" onclick="toggleNotificationsExpand()">
-                    <span class="expand-text">Show Less</span>
-                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-left: 4px; transform: rotate(180deg);">
-                      <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                  </button>
-                </div>
+              <div class="activity-menu" data-activity-menu-target="menu">
+                <div style="padding: 16px; color: var(--muted); font-size: 13px;">Loading activity...</div>
               </div>
             </div>
             <span style="color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em;"><%= current_user.username.presence || current_user.email %></span>
@@ -950,154 +889,6 @@
     </main>
 
     <%= render 'shared/footer' %>
-
-    <script>
-      // Activity dropdown - using event delegation to avoid duplicate listeners
-      (function() {
-        let isInitialized = false;
-
-        function initActivityDropdown() {
-          // Only initialize once
-          if (isInitialized) return;
-          isInitialized = true;
-
-          // Use event delegation on document to handle clicks
-          document.addEventListener('click', function(e) {
-            const activityBtn = document.getElementById('activity-btn');
-            const activityMenu = document.getElementById('activity-menu');
-
-            if (!activityBtn || !activityMenu) return;
-
-            // Check if clicked on activity button
-            if (activityBtn.contains(e.target)) {
-              e.stopPropagation();
-              activityMenu.classList.toggle('open');
-            }
-            // Check if clicked inside the menu
-            else if (activityMenu.contains(e.target)) {
-              e.stopPropagation();
-            }
-            // Clicked outside - close the menu
-            else {
-              activityMenu.classList.remove('open');
-            }
-          });
-        }
-
-        document.addEventListener('DOMContentLoaded', initActivityDropdown);
-      })();
-
-      function markNotificationsAsRead() {
-        const compactView = document.getElementById('activity-content-compact');
-        const expandedView = document.getElementById('activity-content-expanded');
-        if (!compactView) return;
-
-        // Count notifications BEFORE removing them
-        const allUnreadNotificationItems = Array.from(document.querySelectorAll('.activity-item.unread')).filter(item => {
-          return item.querySelector('.activity-type-badge.notification');
-        });
-
-        const notificationItems = Array.from(compactView.querySelectorAll('.activity-item')).filter(item => {
-          return item.querySelector('.activity-type-badge.notification');
-        });
-        const notificationCount = allUnreadNotificationItems.length > 0 ? allUnreadNotificationItems.length : notificationItems.length;
-
-        if (notificationCount === 0) {
-          return; // No notifications to mark as read
-        }
-
-        // Get CSRF token from body data attribute (most reliable for Turbo apps)
-        let csrfToken = document.body.getAttribute('data-csrf-token');
-
-        if (!csrfToken) {
-          // Fallback: Try meta tag in head
-          const metaTag = document.head?.querySelector('meta[name="csrf-token"]');
-          if (metaTag) {
-            csrfToken = metaTag.getAttribute('content');
-          }
-        }
-
-        if (!csrfToken) {
-          console.error('CSRF token not found');
-          return;
-        }
-
-        fetch('/notifications/mark_as_read', {
-          method: 'POST',
-          headers: {
-            'X-CSRF-Token': csrfToken,
-            'Content-Type': 'application/json'
-          }
-        }).then(response => {
-          if (response.ok) {
-            // Remove unread notifications from the compact view only
-            notificationItems.forEach(item => {
-              item.remove();
-            });
-
-            // Clear unread styling in the expanded view
-            if (expandedView) {
-              expandedView.querySelectorAll('.activity-item.unread').forEach(item => {
-                item.classList.remove('unread');
-              });
-            }
-
-            // Hide the "Mark as Read" button
-            const markReadBtn = document.getElementById('mark-read-btn');
-            if (markReadBtn) {
-              markReadBtn.remove();
-            }
-
-            // Update the badge count (subtract notification count)
-            const badge = document.querySelector('.activity-badge');
-            if (badge) {
-              const currentCount = parseInt(badge.textContent);
-              const newCount = currentCount - notificationCount;
-
-              if (newCount > 0) {
-                badge.textContent = newCount;
-              } else {
-                badge.remove();
-              }
-            }
-
-            // Show empty state in compact view if nothing remains there
-            const remainingCompactItems = compactView.querySelectorAll('.activity-item');
-            if (remainingCompactItems.length === 0) {
-              const existingEmpty = compactView.querySelector('.activity-empty');
-              if (!existingEmpty) {
-                const emptyState = document.createElement('div');
-                emptyState.className = 'activity-empty';
-                emptyState.innerHTML = '<div style="font-size: 32px; margin-bottom: 8px; opacity: 0.3;">✓</div><div>No new activity</div>';
-                const expandBtn = document.getElementById('expand-notifications-btn');
-                if (expandBtn) {
-                  compactView.insertBefore(emptyState, expandBtn);
-                } else {
-                  compactView.appendChild(emptyState);
-                }
-              }
-            }
-          }
-        }).catch(error => {
-          console.error('Error marking notifications as read:', error);
-        });
-      }
-
-      function toggleNotificationsExpand() {
-        const compactView = document.getElementById('activity-content-compact');
-        const expandedView = document.getElementById('activity-content-expanded');
-
-        if (compactView.style.display === 'none') {
-          // Show compact, hide expanded
-          compactView.style.display = 'block';
-          expandedView.style.display = 'none';
-        } else {
-          // Show expanded, hide compact
-          compactView.style.display = 'none';
-          expandedView.style.display = 'block';
-        }
-      }
-    </script>
 
     <script>
       // Global Search Autocomplete

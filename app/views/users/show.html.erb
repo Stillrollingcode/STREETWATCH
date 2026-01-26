@@ -875,7 +875,7 @@
   <div class="profile-spinner"></div>
 </div>
 
-<div class="profile-shell">
+<div class="profile-shell" data-controller="profile-tabs profile-filters">
   <div class="profile-card">
     <div class="profile-header">
       <div class="avatar-section" style="margin-bottom: 0; padding-bottom: 0; border-bottom: none; flex: 1;">
@@ -1051,7 +1051,7 @@
       <div class="content-sub-section active" id="all-films-section">
       <!-- Search and Sort Controls (with Film Type Filter) -->
       <div style="display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; align-items: center;">
-        <select id="film-type-select" style="padding: 10px 32px 10px 12px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,0.04); color: var(--text); font-size: 14px; font-family: inherit; cursor: pointer; appearance: none; background-image: url('data:image/svg+xml,%3Csvg width=\'12\' height=\'8\' viewBox=\'0 0 12 8\' fill=\'none\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M1 1L6 6L11 1\' stroke=\'%23999\' stroke-width=\'2\' stroke-linecap=\'round\'/%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 12px center;">
+        <select id="film-type-select" data-profile-filters-target="filmType" data-action="change->profile-filters#changeFilters" style="padding: 10px 32px 10px 12px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,0.04); color: var(--text); font-size: 14px; font-family: inherit; cursor: pointer; appearance: none; background-image: url('data:image/svg+xml,%3Csvg width=\'12\' height=\'8\' viewBox=\'0 0 12 8\' fill=\'none\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M1 1L6 6L11 1\' stroke=\'%23999\' stroke-width=\'2\' stroke-linecap=\'round\'/%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 12px center;">
           <option value="" <%= 'selected' if params[:film_type].blank? %>>All Types</option>
           <option value="full_length" <%= 'selected' if params[:film_type] == 'full_length' %>>Full Length</option>
           <option value="rider_part" <%= 'selected' if params[:film_type] == 'rider_part' %>>Rider Part</option>
@@ -1067,9 +1067,9 @@
               <path d="M10.5 10.5L13.5 13.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
             </svg>
           </span>
-          <input type="text" id="films-search" placeholder="Search films..." value="<%= @query %>">
+          <input type="text" id="films-search" data-profile-filters-target="filmsSearch" data-action="input->profile-filters#debouncedSearch keydown->profile-filters#submitSearch" placeholder="Search films..." value="<%= @query %>">
         </div>
-        <select id="films-sort-select" style="padding: 10px 32px 10px 12px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,0.04); color: var(--text); font-size: 14px; font-family: inherit; cursor: pointer; appearance: none; background-image: url('data:image/svg+xml,%3Csvg width=\'12\' height=\'8\' viewBox=\'0 0 12 8\' fill=\'none\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M1 1L6 6L11 1\' stroke=\'%23999\' stroke-width=\'2\' stroke-linecap=\'round\'/%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 12px center;">
+        <select id="films-sort-select" data-profile-filters-target="filmsSort" data-action="change->profile-filters#changeFilters" style="padding: 10px 32px 10px 12px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,0.04); color: var(--text); font-size: 14px; font-family: inherit; cursor: pointer; appearance: none; background-image: url('data:image/svg+xml,%3Csvg width=\'12\' height=\'8\' viewBox=\'0 0 12 8\' fill=\'none\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M1 1L6 6L11 1\' stroke=\'%23999\' stroke-width=\'2\' stroke-linecap=\'round\'/%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 12px center;">
           <option value="date_desc" <%= 'selected' if params[:sort] == 'date_desc' || params[:sort].blank? %>>Newest-Oldest</option>
           <option value="date_asc" <%= 'selected' if params[:sort] == 'date_asc' %>>Oldest-Newest</option>
           <option value="alpha_asc" <%= 'selected' if params[:sort] == 'alpha_asc' %>>A-Z</option>
@@ -1207,7 +1207,7 @@
             <path d="M10.5 10.5L13.5 13.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
           </svg>
         </span>
-        <input type="text" id="photos-search" placeholder="Search photos..." value="<%= @query %>">
+          <input type="text" id="photos-search" data-profile-filters-target="photosSearch" data-action="input->profile-filters#debouncedSearch keydown->profile-filters#submitSearch" placeholder="Search photos..." value="<%= @query %>">
       </div>
       <% if @photos&.any? %>
         <div data-controller="lazy-load"
@@ -1258,110 +1258,25 @@
       </div>
 
       <!-- Albums Sub-section -->
-      <div class="content-sub-section" id="albums-section">
-      <% albums = @user.albums.includes(photos: :image_attachment).order(created_at: :desc) %>
-      <% unless @is_own_profile %>
-        <% albums = albums.where(is_public: true) %>
-      <% end %>
-      <% if albums.any? %>
-        <div class="film-grid">
-          <% albums.each do |album| %>
-            <%= link_to album_path(album), class: "film-card" do %>
-              <div class="playlist-thumbnail" style="position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 12px; overflow: hidden; background: rgba(255,255,255,0.02);">
-                <% if album.photos.any? && album.photos.first.image.attached? %>
-                  <%= image_tag url_for(album.photos.first.image), alt: album.title, loading: "lazy", style: "width: 100%; height: 100%; object-fit: cover;" %>
-                <% else %>
-                  <div class="placeholder" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 48px;">📷</div>
-                <% end %>
-                <div style="position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.7); color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;">
-                  <%= pluralize(album.photos.count, 'photo') %>
-                </div>
-                <% unless album.is_public %>
-                  <div style="position: absolute; top: 8px; left: 8px; background: rgba(100, 100, 100, 0.9); color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 4px;">
-                    <svg width="10" height="10" viewBox="0 0 12 16" fill="none" style="flex-shrink: 0;">
-                      <path fill-rule="evenodd" clip-rule="evenodd" d="M4 4v2h4V4a2 2 0 10-4 0zm6.5 2V4a3.5 3.5 0 10-7 0v2H2a1 1 0 00-1 1v8a1 1 0 001 1h10a1 1 0 001-1V7a1 1 0 00-1-1h-1.5z" fill="currentColor"/>
-                    </svg>
-                    Private
-                  </div>
-                <% end %>
-              </div>
-              <div class="film-info">
-                <div class="film-title"><%= album.title %></div>
-                <% if album.date %>
-                  <div style="color: var(--muted); font-size: 12px; margin-top: 4px;">
-                    <%= album.date.strftime("%b %Y") %>
-                  </div>
-                <% end %>
-              </div>
-            <% end %>
-          <% end %>
+      <div class="content-sub-section" id="albums-section" data-lazy-url="<%= photo_subtab_content_user_path(@user, subtab: 'albums') %>">
+        <div class="lazy-loader" style="text-align: center; padding: 2rem;">
+          <div style="display: inline-block; width: 3rem; height: 3rem; border: 4px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
         </div>
-      <% else %>
-        <div class="empty-state">No albums yet.</div>
-      <% end %>
       </div>
 
       <!-- Pending Photos Sub-section (only for profile owner) -->
       <% if @is_own_profile %>
-        <div class="content-sub-section" id="pending-photos-section">
-          <% pending_photos = Photo.where(user_id: @user.id).where(id: Photo.select(:id).joins(:photo_approvals).where(photo_approvals: { status: 'pending' }).distinct) %>
-          <% if pending_photos.any? %>
-            <div class="film-grid">
-              <% pending_photos.each do |photo| %>
-                <%= link_to photo_path(photo), class: "film-card" do %>
-                  <div class="photo-thumbnail">
-                    <% if photo.image.attached? %>
-                      <%= image_tag url_for(photo.image), alt: photo.title, loading: "lazy" %>
-                    <% else %>
-                      <div class="placeholder">📷</div>
-                    <% end %>
-                    <div style="position: absolute; top: 8px; right: 8px; background: rgba(255, 165, 0, 0.9); color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;">
-                      Pending
-                    </div>
-                  </div>
-                  <div class="film-info">
-                    <div class="film-title"><%= photo.title %></div>
-                    <div style="color: var(--muted); font-size: 12px; margin-top: 4px;">
-                      <%= pluralize(photo.photo_approvals.where(status: 'pending').count, 'approval') %> pending
-                    </div>
-                  </div>
-                <% end %>
-              <% end %>
-            </div>
-          <% else %>
-            <div class="empty-state">No photos waiting for approval.</div>
-          <% end %>
+        <div class="content-sub-section" id="pending-photos-section" data-lazy-url="<%= photo_subtab_content_user_path(@user, subtab: 'pending-photos') %>">
+          <div class="lazy-loader" style="text-align: center; padding: 2rem;">
+            <div style="display: inline-block; width: 3rem; height: 3rem; border: 4px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+          </div>
         </div>
 
         <!-- Hidden Photos Sub-section (only for profile owner) -->
-        <div class="content-sub-section" id="hidden-photos-section">
-          <% hidden_photos = @user.hidden_photos_from_profile %>
-          <% if hidden_photos.any? %>
-            <div class="film-grid">
-              <% hidden_photos.each do |photo| %>
-                <%= link_to photo_path(photo), class: "film-card" do %>
-                  <div class="photo-thumbnail">
-                    <% if photo.image.attached? %>
-                      <%= image_tag url_for(photo.image), alt: photo.title, loading: "lazy" %>
-                    <% else %>
-                      <div class="placeholder">📷</div>
-                    <% end %>
-                  </div>
-                  <div class="film-info">
-                    <div class="film-title"><%= photo.title %></div>
-                    <div class="role-badges">
-                      <% roles = @user.photo_roles(photo) %>
-                      <% roles.each do |role| %>
-                        <span class="role-badge <%= role.downcase %>"><%= role %></span>
-                      <% end %>
-                    </div>
-                  </div>
-                <% end %>
-              <% end %>
-            </div>
-          <% else %>
-            <div class="empty-state">No hidden photos.</div>
-          <% end %>
+        <div class="content-sub-section" id="hidden-photos-section" data-lazy-url="<%= photo_subtab_content_user_path(@user, subtab: 'hidden-photos') %>">
+          <div class="lazy-loader" style="text-align: center; padding: 2rem;">
+            <div style="display: inline-block; width: 3rem; height: 3rem; border: 4px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+          </div>
         </div>
       <% end %>
     </div>
@@ -1379,369 +1294,3 @@
 <% if @is_own_profile %>
   <%= render "users/settings_drawer", resource: current_user %>
 <% end %>
-
-<script>
-  // Content tab switching
-  document.addEventListener('DOMContentLoaded', () => {
-    const tabs = document.querySelectorAll('.content-tab');
-    const sections = document.querySelectorAll('.content-section');
-    const subTabs = document.querySelectorAll('.content-sub-tab');
-    const subSections = document.querySelectorAll('.content-sub-section');
-
-    tabs.forEach(tab => {
-      tab.addEventListener('click', (e) => {
-        e.preventDefault();
-        const targetTab = tab.dataset.tab;
-
-        // Remove active class from all tabs and sections
-        tabs.forEach(t => t.classList.remove('active'));
-        sections.forEach(s => s.classList.remove('active'));
-
-        // Add active class to clicked tab and corresponding section
-        tab.classList.add('active');
-        document.getElementById(`${targetTab}-section`).classList.add('active');
-      });
-    });
-
-    // Sub-tab switching with lazy loading
-    subTabs.forEach(subTab => {
-      subTab.addEventListener('click', (e) => {
-        e.preventDefault();
-        const targetSubTab = subTab.dataset.subtab;
-
-        // Get parent section to only affect sub-tabs within the same parent
-        const parentSection = subTab.closest('.content-section');
-        const parentSubTabs = parentSection.querySelectorAll('.content-sub-tab');
-        const parentSubSections = parentSection.querySelectorAll('.content-sub-section');
-
-        // Remove active class from sub-tabs and sub-sections in this parent
-        parentSubTabs.forEach(t => t.classList.remove('active'));
-        parentSubSections.forEach(s => s.classList.remove('active'));
-
-        // Add active class to clicked sub-tab and corresponding sub-section
-        subTab.classList.add('active');
-        const targetSection = document.getElementById(`${targetSubTab}-section`);
-        targetSection.classList.add('active');
-
-        // Lazy load content if section has a lazy-url and hasn't been loaded
-        const lazyUrl = targetSection.dataset.lazyUrl;
-        if (lazyUrl && !targetSection.dataset.loaded) {
-          fetch(lazyUrl, {
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
-          })
-          .then(response => response.text())
-          .then(html => {
-            targetSection.innerHTML = html;
-            targetSection.dataset.loaded = 'true';
-          })
-          .catch(err => {
-            console.error('[Lazy Load] Error loading sub-tab:', err);
-            targetSection.innerHTML = '<div class="empty-state">Error loading content. Please try again.</div>';
-          });
-        }
-      });
-    });
-
-    // Handle claim profile button click
-    const claimBtn = document.getElementById('claim-btn');
-    const claimBanner = document.getElementById('claim-banner');
-    const claimInfoBanner = document.getElementById('claim-info-banner');
-
-    if (claimBtn && claimBanner && claimInfoBanner) {
-      claimBtn.addEventListener('click', () => {
-        claimBanner.style.display = 'none';
-        claimInfoBanner.style.display = 'block';
-      });
-    }
-  });
-
-  // Also handle Turbo navigation
-  document.addEventListener('turbo:load', () => {
-    const tabs = document.querySelectorAll('.content-tab');
-    const sections = document.querySelectorAll('.content-section');
-    const subTabs = document.querySelectorAll('.content-sub-tab');
-    const subSections = document.querySelectorAll('.content-sub-section');
-
-    tabs.forEach(tab => {
-      tab.addEventListener('click', (e) => {
-        e.preventDefault();
-        const targetTab = tab.dataset.tab;
-
-        tabs.forEach(t => t.classList.remove('active'));
-        sections.forEach(s => s.classList.remove('active'));
-
-        tab.classList.add('active');
-        document.getElementById(`${targetTab}-section`).classList.add('active');
-      });
-    });
-
-    // Sub-tab switching with lazy loading
-    subTabs.forEach(subTab => {
-      subTab.addEventListener('click', (e) => {
-        e.preventDefault();
-        const targetSubTab = subTab.dataset.subtab;
-
-        // Get parent section to only affect sub-tabs within the same parent
-        const parentSection = subTab.closest('.content-section');
-        const parentSubTabs = parentSection.querySelectorAll('.content-sub-tab');
-        const parentSubSections = parentSection.querySelectorAll('.content-sub-section');
-
-        // Remove active class from sub-tabs and sub-sections in this parent
-        parentSubTabs.forEach(t => t.classList.remove('active'));
-        parentSubSections.forEach(s => s.classList.remove('active'));
-
-        // Add active class to clicked sub-tab and corresponding sub-section
-        subTab.classList.add('active');
-        const targetSection = document.getElementById(`${targetSubTab}-section`);
-        targetSection.classList.add('active');
-
-        // Lazy load content if section has a lazy-url and hasn't been loaded
-        const lazyUrl = targetSection.dataset.lazyUrl;
-        if (lazyUrl && !targetSection.dataset.loaded) {
-          fetch(lazyUrl, {
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
-          })
-          .then(response => response.text())
-          .then(html => {
-            targetSection.innerHTML = html;
-            targetSection.dataset.loaded = 'true';
-          })
-          .catch(err => {
-            console.error('[Lazy Load] Error loading sub-tab:', err);
-            targetSection.innerHTML = '<div class="empty-state">Error loading content. Please try again.</div>';
-          });
-        }
-      });
-    });
-
-    // Handle claim profile button click
-    const claimBtn = document.getElementById('claim-btn');
-    const claimBanner = document.getElementById('claim-banner');
-    const claimInfoBanner = document.getElementById('claim-info-banner');
-
-    if (claimBtn && claimBanner && claimInfoBanner) {
-      claimBtn.addEventListener('click', () => {
-        claimBanner.style.display = 'none';
-        claimInfoBanner.style.display = 'block';
-      });
-    }
-  });
-
-  // Profile search functionality with global timeout variable
-  let globalSearchTimeout;
-
-  function initializeProfileSearch() {
-    let filmsSearchInput = document.getElementById('films-search');
-    let photosSearchInput = document.getElementById('photos-search');
-    const filmsSortSelect = document.getElementById('films-sort-select');
-    const filmTypeSelect = document.getElementById('film-type-select');
-
-    // Only proceed if at least one search input exists
-    if (!filmsSearchInput && !photosSearchInput) {
-      console.log('[Profile Search] No search inputs found on this page');
-      return;
-    }
-
-    console.log('[Profile Search] Initializing search inputs');
-
-    function updateSearch(searchValue) {
-      const params = new URLSearchParams(window.location.search);
-
-      // Update or remove search parameter
-      if (searchValue && searchValue.trim()) {
-        params.set('q', searchValue.trim());
-      } else {
-        params.delete('q');
-      }
-
-      // Preserve film_type and sort parameters
-      // (they are already in URLSearchParams from window.location.search)
-
-      // Reset pagination when searching
-      params.delete('films_page');
-      params.delete('photos_page');
-
-      // Store that we should refocus after reload
-      sessionStorage.setItem('profileSearchFocus', 'true');
-
-      // Navigate to new URL
-      const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
-      console.log('[Profile Search] Navigating to:', newUrl);
-      window.location.href = newUrl;
-    }
-
-    function updateFilters() {
-      const params = new URLSearchParams(window.location.search);
-
-      // Get fresh references to inputs (in case they were cloned)
-      const currentFilmsSearch = document.getElementById('films-search');
-      const currentSortSelect = document.getElementById('films-sort-select');
-      const currentTypeSelect = document.getElementById('film-type-select');
-
-      // Get current values
-      const searchValue = currentFilmsSearch ? currentFilmsSearch.value.trim() : '';
-      const sortValue = currentSortSelect ? currentSortSelect.value : '';
-      const typeValue = currentTypeSelect ? currentTypeSelect.value : '';
-
-      // Update search parameter
-      if (searchValue) {
-        params.set('q', searchValue);
-      } else {
-        params.delete('q');
-      }
-
-      // Update sort parameter
-      if (sortValue && sortValue !== 'date_desc') {
-        params.set('sort', sortValue);
-      } else {
-        params.delete('sort');
-      }
-
-      // Update film_type parameter
-      if (typeValue) {
-        params.set('film_type', typeValue);
-      } else {
-        params.delete('film_type');
-      }
-
-      // Reset pagination
-      params.delete('films_page');
-
-      // Navigate to new URL
-      const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
-      window.location.href = newUrl;
-    }
-
-    function setupSearchInput(searchInput, inputName) {
-      if (!searchInput) {
-        console.log('[Profile Search] ' + inputName + ' input not found');
-        return;
-      }
-
-      // Remove existing event listeners by cloning the element
-      const newSearchInput = searchInput.cloneNode(true);
-      searchInput.parentNode.replaceChild(newSearchInput, searchInput);
-
-      console.log('[Profile Search] Setting up ' + inputName + ' input');
-
-      // Auto-focus if we just did a search
-      if (sessionStorage.getItem('profileSearchFocus') === 'true') {
-        sessionStorage.removeItem('profileSearchFocus');
-        setTimeout(() => {
-          newSearchInput.focus();
-          const length = newSearchInput.value.length;
-          newSearchInput.setSelectionRange(length, length);
-          console.log('[Profile Search] Auto-focused input');
-        }, 100);
-      }
-
-      // Debounced search on input - 2 second delay
-      newSearchInput.addEventListener('input', function() {
-        console.log('[Profile Search] Input changed:', this.value);
-        clearTimeout(globalSearchTimeout);
-        globalSearchTimeout = setTimeout(() => {
-          console.log('[Profile Search] Triggering search after 2s delay');
-          updateSearch(this.value);
-        }, 2000);
-      });
-
-      // Immediate search on Enter key
-      newSearchInput.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          console.log('[Profile Search] Enter key pressed, triggering immediate search');
-          clearTimeout(globalSearchTimeout);
-          updateSearch(this.value);
-        }
-      });
-    }
-
-    setupSearchInput(filmsSearchInput, 'Films');
-    setupSearchInput(photosSearchInput, 'Photos');
-
-    // Setup sort select dropdown
-    if (filmsSortSelect) {
-      filmsSortSelect.addEventListener('change', function() {
-        console.log('[Profile Search] Sort changed to:', this.value);
-        updateFilters();
-      });
-    }
-
-    if (filmTypeSelect) {
-      filmTypeSelect.addEventListener('change', function() {
-        console.log('[Profile Search] Film type changed to:', this.value);
-        updateFilters();
-      });
-    }
-
-    console.log('[Profile Search] Initialization complete');
-  }
-
-  // Initialize on DOMContentLoaded
-  document.addEventListener('DOMContentLoaded', function() {
-    console.log('[Profile Search] DOMContentLoaded event fired');
-    initializeProfileSearch();
-  });
-
-  // Also initialize on Turbo navigation
-  document.addEventListener('turbo:load', function() {
-    console.log('[Profile Search] turbo:load event fired');
-    initializeProfileSearch();
-  });
-
-  // Fallback: Initialize after a short delay if other methods fail
-  setTimeout(function() {
-    console.log('[Profile Search] Fallback initialization after 500ms');
-    initializeProfileSearch();
-  }, 500);
-
-  // Profile page loading spinner - show spinner instead of skeleton
-  (function() {
-    const profileLoadingOverlay = document.getElementById('profile-loading-overlay');
-
-    // Show profile spinner on Turbo click (when navigating)
-    document.addEventListener('turbo:click', (event) => {
-      // Only show spinner if we're navigating within the user profile
-      const clickedLink = event.target.closest('a');
-      if (clickedLink && clickedLink.href.includes('/users/')) {
-        if (profileLoadingOverlay) {
-          profileLoadingOverlay.classList.add('active');
-        }
-      }
-    });
-
-    // Hide profile spinner before rendering new page
-    document.addEventListener('turbo:before-render', () => {
-      if (profileLoadingOverlay) {
-        profileLoadingOverlay.classList.remove('active');
-      }
-    });
-
-    // Fallback: hide on render
-    document.addEventListener('turbo:render', () => {
-      if (profileLoadingOverlay) {
-        profileLoadingOverlay.classList.remove('active');
-      }
-    });
-
-    // Clean up on errors
-    document.addEventListener('turbo:fetch-request-error', () => {
-      if (profileLoadingOverlay) {
-        profileLoadingOverlay.classList.remove('active');
-      }
-    });
-
-    // Hide spinner on page load
-    document.addEventListener('DOMContentLoaded', () => {
-      if (profileLoadingOverlay) {
-        profileLoadingOverlay.classList.remove('active');
-      }
-    });
-
-    document.addEventListener('turbo:load', () => {
-      if (profileLoadingOverlay) {
-        profileLoadingOverlay.classList.remove('active');
-      }
-    });
-  })();
-</script>

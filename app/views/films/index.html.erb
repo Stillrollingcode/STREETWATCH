@@ -54,7 +54,9 @@
   </style>
 <% end %>
 
-<div class="films-shell">
+<%= render 'shared/autocomplete_styles' %>
+
+<div class="films-shell" data-controller="films-index">
   <div class="films-header">
     <h1>Films</h1>
     <% if params[:group_by].present? %>
@@ -76,23 +78,24 @@
 
   <!-- Filters Bar -->
   <div class="filters-bar">
-    <div class="search-box">
+    <div class="search-box autocomplete-wrapper">
       <span class="search-icon">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
           <circle cx="7" cy="7" r="4.5" stroke="currentColor" stroke-width="1.5"/>
           <path d="M10.5 10.5L13.5 13.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
         </svg>
       </span>
-      <input type="text" id="film-search" placeholder="Search films..." value="<%= params[:q] %>">
+      <input type="text" id="film-search" autocomplete="off" data-films-index-target="searchInput" data-action="input->films-index#handleInput keydown->films-index#handleKeydown" placeholder="Search films..." value="<%= params[:q] %>">
+      <div class="autocomplete-results" data-films-index-target="results" data-action="click->films-index#selectAutocomplete"></div>
     </div>
     <div class="sort-controls">
-      <select id="group-select" class="group-select">
+      <select id="group-select" class="group-select" data-films-index-target="groupSelect" data-action="change->films-index#handleSelectChange">
         <option value="" <%= 'selected' if params[:group_by].blank? %>>All Films</option>
         <option value="company" <%= 'selected' if params[:group_by] == 'company' %>>Group by Company</option>
         <option value="filmer" <%= 'selected' if params[:group_by] == 'filmer' %>>Group by Filmer</option>
         <option value="editor" <%= 'selected' if params[:group_by] == 'editor' %>>Group by Editor</option>
       </select>
-      <select id="type-select" class="type-select">
+      <select id="type-select" class="type-select" data-films-index-target="typeSelect" data-action="change->films-index#handleSelectChange">
         <option value="" <%= 'selected' if params[:film_type].blank? %>>All Types</option>
         <option value="full_length" <%= 'selected' if params[:film_type] == 'full_length' %>>Full Length</option>
         <option value="rider_part" <%= 'selected' if params[:film_type] == 'rider_part' %>>Rider Part</option>
@@ -101,7 +104,7 @@
         <option value="b_sides" <%= 'selected' if params[:film_type] == 'b_sides' %>>B-Sides</option>
         <option value="all_the_rest" <%= 'selected' if params[:film_type] == 'all_the_rest' %>>All The Rest</option>
       </select>
-      <select id="sort-select" class="sort-select">
+      <select id="sort-select" class="sort-select" data-films-index-target="sortSelect" data-action="change->films-index#handleSelectChange">
         <% if params[:group_by].present? %>
           <option value="alpha_asc" <%= 'selected' if params[:sort] == 'alpha_asc' || params[:sort].blank? %>>A-Z</option>
           <option value="alpha_desc" <%= 'selected' if params[:sort] == 'alpha_desc' %>>Z-A</option>
@@ -255,106 +258,3 @@
   <% end %>
   </turbo-frame>
 </div>
-
-<script>
-  // Search functionality with debounce and enter key support
-  function initializeFilmSearch() {
-    const searchInput = document.getElementById('film-search');
-    const sortSelect = document.getElementById('sort-select');
-    const groupSelect = document.getElementById('group-select');
-    const typeSelect = document.getElementById('type-select');
-    let searchTimeout;
-
-    function updateFilters() {
-      const params = new URLSearchParams();
-      const searchValue = searchInput ? searchInput.value.trim() : '';
-      const sortValue = sortSelect ? sortSelect.value : '';
-      const groupValue = groupSelect ? groupSelect.value : '';
-      const typeValue = typeSelect ? typeSelect.value : '';
-
-      // Update or remove search parameter
-      if (searchValue) {
-        params.set('q', searchValue);
-      }
-
-      // Update or remove sort parameter
-      if (sortValue) {
-        params.set('sort', sortValue);
-      }
-
-      // Update or remove group_by parameter
-      if (groupValue) {
-        params.set('group_by', groupValue);
-      }
-
-      // Update or remove film_type parameter
-      if (typeValue) {
-        params.set('film_type', typeValue);
-      }
-
-      // Reset to page 1 when searching or filtering
-      params.delete('page');
-
-      // Store that we should refocus after reload
-      sessionStorage.setItem('filmSearchFocus', 'true');
-
-      // Navigate to new URL
-      window.location.href = window.location.pathname + '?' + params.toString();
-    }
-
-    if (searchInput) {
-      // Auto-focus if we just did a search
-      if (sessionStorage.getItem('filmSearchFocus') === 'true') {
-        sessionStorage.removeItem('filmSearchFocus');
-        // Small delay to ensure page is fully loaded
-        setTimeout(() => {
-          searchInput.focus();
-          // Move cursor to end of input
-          const length = searchInput.value.length;
-          searchInput.setSelectionRange(length, length);
-        }, 100);
-      }
-
-      // Debounced search on input - 2 second delay to allow typing
-      searchInput.addEventListener('input', function() {
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(() => {
-          updateFilters();
-        }, 2000); // Increased to 2 seconds
-      });
-
-      // Immediate search on Enter key
-      searchInput.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          clearTimeout(searchTimeout);
-          updateFilters();
-        }
-      });
-    }
-
-    if (sortSelect) {
-      sortSelect.addEventListener('change', function() {
-        updateFilters();
-      });
-    }
-
-    if (groupSelect) {
-      groupSelect.addEventListener('change', function() {
-        updateFilters();
-      });
-    }
-
-    if (typeSelect) {
-      typeSelect.addEventListener('change', function() {
-        updateFilters();
-      });
-    }
-  }
-
-  // Initialize on DOMContentLoaded
-  document.addEventListener('DOMContentLoaded', initializeFilmSearch);
-
-  // Also initialize on Turbo navigation
-  document.addEventListener('turbo:load', initializeFilmSearch);
-</script>

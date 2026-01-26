@@ -1,0 +1,27 @@
+<% if photos.any? %>
+  <div class="film-grid">
+    <% photos.each do |photo| %>
+      <%= link_to photo_path(photo), class: "film-card" do %>
+        <div class="photo-thumbnail">
+          <% if photo.image.attached? %>
+            <%= image_tag url_for(photo.image), alt: photo.title, loading: "lazy" %>
+          <% else %>
+            <div class="placeholder">📷</div>
+          <% end %>
+          <div style="position: absolute; top: 8px; right: 8px; background: rgba(255, 165, 0, 0.9); color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;">
+            Pending
+          </div>
+        </div>
+        <div class="film-info">
+          <div class="film-title"><%= photo.title %></div>
+          <div style="color: var(--muted); font-size: 12px; margin-top: 4px;">
+            <% pending_count = photo.photo_approvals.select { |approval| approval.status == 'pending' }.size %>
+            <%= pluralize(pending_count, 'approval') %> pending
+          </div>
+        </div>
+      <% end %>
+    <% end %>
+  </div>
+<% else %>
+  <div class="empty-state">No photos waiting for approval.</div>
+<% end %>
