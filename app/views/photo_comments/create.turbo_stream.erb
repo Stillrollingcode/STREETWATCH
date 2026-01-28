@@ -1,0 +1,42 @@
+<% if @comment.parent_id.present? %>
+  <%# Reply - append to the parent's replies container %>
+  <%= turbo_stream.append "photo-replies-#{@comment.parent_id}" do %>
+    <%= render partial: 'photo_comments/comment', locals: { comment: @comment, photo: @photo } %>
+  <% end %>
+
+  <%# Replace the reply form with a fresh hidden one %>
+  <%= turbo_stream.replace "reply-form-photo-#{@comment.parent_id}" do %>
+    <div class="reply-form" id="reply-form-photo-<%= @comment.parent_id %>">
+      <%= form_with model: [@photo, PhotoComment.new], url: photo_photo_comments_path(@photo) do |f| %>
+        <%= f.hidden_field :parent_id, value: @comment.parent_id %>
+        <%= f.text_area :body, placeholder: "Write a reply...", required: true %>
+        <div class="reply-form-actions">
+          <%= f.submit "Post Reply", class: "pill-btn reply-submit-btn" %>
+          <button type="button" class="pill-btn cancel-btn" onclick="toggleReplyForm('photo-<%= @comment.parent_id %>')">Cancel</button>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+<% else %>
+  <%# Remove the "no comments" message if present %>
+  <%= turbo_stream.remove "no-photo-comments-message" %>
+
+  <%# Top-level comment - prepend to comments list %>
+  <%= turbo_stream.prepend "photo-comments-list" do %>
+    <%= render partial: 'photo_comments/comment', locals: { comment: @comment, photo: @photo } %>
+  <% end %>
+
+  <%# Clear the main comment form %>
+  <%= turbo_stream.update "photo-comment-form" do %>
+    <%= form_with model: [@photo, PhotoComment.new], url: photo_photo_comments_path(@photo), id: "new-photo-comment-form" do |f| %>
+      <div id="photo-comment-form-errors"></div>
+      <%= f.text_area :body, placeholder: "Add a comment...", required: true %>
+      <%= f.submit "Post Comment", class: "pill-btn" %>
+    <% end %>
+  <% end %>
+<% end %>
+
+<%# Update the comment count %>
+<%= turbo_stream.update "photo-comments-count" do %>
+  Comments (<%= @photo.photo_comments.count %>)
+<% end %>

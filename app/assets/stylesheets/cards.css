@@ -18,12 +18,31 @@
   border-color: color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
-/* Card thumbnail */
+/* Card thumbnail - default cropped style */
 .card-thumbnail {
   width: 100%;
   aspect-ratio: 1;
   object-fit: cover;
   display: block;
+}
+
+/* Cropped thumbnail for extreme aspect ratios */
+.photo-thumbnail-cropped {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  display: block;
+}
+
+/* Natural aspect ratio thumbnail - uncropped display */
+.photo-thumbnail-natural {
+  width: 100%;
+  height: auto !important;
+  aspect-ratio: auto !important;
+  object-fit: cover;
+  display: block;
+  min-height: 180px;
+  max-height: 320px;
 }
 
 /* Card info section */

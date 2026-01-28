@@ -1,0 +1,62 @@
+<div class="comment" id="comment-<%= comment.id %>">
+  <div class="comment-header">
+    <div>
+      <span class="comment-author"><%= comment.user.username || comment.user.email %></span>
+      <span class="comment-date"><%= time_ago_in_words(comment.created_at) %> ago</span>
+    </div>
+  </div>
+  <div class="comment-body"><%= simple_format(comment.body) %></div>
+  <div class="comment-actions">
+    <% if user_signed_in? %>
+      <%= render partial: 'comments/like_button', locals: { comment: comment, film: film } %>
+      <button class="reply-btn" onclick="toggleReplyForm(<%= comment.id %>)">Reply</button>
+      <% if comment.user == current_user || (defined?(can_delete_comment?) && can_delete_comment?(current_user, film, comment)) %>
+        <%= button_to "Delete", film_comment_path(film, comment), method: :delete,
+              data: { turbo_confirm: "Are you sure?" },
+              class: "delete-comment-btn" %>
+      <% end %>
+    <% else %>
+      <% if comment.likes_count > 0 %>
+        <span class="like-count-display">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+          </svg>
+          <%= comment.likes_count %>
+        </span>
+      <% end %>
+    <% end %>
+  </div>
+
+  <% if user_signed_in? %>
+    <!-- Reply form -->
+    <div class="reply-form" id="reply-form-<%= comment.id %>">
+      <%= form_with model: [film, Comment.new], url: film_comments_path(film) do |f| %>
+        <%= f.hidden_field :parent_id, value: comment.id %>
+        <%= f.text_area :body, placeholder: "Write a reply...", required: true %>
+        <div class="reply-form-actions">
+          <%= f.submit "Post Reply", class: "pill-btn reply-submit-btn" %>
+          <button type="button" class="pill-btn cancel-btn" onclick="toggleReplyForm(<%= comment.id %>)">Cancel</button>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+
+  <!-- Replies container -->
+  <% replies_count = comment.replies.count %>
+  <% collapsed_default = replies_count > 4 %>
+  <% if comment.replies.any? %>
+    <div data-controller="comment-collapse">
+      <button type="button" class="collapse-toggle<%= ' collapsed' if collapsed_default %>" data-action="click->comment-collapse#toggle" data-comment-collapse-target="icon">
+        <span class="collapse-icon">▼</span>
+        <span class="collapse-text">See Replies</span>
+      </button>
+      <div class="comment-replies<%= ' collapsed' if collapsed_default %>" data-comment-collapse-target="replies">
+        <% comment.replies.recent.each do |reply| %>
+          <%= render partial: 'comments/comment', locals: { comment: reply, film: film } %>
+        <% end %>
+      </div>
+    </div>
+  <% else %>
+    <div class="comment-replies"></div>
+  <% end %>
+</div>

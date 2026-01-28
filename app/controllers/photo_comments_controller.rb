@@ -8,9 +8,20 @@ class PhotoCommentsController < ApplicationController
     @comment.user = current_user
 
     if @comment.save
-      redirect_to @photo, notice: 'Comment added.'
+      respond_to do |format|
+        format.turbo_stream
+        format.html { redirect_to @photo, notice: 'Comment added.' }
+      end
     else
-      redirect_to @photo, alert: 'Failed to add comment.'
+      respond_to do |format|
+        format.turbo_stream do
+          render turbo_stream: turbo_stream.update(
+            "photo-comment-form-errors",
+            "<p style='color: var(--error); font-size: 14px; margin-bottom: 12px;'>#{@comment.errors.full_messages.join(', ')}</p>"
+          )
+        end
+        format.html { redirect_to @photo, alert: 'Failed to add comment.' }
+      end
     end
   end
 
@@ -30,7 +41,28 @@ class PhotoCommentsController < ApplicationController
   def destroy
     authorize_comment!
     @comment.destroy
-    redirect_to @photo, notice: 'Comment deleted.'
+    respond_to do |format|
+      format.turbo_stream
+      format.html { redirect_to @photo, notice: 'Comment deleted.' }
+    end
+  end
+
+  def like
+    @comment = PhotoComment.find_by_friendly_or_id(params[:id])
+    @like = @comment.comment_likes.find_or_initialize_by(user: current_user)
+
+    if @like.persisted?
+      @like.destroy
+      @liked = false
+    else
+      @like.save
+      @liked = true
+    end
+
+    respond_to do |format|
+      format.turbo_stream
+      format.html { redirect_to @photo }
+    end
   end
 
   private

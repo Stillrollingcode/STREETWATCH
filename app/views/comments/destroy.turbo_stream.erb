@@ -1,0 +1,7 @@
+<%# Remove the comment from the DOM %>
+<%= turbo_stream.remove "comment-#{@comment.id}" %>
+
+<%# Update the comment count %>
+<%= turbo_stream.update "film-comments-count" do %>
+  Comments (<%= @film.comments.count %>)
+<% end %>

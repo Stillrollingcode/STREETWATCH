@@ -1993,11 +1993,12 @@
 
       <!-- Comments section - visible to everyone -->
       <div class="comments-section" id="comments">
-        <h2 class="section-title">Comments (<%= @film.comments.count %>)</h2>
+        <h2 class="section-title" id="film-comments-count">Comments (<%= @film.comments.count %>)</h2>
 
         <% if user_signed_in? %>
-          <div class="comment-form">
-            <%= form_with model: [@film, Comment.new], url: film_comments_path(@film), data: { turbo: false } do |f| %>
+          <div class="comment-form" id="film-comment-form">
+            <%= form_with model: [@film, Comment.new], url: film_comments_path(@film), id: "new-film-comment-form" do |f| %>
+              <div id="comment-form-errors"></div>
               <%= f.text_area :body, placeholder: "Share your thoughts...", required: true %>
               <%= f.submit "Post Comment", class: "pill-btn" %>
             <% end %>
@@ -2010,72 +2011,18 @@
           </div>
         <% end %>
 
-        <div class="comments-list">
-            <% @film.comments.top_level.recent.each do |comment| %>
-              <div class="comment" id="comment-<%= comment.id %>">
-                <div class="comment-header">
-                  <div>
-                    <div class="comment-author"><%= comment.user.username || comment.user.email %></div>
-                    <div class="comment-date"><%= time_ago_in_words(comment.created_at) %> ago</div>
-                  </div>
-                </div>
-                <div class="comment-body"><%= comment.body %></div>
-                <% if user_signed_in? %>
-                  <div class="comment-actions">
-                    <button class="reply-btn" onclick="toggleReplyForm(<%= comment.id %>)">Reply</button>
-                    <% if comment.user == current_user || can_delete_comment?(current_user, @film, comment) %>
-                      <%= button_to "Delete", film_comment_path(@film, comment), method: :delete,
-                            data: { confirm: "Are you sure?", turbo_confirm: "Are you sure?" },
-                            class: "pill-btn", style: "font-size: 12px; padding: 4px 10px;" %>
-                    <% end %>
-                  </div>
+        <div class="comments-list" id="film-comments-list">
+          <% @film.comments.top_level.recent.each do |comment| %>
+            <%= render partial: 'comments/comment', locals: { comment: comment, film: @film } %>
+          <% end %>
 
-                  <!-- Reply form -->
-                  <div class="reply-form" id="reply-form-<%= comment.id %>">
-                    <%= form_with model: [@film, Comment.new], url: film_comments_path(@film), data: { turbo: false } do |f| %>
-                      <%= f.hidden_field :parent_id, value: comment.id %>
-                      <%= f.text_area :body, placeholder: "Write a reply...", required: true %>
-                      <div style="display: flex; gap: 8px;">
-                        <%= f.submit "Post Reply", class: "pill-btn", style: "font-size: 12px; padding: 6px 12px;" %>
-                        <button type="button" class="pill-btn" style="font-size: 12px; padding: 6px 12px;" onclick="toggleReplyForm(<%= comment.id %>)">Cancel</button>
-                      </div>
-                    <% end %>
-                  </div>
-                <% end %>
-
-                <!-- Replies -->
-                <% if comment.replies.any? %>
-                  <div class="replies-section">
-                    <% comment.replies.recent.each do |reply| %>
-                      <div class="reply-comment">
-                        <div class="comment-header">
-                          <div>
-                            <div class="comment-author"><%= reply.user.username || reply.user.email %></div>
-                            <div class="comment-date"><%= time_ago_in_words(reply.created_at) %> ago</div>
-                          </div>
-                        </div>
-                        <div class="comment-body"><%= reply.body %></div>
-                        <% if user_signed_in? && (reply.user == current_user || can_delete_comment?(current_user, @film, reply)) %>
-                          <div class="comment-actions">
-                            <%= button_to "Delete", film_comment_path(@film, reply), method: :delete,
-                                  data: { confirm: "Are you sure?", turbo_confirm: "Are you sure?" },
-                                  class: "pill-btn", style: "font-size: 12px; padding: 4px 10px;" %>
-                          </div>
-                        <% end %>
-                      </div>
-                    <% end %>
-                  </div>
-                <% end %>
-              </div>
-            <% end %>
-
-            <% if @film.comments.none? %>
-              <div style="text-align: center; color: var(--muted); padding: 20px;">
-                No comments yet. Be the first to share your thoughts!
-              </div>
-            <% end %>
-          </div>
+          <% if @film.comments.none? %>
+            <div id="no-comments-message" style="text-align: center; color: var(--muted); padding: 20px;">
+              No comments yet. Be the first to share your thoughts!
+            </div>
+          <% end %>
         </div>
+      </div>
     </div>
   </div>
 
@@ -2145,6 +2092,14 @@
         const textarea = replyForm.querySelector('textarea');
         if (textarea) textarea.focus();
       }
+    }
+  }
+
+  window.toggleReplies = function(btn, commentId) {
+    const repliesContainer = document.getElementById('replies-' + commentId);
+    if (repliesContainer && btn) {
+      repliesContainer.classList.toggle('collapsed');
+      btn.classList.toggle('collapsed');
     }
   }
 

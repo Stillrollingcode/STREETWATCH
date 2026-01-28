@@ -392,64 +392,26 @@
       </div>
 
       <div class="comments-section">
-        <h2>Comments (<%= @photo.photo_comments.count %>)</h2>
+        <h2 id="photo-comments-count">Comments (<%= @photo.photo_comments.count %>)</h2>
 
         <% if user_signed_in? %>
-          <div class="comment-form">
-            <%= form_with model: [@photo, @photo_comment], url: photo_photo_comments_path(@photo), local: true do |f| %>
+          <div class="comment-form" id="photo-comment-form">
+            <%= form_with model: [@photo, @photo_comment], url: photo_photo_comments_path(@photo), id: "new-photo-comment-form" do |f| %>
+              <div id="photo-comment-form-errors"></div>
               <%= f.text_area :body, placeholder: "Add a comment...", required: true %>
               <%= f.submit "Post Comment", class: "pill-btn" %>
             <% end %>
           </div>
         <% end %>
 
-        <div class="comments-list">
+        <div class="comments-list" id="photo-comments-list">
           <% @comments.each do |comment| %>
-            <div class="comment">
-              <div class="comment-header">
-                <%= link_to comment.user.name, user_path(comment.user), class: 'comment-author' %>
-                <span class="comment-date"><%= time_ago_in_words(comment.created_at) %> ago</span>
-              </div>
-              <div class="comment-body">
-                <%= simple_format(comment.body) %>
-              </div>
+            <%= render partial: 'photo_comments/comment', locals: { comment: comment, photo: @photo } %>
+          <% end %>
 
-              <div class="comment-actions" style="margin-top: 8px; display: flex; gap: 8px; align-items: center;">
-                <button class="reply-btn" onclick="toggleReplyForm(<%= comment.id %>)" style="background: none; border: none; color: var(--accent); cursor: pointer; font-size: 12px; font-weight: 600; padding: 4px 8px; border-radius: 6px; transition: background 0.15s ease;">Reply</button>
-                <% if comment.user == current_user %>
-                  <%= button_to "Delete", photo_photo_comment_path(@photo, comment), method: :delete,
-                        data: { confirm: "Are you sure?", turbo_confirm: "Are you sure?" },
-                        style: "font-size: 12px; padding: 4px 10px; background: none; border: none; color: var(--muted); cursor: pointer;" %>
-                <% end %>
-              </div>
-
-              <!-- Reply form -->
-              <div class="reply-form" id="reply-form-<%= comment.id %>" style="display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border);">
-                <%= form_with model: [@photo, PhotoComment.new], url: photo_photo_comments_path(@photo), data: { turbo: false } do |f| %>
-                  <%= f.hidden_field :parent_id, value: comment.id %>
-                  <%= f.text_area :body, placeholder: "Write a reply...", required: true, style: "width: 100%; min-height: 60px; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: rgba(255,255,255,0.04); color: var(--text); font-size: 14px; resize: vertical;" %>
-                  <div style="display: flex; gap: 8px; margin-top: 8px;">
-                    <%= f.submit "Post Reply", class: "pill-btn", style: "font-size: 12px; padding: 6px 12px;" %>
-                    <button type="button" class="pill-btn" style="font-size: 12px; padding: 6px 12px;" onclick="toggleReplyForm(<%= comment.id %>)">Cancel</button>
-                  </div>
-                <% end %>
-              </div>
-
-              <% if comment.replies.any? %>
-                <div class="comment-replies">
-                  <% comment.replies.each do |reply| %>
-                    <div class="comment">
-                      <div class="comment-header">
-                        <%= link_to reply.user.name, user_path(reply.user), class: 'comment-author' %>
-                        <span class="comment-date"><%= time_ago_in_words(reply.created_at) %> ago</span>
-                      </div>
-                      <div class="comment-body">
-                        <%= simple_format(reply.body) %>
-                      </div>
-                    </div>
-                  <% end %>
-                </div>
-              <% end %>
+          <% if @comments.empty? %>
+            <div id="no-photo-comments-message" style="text-align: center; color: var(--muted); padding: 20px;">
+              No comments yet. Be the first to share your thoughts!
             </div>
           <% end %>
         </div>
@@ -539,13 +501,20 @@
     function toggleReplyForm(commentId) {
       const replyForm = document.getElementById('reply-form-' + commentId);
       if (replyForm) {
-        if (replyForm.style.display === 'none' || replyForm.style.display === '') {
-          replyForm.style.display = 'block';
+        replyForm.classList.toggle('show');
+        if (replyForm.classList.contains('show')) {
           const textarea = replyForm.querySelector('textarea');
           if (textarea) textarea.focus();
-        } else {
-          replyForm.style.display = 'none';
         }
+      }
+    }
+
+    // Collapse/expand replies toggle
+    window.toggleReplies = function(btn, commentId) {
+      const repliesContainer = document.getElementById('photo-replies-' + commentId);
+      if (repliesContainer && btn) {
+        repliesContainer.classList.toggle('collapsed');
+        btn.classList.toggle('collapsed');
       }
     }
   </script>

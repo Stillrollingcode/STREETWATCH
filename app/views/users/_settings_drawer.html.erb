@@ -522,40 +522,60 @@
 </div>
 
 <script>
+  // Use turbo:render instead of turbo:load for better timing with cached pages
+  document.addEventListener("turbo:render", settingsModalInit);
   document.addEventListener("turbo:load", settingsModalInit);
   document.addEventListener("DOMContentLoaded", settingsModalInit);
+
+  // Store references to bound handlers for cleanup
+  let settingsHandlers = {
+    toggle: null,
+    close: null,
+    backdrop: null
+  };
 
   function settingsModalInit() {
     const toggle = document.getElementById("toggle-settings");
     const backdrop = document.getElementById("settings-backdrop");
     const closeBtn = document.getElementById("close-settings");
 
-    if (toggle && backdrop && !toggle.hasAttribute('data-settings-bound')) {
-      toggle.setAttribute('data-settings-bound', 'true');
-      toggle.addEventListener("click", (e) => {
+    // Remove old handlers if they exist (handles Turbo cache restoration)
+    if (settingsHandlers.toggle && toggle) {
+      toggle.removeEventListener("click", settingsHandlers.toggle, { capture: true });
+    }
+    if (settingsHandlers.close && closeBtn) {
+      closeBtn.removeEventListener("click", settingsHandlers.close);
+    }
+    if (settingsHandlers.backdrop && backdrop) {
+      backdrop.removeEventListener("click", settingsHandlers.backdrop);
+    }
+
+    if (toggle && backdrop) {
+      settingsHandlers.toggle = (e) => {
         e.preventDefault();
         e.stopPropagation();
         backdrop.classList.add("open");
-      }, { capture: true });
+      };
+      toggle.addEventListener("click", settingsHandlers.toggle, { capture: true });
     }
 
-    if (closeBtn && backdrop && !closeBtn.hasAttribute('data-settings-bound')) {
-      closeBtn.setAttribute('data-settings-bound', 'true');
-      closeBtn.addEventListener("click", (e) => {
+    if (closeBtn && backdrop) {
+      settingsHandlers.close = (e) => {
         e.preventDefault();
         e.stopPropagation();
         backdrop.classList.remove("open");
-      });
+      };
+      closeBtn.addEventListener("click", settingsHandlers.close);
     }
 
-    if (backdrop && !backdrop.hasAttribute('data-settings-bound')) {
-      backdrop.setAttribute('data-settings-bound', 'true');
-      backdrop.addEventListener("click", (e) => {
+    if (backdrop) {
+      settingsHandlers.backdrop = (e) => {
         if (e.target === backdrop) {
           e.preventDefault();
           backdrop.classList.remove("open");
         }
-      });
+      };
+      backdrop.addEventListener("click", settingsHandlers.backdrop);
     }
 
     const avatarUpload = document.getElementById("avatar-upload");

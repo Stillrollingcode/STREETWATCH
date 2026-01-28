@@ -156,7 +156,9 @@ export default class extends Controller {
 
     this.setViewMode(savedMode)
 
+    // Remove then re-add event listeners (handles Turbo cache restoration)
     this.element.querySelectorAll(".view-mode-btn").forEach(btn => {
+      btn.removeEventListener("click", this.handleViewModeClick)
       btn.addEventListener("click", this.handleViewModeClick)
     })
   }
@@ -241,6 +243,8 @@ export default class extends Controller {
     const wrapper = this.element.querySelector(".video-player-wrapper")
     if (!wrapper) return
 
+    // Remove then re-add to handle Turbo cache restoration
+    wrapper.removeEventListener("click", this.handleWrapperClick)
     wrapper.addEventListener("click", this.handleWrapperClick)
   }
 
@@ -256,13 +260,19 @@ export default class extends Controller {
 
   loadFilmNavigation() {
     const navBar = this.element.querySelector(".film-nav-bar")
-    if (!navBar || navBar.dataset.loaded) return
-    navBar.dataset.loaded = "true"
+    if (!navBar) return
 
+    // Always rebind the autoplay toggle (handles Turbo cache restoration)
     const autoplayToggle = this.element.querySelector("#autoplay-toggle")
     if (autoplayToggle) {
+      // Remove any existing handler first to prevent duplicates
+      autoplayToggle.removeEventListener("click", this.handleAutoplayToggle)
       autoplayToggle.addEventListener("click", this.handleAutoplayToggle)
     }
+
+    // Only fetch navigation data once per actual page load
+    if (navBar.dataset.loaded) return
+    navBar.dataset.loaded = "true"
 
     this.navFetchTimer = setTimeout(() => {
       const filmId = navBar.dataset.filmId

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_01_24_203721) do
+ActiveRecord::Schema[8.0].define(version: 2026_01_26_214842) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -65,6 +65,17 @@ ActiveRecord::Schema[8.0].define(version: 2026_01_24_203721) do
     t.index ["date"], name: "index_albums_on_date"
     t.index ["friendly_id"], name: "index_albums_on_friendly_id", unique: true
     t.index ["user_id"], name: "index_albums_on_user_id"
+  end
+
+  create_table "comment_likes", force: :cascade do |t|
+    t.integer "user_id", null: false
+    t.string "likeable_type", null: false
+    t.integer "likeable_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["likeable_type", "likeable_id"], name: "index_comment_likes_on_likeable"
+    t.index ["user_id", "likeable_type", "likeable_id"], name: "index_comment_likes_uniqueness", unique: true
+    t.index ["user_id"], name: "index_comment_likes_on_user_id"
   end
 
   create_table "comments", force: :cascade do |t|
@@ -445,6 +456,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_01_24_203721) do
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "albums", "users"
+  add_foreign_key "comment_likes", "users"
   add_foreign_key "comments", "comments", column: "parent_id"
   add_foreign_key "comments", "films"
   add_foreign_key "comments", "users"

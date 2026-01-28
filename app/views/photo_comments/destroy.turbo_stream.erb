@@ -1,0 +1,7 @@
+<%# Remove the comment from the DOM %>
+<%= turbo_stream.remove "photo-comment-#{@comment.id}" %>
+
+<%# Update the comment count %>
+<%= turbo_stream.update "photo-comments-count" do %>
+  Comments (<%= @photo.photo_comments.count %>)
+<% end %>

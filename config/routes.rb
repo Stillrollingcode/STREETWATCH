@@ -52,7 +52,11 @@ Rails.application.routes.draw do
     resource :notification_setting, only: [:show, :update, :destroy], controller: 'profile_notification_settings'
   end
   resources :films do
-    resources :comments, only: [:create, :destroy]
+    resources :comments, only: [:create, :destroy] do
+      member do
+        post 'like'
+      end
+    end
     resource :favorite, only: [:create, :destroy]
     resources :tag_requests, only: [:create]
     resources :film_reviews, only: [:index, :create, :update, :destroy]
@@ -103,7 +107,11 @@ Rails.application.routes.draw do
   end
 
   resources :photos do
-    resources :photo_comments, only: [:create, :edit, :update, :destroy]
+    resources :photo_comments, only: [:create, :edit, :update, :destroy] do
+      member do
+        post 'like'
+      end
+    end
     member do
       delete 'remove_tag/:tag_type/:tag_id', to: 'photos#remove_tag', as: :remove_tag
       post 'hide_from_profile', to: 'photos#hide_from_profile'
@@ -112,6 +120,7 @@ Rails.application.routes.draw do
     collection do
       get 'batch_upload'
       post 'batch_create'
+      get 'autocomplete'
     end
   end
 

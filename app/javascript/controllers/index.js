@@ -9,6 +9,8 @@ import ProfileFiltersController from "controllers/profile_filters_controller"
 import UsersIndexController from "controllers/users_index_controller"
 import FilmShowController from "controllers/film_show_controller"
 import FilmsIndexController from "controllers/films_index_controller"
+import PhotosIndexController from "controllers/photos_index_controller"
+import CommentCollapseController from "controllers/comment_collapse_controller"
 
 // Register controllers
 application.register("lazy-load", LazyLoadController)
@@ -18,5 +20,5 @@ application.register("profile-filters", ProfileFiltersController)
 application.register("users-index", UsersIndexController)
 application.register("film-show", FilmShowController)
 application.register("films-index", FilmsIndexController)
-
-console.log("Stimulus controllers registered")
+application.register("photos-index", PhotosIndexController)
+application.register("comment-collapse", CommentCollapseController)

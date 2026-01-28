@@ -19,45 +19,104 @@
     .add-photo-btn:hover {
       transform: translateY(-1px);
     }
+    .group-select {
+      padding: 10px 32px 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .group-select:focus, .sort-select:focus {
+      outline: none;
+      border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+    }
+    /* Autocomplete styles */
+    .autocomplete-wrapper {
+      position: relative;
+    }
+    .autocomplete-results {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: <%= user_theme_styles[:theme_name] == 'light' ? 'rgba(255,255,255,0.98)' : 'rgba(20,20,24,0.98)' %>;
+      border: 1px solid var(--border);
+      border-top: none;
+      border-radius: 0 0 8px 8px;
+      max-height: 300px;
+      overflow-y: auto;
+      z-index: 100;
+      display: none;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    .autocomplete-results.show {
+      display: block;
+    }
+    .autocomplete-result-item {
+      padding: 10px 12px;
+      cursor: pointer;
+      transition: background 0.15s;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+    }
+    .autocomplete-result-item:hover {
+      background: <%= user_theme_styles[:theme_name] == 'light' ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.1)' %>;
+    }
+    .autocomplete-result-username {
+      font-weight: 600;
+      color: var(--text);
+    }
+    .autocomplete-result-type {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    /* Album card upload date */
+    .card-upload-date {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
   </style>
 <% end %>
 
-<div class="list-shell">
+<div class="list-shell" data-controller="photos-index">
   <div class="list-header">
     <h1>Photos</h1>
   </div>
 
-  <div class="group-by-buttons">
-    <%= link_to "All Photos", photos_path, class: "group-btn #{'active' unless params[:group_by].present?}" %>
-    <%= link_to "By Photographer", photos_path(group_by: 'photographer'), class: "group-btn #{'active' if params[:group_by] == 'photographer'}" %>
-    <%= link_to "Albums", photos_path(group_by: 'albums'), class: "group-btn #{'active' if params[:group_by] == 'albums'}" %>
-  </div>
-
   <div class="filters-bar">
-    <div class="search-box">
-      <%= form_with url: photos_path, method: :get, local: true do |f| %>
-        <span class="search-icon">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="7" cy="7" r="4.5" stroke="currentColor" stroke-width="1.5"/>
-            <path d="M10.5 10.5L13.5 13.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-          </svg>
-        </span>
-        <%= f.text_field :search, placeholder: "Search photos...", value: params[:search] %>
-        <%= f.hidden_field :group_by, value: params[:group_by] if params[:group_by] %>
-        <%= f.hidden_field :sort, value: params[:sort] if params[:sort] %>
-      <% end %>
+    <div class="search-box autocomplete-wrapper">
+      <span class="search-icon">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="7" cy="7" r="4.5" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M10.5 10.5L13.5 13.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </span>
+      <input type="text" id="photos-search" autocomplete="off" data-photos-index-target="searchInput" data-action="input->photos-index#handleInput keydown->photos-index#handleKeydown" placeholder="Search photos, users, albums..." value="<%= params[:search] %>">
+      <div class="autocomplete-results" data-photos-index-target="results" data-action="click->photos-index#selectAutocomplete"></div>
     </div>
-
     <div class="sort-controls">
-      <%= form_with url: photos_path, method: :get, local: true do |f| %>
-        <%= f.select :sort,
-          [['Newest', 'newest'], ['Oldest', 'oldest'], ['Alphabetical', 'alphabetical'], ['By Date', 'by_date']],
-          { selected: params[:sort] || 'newest' },
-          { class: 'sort-select', onchange: 'this.form.submit()' }
-        %>
-        <%= f.hidden_field :search, value: params[:search] if params[:search] %>
-        <%= f.hidden_field :group_by, value: params[:group_by] if params[:group_by] %>
-      <% end %>
+      <select id="group-select" class="group-select" data-photos-index-target="groupSelect" data-action="change->photos-index#handleSelectChange">
+        <option value="" <%= 'selected' if params[:group_by].blank? %>>All Photos</option>
+        <option value="photographer" <%= 'selected' if params[:group_by] == 'photographer' %>>By Photographer</option>
+        <option value="albums" <%= 'selected' if params[:group_by] == 'albums' %>>Albums</option>
+      </select>
+      <select id="sort-select" class="sort-select" data-photos-index-target="sortSelect" data-action="change->photos-index#handleSelectChange">
+        <% if params[:group_by] == 'photographer' %>
+          <option value="alphabetical" <%= 'selected' if params[:sort] == 'alphabetical' || params[:sort].blank? %>>A-Z</option>
+          <option value="most_photos" <%= 'selected' if params[:sort] == 'most_photos' %>>Most Photos</option>
+          <option value="newest" <%= 'selected' if params[:sort] == 'newest' %>>Recent Activity</option>
+        <% else %>
+          <option value="newest" <%= 'selected' if params[:sort] == 'newest' || params[:sort].blank? %>>Newest</option>
+          <option value="oldest" <%= 'selected' if params[:sort] == 'oldest' %>>Oldest</option>
+          <option value="alphabetical" <%= 'selected' if params[:sort] == 'alphabetical' %>>Alphabetical</option>
+          <option value="by_date" <%= 'selected' if params[:sort] == 'by_date' %>>By Date Taken</option>
+        <% end %>
+      </select>
       <% if user_signed_in? %>
         <%= link_to "Add Photos", batch_upload_photos_path, class: "add-photo-btn" %>
       <% end %>
@@ -81,36 +140,32 @@
           <div class="card-info">
             <h3 class="card-title"><%= album.title %></h3>
             <p class="card-subtitle"><%= pluralize(album.photos.count, 'photo') %> • <%= album.user.username %></p>
+            <p class="card-upload-date">Uploaded <%= time_ago_in_words(album.created_at) %> ago</p>
           </div>
         <% end %>
       <% end %>
     </div>
-  <% elsif @grouped_photos %>
-    <% @grouped_photos.each do |photographer_name, photos| %>
-      <div class="content-group">
-        <h2><%= photographer_name %></h2>
-        <div class="content-grid">
-          <% photos.each do |photo| %>
-            <%= link_to photo_path(photo), class: "card", style: "text-decoration: none;" do %>
-              <% if photo.image.attached? %>
-                <%= image_tag url_for(photo.image),
-                  class: 'card-thumbnail',
-                  alt: photo.title,
-                  loading: 'lazy' %>
-              <% else %>
-                <div class="card-thumbnail-empty">
-                  No Image
-                </div>
-              <% end %>
-              <div class="card-info">
-                <h3 class="card-title"><%= photo.title %></h3>
-                <p class="card-subtitle"><%= photo.photographer_name %></p>
-              </div>
-            <% end %>
+  <% elsif @photographers %>
+    <div class="content-grid">
+      <% @photographers.each do |photo| %>
+        <%= link_to photos_path(search: photo.photographer_name), class: "card", style: "text-decoration: none;" do %>
+          <% if photo.image.attached? %>
+            <%= image_tag url_for(photo.image),
+              class: 'card-thumbnail',
+              alt: photo.photographer_name,
+              loading: 'lazy' %>
+          <% else %>
+            <div class="card-thumbnail-empty">
+              No Image
+            </div>
           <% end %>
-        </div>
-      </div>
-    <% end %>
+          <div class="card-info">
+            <h3 class="card-title"><%= photo.photographer_name %></h3>
+            <p class="card-subtitle"><%= pluralize(photo.photo_count, 'photo') %></p>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
   <% else %>
     <div data-controller="lazy-load"
          data-lazy-load-url-value="<%= photos_path(format: :html) %>"
@@ -136,42 +191,3 @@
     </div>
   <% end %>
 </div>
-
-<script>
-  document.addEventListener('DOMContentLoaded', () => {
-    // Reset to page 1 when searching
-    const searchForm = document.querySelector('.search-box form');
-    if (searchForm) {
-      searchForm.addEventListener('submit', (e) => {
-        const pageInput = searchForm.querySelector('input[name="page"]');
-        if (pageInput) {
-          pageInput.remove();
-        }
-      });
-    }
-
-    // Reset to page 1 when changing sort
-    const sortForm = document.querySelector('.sort-controls form');
-    if (sortForm) {
-      const sortSelect = sortForm.querySelector('.sort-select');
-      if (sortSelect) {
-        sortSelect.addEventListener('change', () => {
-          const pageInput = sortForm.querySelector('input[name="page"]');
-          if (pageInput) {
-            pageInput.remove();
-          }
-        });
-      }
-    }
-
-    // Reset to page 1 when changing group by
-    const groupByLinks = document.querySelectorAll('.group-by-buttons a');
-    groupByLinks.forEach(link => {
-      link.addEventListener('click', (e) => {
-        const url = new URL(link.href);
-        url.searchParams.delete('page');
-        link.href = url.toString();
-      });
-    });
-  });
-</script>

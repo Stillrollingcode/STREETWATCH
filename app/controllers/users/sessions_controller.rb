@@ -1,37 +1,49 @@
 # frozen_string_literal: true
 
 class Users::SessionsController < Devise::SessionsController
-  # Skip CSRF verification for session create to help with cross-domain issues
-  skip_forgery_protection only: [:create], if: -> { request.format.html? }
-
   # Override respond_with to force a full page reload after login
   # This prevents cached pages from showing stale authentication state
   def respond_with(resource, _opts = {})
     if resource.persisted?
       # Log successful authentication
-      Rails.logger.info "User #{resource.id} signed in successfully from #{request.remote_ip}"
+      Rails.logger.info "[AUTH DEBUG] User #{resource.id} signed in successfully from #{request.remote_ip}"
 
       # Force a full page reload with explicit redirect
       redirect_to after_sign_in_path_for(resource), turbo: false, allow_other_host: false
     else
-      Rails.logger.warn "Failed login attempt for #{params[:user]&.dig(:email) || 'unknown'}"
+      Rails.logger.warn "[AUTH DEBUG] Failed login attempt for #{params[:user]&.dig(:email) || 'unknown'}"
       super
     end
   end
 
   # Override create to ensure session is properly established
   def create
-    self.resource = warden.authenticate!(auth_options)
-    set_flash_message!(:notice, :signed_in)
+    Rails.logger.info "[AUTH DEBUG] Login attempt for: #{params[:user]&.dig(:email)}"
+    Rails.logger.info "[AUTH DEBUG] Request host: #{request.host}"
+    Rails.logger.info "[AUTH DEBUG] Request format: #{request.format}"
+    Rails.logger.info "[AUTH DEBUG] CSRF token present: #{params[:authenticity_token].present?}"
+    Rails.logger.info "[AUTH DEBUG] Session ID before auth: #{session.id.inspect}"
 
-    # Sign in the user and ensure remember_me works if checked
-    sign_in(resource_name, resource, remember: params[:user][:remember_me] == '1')
+    begin
+      self.resource = warden.authenticate!(auth_options)
+      set_flash_message!(:notice, :signed_in)
 
-    # Log the session details for debugging
-    Rails.logger.info "Session ID: #{session.id.inspect}"
-    Rails.logger.info "Warden user: #{warden.user(:user).inspect}"
+      # Sign in the user and ensure remember_me works if checked
+      remember_me_value = params[:user][:remember_me] == '1'
+      Rails.logger.info "[AUTH DEBUG] Remember me: #{remember_me_value}"
+      sign_in(resource_name, resource, remember: remember_me_value)
 
-    yield resource if block_given?
-    respond_with resource, location: after_sign_in_path_for(resource)
+      # Log the session details for debugging
+      Rails.logger.info "[AUTH DEBUG] Session ID after auth: #{session.id.inspect}"
+      Rails.logger.info "[AUTH DEBUG] Warden user set: #{warden.user(:user)&.id}"
+      Rails.logger.info "[AUTH DEBUG] Cookies being set: #{response.headers['Set-Cookie']&.split("\n")&.map { |c| c.split('=').first }}"
+
+      yield resource if block_given?
+      respond_with resource, location: after_sign_in_path_for(resource)
+    rescue => e
+      Rails.logger.error "[AUTH DEBUG] Authentication error: #{e.class} - #{e.message}"
+      Rails.logger.error "[AUTH DEBUG] Backtrace: #{e.backtrace.first(5).join("\n")}"
+      raise
+    end
   end
 end

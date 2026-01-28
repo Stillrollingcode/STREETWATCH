@@ -1,6 +1,6 @@
 class PhotosController < ApplicationController
   before_action :set_photo, only: [:show, :edit, :update, :destroy, :remove_tag, :hide_from_profile, :unhide_from_profile]
-  before_action :authenticate_user!, except: [:index, :show]
+  before_action :authenticate_user!, except: [:index, :show, :autocomplete]
 
   def index
     # Set cache headers for CDN (5 minutes for logged-out users)
@@ -32,19 +32,45 @@ class PhotosController < ApplicationController
       )
     end
 
-    # Search using SQL
+    # Search using SQL - search photos, usernames, and albums
     if params[:search].present?
       search_term = "%#{params[:search]}%"
-      @photos = @photos.where(
-        "photos.title ILIKE ? OR photos.description ILIKE ?",
-        search_term, search_term
-      )
+      @photos = @photos.joins(:album)
+                       .left_joins(:photographer_user)
+                       .where(
+                         "photos.title ILIKE :q OR photos.description ILIKE :q OR " \
+                         "albums.title ILIKE :q OR " \
+                         "users.username ILIKE :q OR users.name ILIKE :q OR " \
+                         "photographer_users_photos.username ILIKE :q OR photographer_users_photos.name ILIKE :q",
+                         q: search_term
+                       )
     end
 
     # Group by photographer or albums
     if params[:group_by] == 'photographer'
-      # Limit for performance
-      @grouped_photos = @photos.limit(200).to_a.group_by(&:photographer_name)
+      # Get photographers with their most recent photo and count
+      # Group in Ruby to avoid complex SQL that differs between SQLite and PostgreSQL
+      photos_for_grouping = @photos.order(created_at: :desc).limit(500).to_a
+
+      # Group by photographer_name, keep most recent photo and count
+      grouped = photos_for_grouping.group_by(&:photographer_name)
+      photographers_raw = grouped.map do |name, photos|
+        photo = photos.first # Most recent due to ordering
+        photo.define_singleton_method(:photo_count) { photos.size }
+        photo
+      end
+
+      # Sort photographers based on sort parameter
+      @photographers = case params[:sort]
+      when 'oldest'
+        photographers_raw.sort_by(&:created_at)
+      when 'alphabetical'
+        photographers_raw.sort_by { |p| p.photographer_name.downcase }
+      when 'most_photos'
+        photographers_raw.sort_by { |p| -p.photo_count }
+      else # newest (default)
+        photographers_raw.sort_by { |p| -p.created_at.to_i }
+      end.first(100)
     elsif params[:group_by] == 'albums'
       # Show all public albums plus user's own albums
       @albums = Album.includes(:user, photos: :image_attachment)
@@ -82,6 +108,43 @@ class PhotosController < ApplicationController
         end
       end
     end
+  end
+
+  def autocomplete
+    query = params[:q].to_s.strip.downcase
+    return render json: [] if query.length < 2
+
+    results = []
+    search_term = "%#{query}%"
+
+    # Search photo titles and descriptions (limit 5)
+    photos = Photo.where("LOWER(title) LIKE ? OR LOWER(description) LIKE ?", search_term, search_term)
+                  .limit(5)
+                  .pluck(:title)
+                  .uniq
+    photos.each do |title|
+      results << { label: title, value: title, type: "Photo" }
+    end
+
+    # Search usernames and names (limit 5)
+    users = User.where("LOWER(username) LIKE ? OR LOWER(name) LIKE ?", search_term, search_term)
+                .limit(5)
+                .pluck(:username, :name)
+    users.each do |username, name|
+      display = username.presence || name
+      results << { label: display, value: display, type: "User" }
+    end
+
+    # Search album titles (limit 5)
+    albums = Album.where("LOWER(title) LIKE ?", search_term)
+                  .where(is_public: true)
+                  .limit(5)
+                  .pluck(:title)
+    albums.each do |title|
+      results << { label: title, value: title, type: "Album" }
+    end
+
+    render json: results.first(10)
   end
 
   def show

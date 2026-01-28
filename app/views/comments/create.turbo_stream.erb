@@ -1,0 +1,42 @@
+<% if @comment.parent_id.present? %>
+  <%# Reply - append to the parent's replies container %>
+  <%= turbo_stream.append "replies-#{@comment.parent_id}" do %>
+    <%= render partial: 'comments/comment', locals: { comment: @comment, film: @film } %>
+  <% end %>
+
+  <%# Replace the reply form with a fresh hidden one %>
+  <%= turbo_stream.replace "reply-form-#{@comment.parent_id}" do %>
+    <div class="reply-form" id="reply-form-<%= @comment.parent_id %>">
+      <%= form_with model: [@film, Comment.new], url: film_comments_path(@film) do |f| %>
+        <%= f.hidden_field :parent_id, value: @comment.parent_id %>
+        <%= f.text_area :body, placeholder: "Write a reply...", required: true %>
+        <div class="reply-form-actions">
+          <%= f.submit "Post Reply", class: "pill-btn reply-submit-btn" %>
+          <button type="button" class="pill-btn cancel-btn" onclick="toggleReplyForm(<%= @comment.parent_id %>)">Cancel</button>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+<% else %>
+  <%# Remove the "no comments" message if present %>
+  <%= turbo_stream.remove "no-comments-message" %>
+
+  <%# Top-level comment - prepend to comments list %>
+  <%= turbo_stream.prepend "film-comments-list" do %>
+    <%= render partial: 'comments/comment', locals: { comment: @comment, film: @film } %>
+  <% end %>
+
+  <%# Clear the main comment form %>
+  <%= turbo_stream.update "film-comment-form" do %>
+    <%= form_with model: [@film, Comment.new], url: film_comments_path(@film), id: "new-film-comment-form" do |f| %>
+      <div id="comment-form-errors"></div>
+      <%= f.text_area :body, placeholder: "Share your thoughts...", required: true %>
+      <%= f.submit "Post Comment", class: "pill-btn" %>
+    <% end %>
+  <% end %>
+<% end %>
+
+<%# Update the comment count %>
+<%= turbo_stream.update "film-comments-count" do %>
+  Comments (<%= @film.comments.count %>)
+<% end %>
