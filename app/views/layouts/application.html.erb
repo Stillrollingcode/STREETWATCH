@@ -246,15 +246,36 @@
         grid-column: 4 / 6;
       }
       @media (max-width: 768px) {
+        .shell {
+          padding: 0 12px;
+        }
+        .hero {
+          padding-left: 0;
+          padding-right: 0;
+        }
         .cta-row {
           grid-template-columns: 1fr;
+          gap: 10px;
+          padding: 0;
+          margin-left: -12px;
+          margin-right: -12px;
+          padding-left: 12px;
+          padding-right: 12px;
+          max-width: none;
+          width: calc(100% + 24px);
         }
+        .cta-tile,
         .cta-tile:nth-child(1),
         .cta-tile:nth-child(2),
         .cta-tile:nth-child(3),
         .cta-tile:nth-child(4),
         .cta-tile:nth-child(5) {
           grid-column: 1 / -1;
+          width: 100%;
+          display: block;
+          text-align: center;
+          padding: 18px 24px;
+          box-sizing: border-box;
         }
       }
       .cta-tile {
@@ -514,15 +535,19 @@
       @media (max-width: 640px) {
         .nav-inner {
           height: 60px;
-          padding: 0;
-          flex-wrap: nowrap;
+          padding: 0 16px;
+          display: grid;
+          grid-template-columns: 48px 1fr 48px;
           align-items: center;
-          justify-content: center;
+          gap: 8px;
+        }
+        .sidebar-toggle-nav {
+          justify-self: center;
+          margin-right: 0;
         }
         .brand {
-          order: 1;
+          justify-self: center;
           margin-left: 0;
-          align-self: center;
         }
         .brand-logo {
           height: 24px;
@@ -531,6 +556,7 @@
           display: none;
         }
         .nav-actions {
+          justify-self: center;
           display: flex;
           gap: 8px;
         }
@@ -548,11 +574,15 @@
           min-width: auto;
         }
         .activity-menu {
-          right: auto;
-          left: 50%;
-          transform: translateX(-50%);
-          min-width: calc(100vw - 32px);
-          max-width: calc(100vw - 32px);
+          position: fixed;
+          top: 70px;
+          left: 16px;
+          right: 16px;
+          transform: none;
+          min-width: auto;
+          max-width: none;
+          width: auto;
+          max-height: calc(100vh - 100px);
         }
         .hero { padding: 56px 0 40px; }
         .hero-logo {

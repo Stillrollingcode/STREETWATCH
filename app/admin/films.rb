@@ -2,7 +2,7 @@ ActiveAdmin.register Film do
   permit_params :title, :description, :release_date, :custom_filmer_name, :custom_editor_name,
                 :company, :company_user_id, :runtime, :music_featured, :film_type, :parent_film_title,
                 :filmer_user_id, :editor_user_id, :custom_riders, :aspect_ratio, :youtube_url,
-                :thumbnail, :video, :user_id, rider_ids: [], filmer_ids: [], company_ids: []
+                :thumbnail, :video, :user_id, :skip_youtube_thumbnail, rider_ids: [], filmer_ids: [], company_ids: []
 
   # Add "Select All" action across all pages (positioned before other action items)
   action_item :select_all_films, only: :index do
@@ -258,9 +258,15 @@ ActiveAdmin.register Film do
       row "Thumbnail" do |film|
         if film.thumbnail.attached?
           image_tag url_for(film.thumbnail), style: "max-width: 400px;"
-        elsif film.youtube_thumbnail_url
+        elsif film.youtube_thumbnail_url && !film.skip_youtube_thumbnail?
           image_tag film.youtube_thumbnail_url, style: "max-width: 400px;"
+        else
+          status_tag("Using DVD placeholder", class: "warning")
         end
+      end
+
+      row "Skip YouTube Thumbnail" do |film|
+        film.skip_youtube_thumbnail? ? status_tag("Yes", class: "warning") : status_tag("No", class: "ok")
       end
 
       row "Video" do |film|
@@ -419,6 +425,7 @@ ActiveAdmin.register Film do
     f.inputs "Media" do
       f.input :youtube_url, label: "Video URL (YouTube or Vimeo)", hint: "Enter YouTube or Vimeo video URL"
       f.input :thumbnail, as: :file, hint: "Upload custom thumbnail image (auto-downloaded from video platform if not provided)"
+      f.input :skip_youtube_thumbnail, label: "Skip YouTube Auto-Thumbnail", hint: "Check this to use the DVD placeholder instead of YouTube's auto-generated thumbnail"
       f.input :video, as: :file, hint: "Upload video file (will be stored in S3) - TEMPORARILY DISABLED for legal compliance"
     end
 

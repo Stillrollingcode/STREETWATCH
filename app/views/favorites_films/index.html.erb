@@ -54,8 +54,28 @@
       object-fit: cover;
     }
     .film-thumbnail .placeholder {
-      font-size: 40px;
-      opacity: 0.3;
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      z-index: 0;
+      background:
+        radial-gradient(circle at 50% 50%,
+          rgba(70, 70, 75, 1) 0%,
+          rgba(55, 55, 60, 1) 30%,
+          rgba(40, 40, 45, 1) 60%,
+          rgba(28, 28, 32, 1) 100%
+        );
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .film-thumbnail .placeholder-logo {
+      width: 18%;
+      height: auto;
+      opacity: 0.15;
+      margin-bottom: 20%;
+      pointer-events: none;
+      filter: grayscale(100%);
     }
     .favorite-badge {
       position: absolute;
@@ -121,12 +141,13 @@
       <% @films.each do |film| %>
         <%= link_to film, class: "film-card" do %>
           <div class="film-thumbnail" style="aspect-ratio: <%= film.aspect_ratio_css %>;">
-            <% if film.thumbnail.attached? %>
-              <%= image_tag film.thumbnail %>
-            <% elsif film.youtube_thumbnail_url %>
-              <%= image_tag film.youtube_thumbnail_url, alt: film.title %>
+            <% fav_thumbnail = film.display_thumbnail %>
+            <% if fav_thumbnail.present? %>
+              <%= image_tag fav_thumbnail, alt: film.title %>
             <% else %>
-              <div class="placeholder">🎬</div>
+              <div class="placeholder">
+                <img src="/SW-LOGO-2025-WHITE.svg" alt="" class="placeholder-logo" aria-hidden="true">
+              </div>
             <% end %>
             <div class="favorite-badge">♥</div>
           </div>

@@ -313,9 +313,35 @@
   }
   @media (max-width: 768px) {
     .company-badge {
-      width: 100%;
+      width: auto;
       justify-content: center;
       margin-top: 4px;
+      padding: 3px 8px;
+      font-size: 10px;
+    }
+    .settings-btn {
+      padding: 8px 12px;
+      font-size: 12px;
+    }
+    .settings-btn span {
+      display: none;
+    }
+    .settings-btn svg {
+      width: 18px;
+      height: 18px;
+    }
+    .profile-header {
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .avatar-section {
+      width: 100%;
+    }
+    .profile-meta-info h2 {
+      font-size: 18px;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 6px;
     }
   }
   .profile-meta-info .username {
@@ -753,9 +779,11 @@
   }
 
   .profile-shell .film-thumbnail .placeholder {
-    font-size: 48px;
-    opacity: 0.3;
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
     z-index: 0;
+    background: url('/SW-DVD.svg') center/cover no-repeat;
   }
 
   /* Photo thumbnail styling (simple square, no DVD disc effects) */
@@ -866,6 +894,61 @@
 
   @keyframes spin {
     to { transform: rotate(360deg); }
+  }
+
+  /* Mobile film sub-tabs dropdown */
+  .films-subtabs-mobile {
+    display: none;
+  }
+  .films-subtabs-desktop {
+    display: flex;
+  }
+
+  @media (max-width: 640px) {
+    .films-subtabs-desktop {
+      display: none;
+    }
+    .films-subtabs-mobile {
+      display: block;
+      width: 100%;
+      margin-bottom: 16px;
+    }
+    .films-subtabs-mobile select {
+      width: 100%;
+      padding: 12px 36px 12px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      font-size: 14px;
+      font-family: inherit;
+      font-weight: 600;
+      cursor: pointer;
+      appearance: none;
+      background-image: url('data:image/svg+xml,%3Csvg width="12" height="8" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg"%3E%3Cpath d="M1 1L6 6L11 1" stroke="%23999" stroke-width="2" stroke-linecap="round"/%3E%3C/svg%3E');
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+    }
+    /* Film filters - stack vertically with dropdowns on same row */
+    .film-filters-row {
+      flex-direction: column !important;
+      gap: 10px !important;
+    }
+    .film-filters-row .filter-dropdowns {
+      display: flex;
+      gap: 8px;
+      width: 100%;
+      justify-content: center;
+    }
+    .film-filters-row .filter-dropdowns select {
+      flex: 1;
+      min-width: 0;
+    }
+    .film-filters-row .search-box {
+      order: 2;
+      width: 100% !important;
+      min-width: 100% !important;
+    }
   }
 </style>
 <% end %>
@@ -1027,8 +1110,29 @@
 
     <!-- Films Content Section -->
     <div class="content-section <%= 'active' if ordered_tabs.first == 'films' %>" id="films-section">
-      <!-- Films Sub-tabs - counts removed for initial load speed, shown on click -->
-      <div style="display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 8px; flex-wrap: wrap;">
+      <!-- Films Sub-tabs - Mobile dropdown -->
+      <div class="films-subtabs-mobile">
+        <select id="films-subtab-select" data-action="change->profile-tabs#changeSubtabFromSelect">
+          <option value="all-films" selected>All Films</option>
+          <% if @user.profile_type == 'individual' %>
+            <option value="as-rider">As Rider</option>
+            <option value="as-filmer">As Filmer</option>
+            <option value="as-editor">As Editor</option>
+          <% end %>
+          <option value="playlists">Playlists</option>
+          <% if @user.company_type? %>
+            <option value="brand-highlights">Brand Highlights</option>
+          <% elsif @user.profile_type == 'individual' %>
+            <option value="favorite-projects">Favorite Projects</option>
+          <% end %>
+          <% if @is_own_profile %>
+            <option value="pending-films">Pending Approval</option>
+            <option value="hidden-films">Hidden</option>
+          <% end %>
+        </select>
+      </div>
+      <!-- Films Sub-tabs - Desktop buttons -->
+      <div class="films-subtabs-desktop" style="gap: 8px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 8px; flex-wrap: wrap;">
         <a href="#" class="content-sub-tab active" data-subtab="all-films">All Films</a>
         <% if @user.profile_type == 'individual' %>
           <a href="#" class="content-sub-tab" data-subtab="as-rider" data-lazy-subtab="as-rider">As Rider</a>
@@ -1050,16 +1154,24 @@
       <!-- All Films Sub-section -->
       <div class="content-sub-section active" id="all-films-section">
       <!-- Search and Sort Controls (with Film Type Filter) -->
-      <div style="display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; align-items: center;">
-        <select id="film-type-select" data-profile-filters-target="filmType" data-action="change->profile-filters#changeFilters" style="padding: 10px 32px 10px 12px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,0.04); color: var(--text); font-size: 14px; font-family: inherit; cursor: pointer; appearance: none; background-image: url('data:image/svg+xml,%3Csvg width=\'12\' height=\'8\' viewBox=\'0 0 12 8\' fill=\'none\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M1 1L6 6L11 1\' stroke=\'%23999\' stroke-width=\'2\' stroke-linecap=\'round\'/%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 12px center;">
-          <option value="" <%= 'selected' if params[:film_type].blank? %>>All Types</option>
-          <option value="full_length" <%= 'selected' if params[:film_type] == 'full_length' %>>Full Length</option>
-          <option value="rider_part" <%= 'selected' if params[:film_type] == 'rider_part' %>>Rider Part</option>
-          <option value="mixtape" <%= 'selected' if params[:film_type] == 'mixtape' %>>Mixtape</option>
-          <option value="series" <%= 'selected' if params[:film_type] == 'series' %>>Series</option>
-          <option value="b_sides" <%= 'selected' if params[:film_type] == 'b_sides' %>>B-Sides</option>
-          <option value="all_the_rest" <%= 'selected' if params[:film_type] == 'all_the_rest' %>>All The Rest</option>
-        </select>
+      <div class="film-filters-row" style="display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; align-items: center;">
+        <div class="filter-dropdowns" style="display: flex; gap: 8px;">
+          <select id="film-type-select" data-profile-filters-target="filmType" data-action="change->profile-filters#changeFilters" style="padding: 10px 32px 10px 12px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,0.04); color: var(--text); font-size: 14px; font-family: inherit; cursor: pointer; appearance: none; background-image: url('data:image/svg+xml,%3Csvg width=\'12\' height=\'8\' viewBox=\'0 0 12 8\' fill=\'none\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M1 1L6 6L11 1\' stroke=\'%23999\' stroke-width=\'2\' stroke-linecap=\'round\'/%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 12px center;">
+            <option value="" <%= 'selected' if params[:film_type].blank? %>>All Types</option>
+            <option value="full_length" <%= 'selected' if params[:film_type] == 'full_length' %>>Full Length</option>
+            <option value="rider_part" <%= 'selected' if params[:film_type] == 'rider_part' %>>Rider Part</option>
+            <option value="mixtape" <%= 'selected' if params[:film_type] == 'mixtape' %>>Mixtape</option>
+            <option value="series" <%= 'selected' if params[:film_type] == 'series' %>>Series</option>
+            <option value="b_sides" <%= 'selected' if params[:film_type] == 'b_sides' %>>B-Sides</option>
+            <option value="all_the_rest" <%= 'selected' if params[:film_type] == 'all_the_rest' %>>All The Rest</option>
+          </select>
+          <select id="films-sort-select" data-profile-filters-target="filmsSort" data-action="change->profile-filters#changeFilters" style="padding: 10px 32px 10px 12px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,0.04); color: var(--text); font-size: 14px; font-family: inherit; cursor: pointer; appearance: none; background-image: url('data:image/svg+xml,%3Csvg width=\'12\' height=\'8\' viewBox=\'0 0 12 8\' fill=\'none\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M1 1L6 6L11 1\' stroke=\'%23999\' stroke-width=\'2\' stroke-linecap=\'round\'/%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 12px center;">
+            <option value="date_desc" <%= 'selected' if params[:sort] == 'date_desc' || params[:sort].blank? %>>Newest-Oldest</option>
+            <option value="date_asc" <%= 'selected' if params[:sort] == 'date_asc' %>>Oldest-Newest</option>
+            <option value="alpha_asc" <%= 'selected' if params[:sort] == 'alpha_asc' %>>A-Z</option>
+            <option value="alpha_desc" <%= 'selected' if params[:sort] == 'alpha_desc' %>>Z-A</option>
+          </select>
+        </div>
         <div class="search-box" style="flex: 1; min-width: 200px; margin-bottom: 0;">
           <span class="search-icon">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1069,12 +1181,6 @@
           </span>
           <input type="text" id="films-search" data-profile-filters-target="filmsSearch" data-action="input->profile-filters#debouncedSearch keydown->profile-filters#submitSearch" placeholder="Search films..." value="<%= @query %>">
         </div>
-        <select id="films-sort-select" data-profile-filters-target="filmsSort" data-action="change->profile-filters#changeFilters" style="padding: 10px 32px 10px 12px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,0.04); color: var(--text); font-size: 14px; font-family: inherit; cursor: pointer; appearance: none; background-image: url('data:image/svg+xml,%3Csvg width=\'12\' height=\'8\' viewBox=\'0 0 12 8\' fill=\'none\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M1 1L6 6L11 1\' stroke=\'%23999\' stroke-width=\'2\' stroke-linecap=\'round\'/%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 12px center;">
-          <option value="date_desc" <%= 'selected' if params[:sort] == 'date_desc' || params[:sort].blank? %>>Newest-Oldest</option>
-          <option value="date_asc" <%= 'selected' if params[:sort] == 'date_asc' %>>Oldest-Newest</option>
-          <option value="alpha_asc" <%= 'selected' if params[:sort] == 'alpha_asc' %>>A-Z</option>
-          <option value="alpha_desc" <%= 'selected' if params[:sort] == 'alpha_desc' %>>Z-A</option>
-        </select>
       </div>
       <% if @films&.any? %>
         <div data-controller="lazy-load"
@@ -1086,15 +1192,12 @@
           <div class="film-grid" data-lazy-load-target="container">
             <% @films.each do |film| %>
               <%= link_to film_path(film, nav_context: 'profile', nav_id: @user.id), class: "film-card" do %>
+                <% profile_thumbnail = film.display_thumbnail %>
                 <div class="film-thumbnail">
-                  <% if film.display_thumbnail.present? %>
-                    <% if film.display_thumbnail.respond_to?(:attachment) %>
-                      <%= image_tag film.display_thumbnail, alt: film.title, loading: "lazy" %>
-                    <% else %>
-                      <%= image_tag film.display_thumbnail, alt: film.title, loading: "lazy" %>
-                    <% end %>
+                  <% if profile_thumbnail.present? %>
+                    <%= image_tag profile_thumbnail, alt: film.title, loading: "lazy" %>
                   <% else %>
-                    <div class="placeholder">🎬</div>
+                    <div class="placeholder"></div>
                   <% end %>
                   <div class="inner-ring"></div>
                 </div>

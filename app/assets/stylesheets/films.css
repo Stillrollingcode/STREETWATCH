@@ -316,13 +316,11 @@
 }
 
 .dvd-stack-disc .placeholder {
-  font-size: 32px;
-  opacity: 0.3;
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  inset: 0;
+  border-radius: 50%;
   z-index: 0;
+  background: url('/SW-DVD.svg') center/cover no-repeat;
 }
 
 .dvd-more-indicator {
@@ -593,9 +591,11 @@
 }
 
 .films-shell .film-thumbnail .placeholder {
-  font-size: 48px;
-  opacity: 0.3;
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
   z-index: 0;
+  background: url('/SW-DVD.svg') center/cover no-repeat;
 }
 
 /* Film info - scoped to films index page only */

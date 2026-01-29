@@ -212,12 +212,20 @@ class Film < ApplicationRecord
   def display_thumbnail
     if thumbnail.attached?
       thumbnail
-    elsif youtube_thumbnail_url
+    elsif youtube_thumbnail_url && !skip_youtube_thumbnail?
       # This will only be used if thumbnail download failed or hasn't happened yet
       youtube_thumbnail_url
     else
       nil
     end
+  end
+
+  # Check if we should skip the YouTube auto-thumbnail
+  # YouTube generates ugly auto-thumbnails for videos without custom thumbnails
+  # This can be set via the skip_youtube_thumbnail column (if it exists)
+  def skip_youtube_thumbnail?
+    return false unless has_attribute?(:skip_youtube_thumbnail)
+    skip_youtube_thumbnail == true
   end
 
   def published?
@@ -342,6 +350,16 @@ class Film < ApplicationRecord
         downloaded_image = URI.open(thumbnail_url)
       end
 
+      # Check if this is a YouTube auto-generated thumbnail (typically low quality)
+      # Auto-generated thumbnails from maxresdefault are often blurry or letterboxed
+      # If the image is suspiciously small, skip it and use DVD placeholder instead
+      if downloaded_image.size < 15000
+        Rails.logger.info "[FILM #{id}] YouTube thumbnail appears to be auto-generated (small size: #{downloaded_image.size} bytes), skipping"
+        downloaded_image.close
+        update_column(:skip_youtube_thumbnail, true) if has_attribute?(:skip_youtube_thumbnail)
+        return
+      end
+
       # Attach the downloaded image
       thumbnail.attach(
         io: downloaded_image,
@@ -353,9 +371,10 @@ class Film < ApplicationRecord
     rescue => e
       Rails.logger.error "[FILM #{id}] Failed to download YouTube thumbnail: #{e.class} - #{e.message}"
       Rails.logger.error e.backtrace.join("\n")
-      # Don't raise error - thumbnail download failure shouldn't break film creation
+      # If thumbnail download fails, set skip flag so we use DVD placeholder instead
+      update_column(:skip_youtube_thumbnail, true) if has_attribute?(:skip_youtube_thumbnail)
     ensure
-      downloaded_image&.close
+      downloaded_image&.close if defined?(downloaded_image) && downloaded_image
     end
   end
 

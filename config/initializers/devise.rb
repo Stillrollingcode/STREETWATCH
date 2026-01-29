@@ -187,10 +187,9 @@ Devise.setup do |config|
 
   # Options to be passed to the created cookie. For instance, you can set
   # secure: true in order to force SSL only cookies.
-  # Set domain for remember_me cookie to work on custom domain (streetwatch.mov)
+  # Don't set domain - let the browser handle it based on the current host
+  # This allows cookies to work on both streetwatch.mov and railway.app URLs
   config.rememberable_options = {
-    domain: :all,
-    tld_length: 2,
     secure: Rails.env.production?,
     same_site: :lax
   }

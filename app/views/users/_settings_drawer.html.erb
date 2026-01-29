@@ -443,6 +443,10 @@
               <%= pref.label :notify_on_comment, "Comments on Your Films", for: "pref_notify_comment_modal" %>
             </div>
             <div class="notification-toggle">
+              <%= pref.check_box :notify_on_reply, id: "pref_notify_reply_modal" %>
+              <%= pref.label :notify_on_reply, "Replies to Your Comments", for: "pref_notify_reply_modal" %>
+            </div>
+            <div class="notification-toggle">
               <%= pref.check_box :notify_on_mention, id: "pref_notify_mention_modal" %>
               <%= pref.label :notify_on_mention, "Mentions", for: "pref_notify_mention_modal" %>
             </div>

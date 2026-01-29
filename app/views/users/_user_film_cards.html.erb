@@ -1,14 +1,11 @@
 <% films.each do |film| %>
   <%= link_to film_path(film), class: "film-card" do %>
+    <% card_thumbnail = film.display_thumbnail %>
     <div class="film-thumbnail">
-      <% if film.display_thumbnail.present? %>
-        <% if film.display_thumbnail.respond_to?(:attachment) %>
-          <%= image_tag film.display_thumbnail, alt: film.title, loading: "lazy" %>
-        <% else %>
-          <%= image_tag film.display_thumbnail, alt: film.title, loading: "lazy" %>
-        <% end %>
+      <% if card_thumbnail.present? %>
+        <%= image_tag card_thumbnail, alt: film.title, loading: "lazy" %>
       <% else %>
-        <div class="placeholder">🎬</div>
+        <div class="placeholder"></div>
       <% end %>
       <div class="inner-ring"></div>
     </div>

@@ -33,6 +33,8 @@ class Notification < ApplicationRecord
       "New Follower"
     when 'commented'
       "New Comment"
+    when 'replied'
+      "New Reply"
     when 'mentioned'
       "Mentioned"
     when 'favorited'
@@ -72,7 +74,13 @@ class Notification < ApplicationRecord
     when 'followed'
       "#{actor.username} started following you"
     when 'commented'
-      "#{actor.username} commented on your film"
+      if notifiable_type == 'Photo'
+        "#{actor.username} commented on your photo"
+      else
+        "#{actor.username} commented on your film"
+      end
+    when 'replied'
+      "#{actor.username} replied to your comment"
     when 'mentioned'
       "#{actor.username} mentioned you in a comment"
     when 'favorited'
@@ -143,9 +151,11 @@ class Notification < ApplicationRecord
     case action
     when 'followed'
       "/users/#{actor.id}"
-    when 'commented', 'mentioned', 'favorited'
+    when 'commented', 'replied', 'mentioned', 'favorited'
       if notifiable_type == 'Film' && notifiable
         "/films/#{notifiable.id}"
+      elsif notifiable_type == 'Photo' && notifiable
+        "/photos/#{notifiable.id}"
       else
         "/"
       end

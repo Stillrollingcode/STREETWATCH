@@ -10,6 +10,11 @@ class Comment < ApplicationRecord
 
   validates :body, presence: true, length: { minimum: 1, maximum: 5000 }
 
+  after_create_commit :create_notifications
+
+  scope :recent, -> { order(created_at: :desc) }
+  scope :top_level, -> { where(parent_id: nil) }
+
   def liked_by?(user)
     return false unless user
     comment_likes.exists?(user_id: user.id)
@@ -18,9 +23,6 @@ class Comment < ApplicationRecord
   def likes_count
     comment_likes.count
   end
-
-  scope :recent, -> { order(created_at: :desc) }
-  scope :top_level, -> { where(parent_id: nil) }
 
   # Friendly ID prefix for comments: C####
   def self.friendly_id_prefix
@@ -34,5 +36,29 @@ class Comment < ApplicationRecord
 
   def self.ransackable_associations(auth_object = nil)
     ["user", "film", "parent", "replies"]
+  end
+
+  private
+
+  def create_notifications
+    # Notify the film uploader when someone comments (unless it's their own comment)
+    if film.user != user && film.user.preference&.notify_on_comment != false
+      Notification.create(
+        user: film.user,
+        actor: user,
+        notifiable: film,
+        action: 'commented'
+      )
+    end
+
+    # Notify the parent comment author when they receive a reply (unless it's their own reply)
+    if parent.present? && parent.user != user && parent.user.preference&.notify_on_reply != false
+      Notification.create(
+        user: parent.user,
+        actor: user,
+        notifiable: film,
+        action: 'replied'
+      )
+    end
   end
 end

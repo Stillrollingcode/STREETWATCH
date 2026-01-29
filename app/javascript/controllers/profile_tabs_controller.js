@@ -100,4 +100,35 @@ export default class extends Controller {
       claimInfoBanner.style.display = "block"
     }
   }
+
+  changeSubtabFromSelect(event) {
+    const select = event.target
+    const targetSubTab = select.value
+    const parentSection = select.closest(".content-section")
+
+    if (!parentSection || !targetSubTab) {
+      return
+    }
+
+    const parentSubTabs = parentSection.querySelectorAll(".content-sub-tab")
+    const parentSubSections = parentSection.querySelectorAll(".content-sub-section")
+    const targetSection = parentSection.querySelector(`#${targetSubTab}-section`)
+
+    if (!targetSection) {
+      return
+    }
+
+    // Update desktop tabs to stay in sync
+    parentSubTabs.forEach(t => {
+      t.classList.remove("active")
+      if (t.dataset.subtab === targetSubTab) {
+        t.classList.add("active")
+      }
+    })
+
+    parentSubSections.forEach(s => s.classList.remove("active"))
+    targetSection.classList.add("active")
+
+    this.loadLazySection(targetSection)
+  }
 }

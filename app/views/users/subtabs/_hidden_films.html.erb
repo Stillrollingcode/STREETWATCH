@@ -2,11 +2,12 @@
   <div class="film-grid">
     <% films.each do |film| %>
       <%= link_to film_path(film), class: "film-card" do %>
+        <% hidden_thumbnail = film.display_thumbnail %>
         <div class="film-thumbnail">
-          <% if film.display_thumbnail.present? %>
-            <%= image_tag film.display_thumbnail, alt: film.title, loading: "lazy" %>
+          <% if hidden_thumbnail.present? %>
+            <%= image_tag hidden_thumbnail, alt: film.title, loading: "lazy" %>
           <% else %>
-            <div class="placeholder">🎬</div>
+            <div class="placeholder"></div>
           <% end %>
           <div class="inner-ring"></div>
         </div>

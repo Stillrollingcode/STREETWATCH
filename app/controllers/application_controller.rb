@@ -11,6 +11,7 @@ class ApplicationController < ActionController::Base
       :email_notifications_enabled,
       :notify_on_new_follower,
       :notify_on_comment,
+      :notify_on_reply,
       :notify_on_mention,
       :notify_on_favorite,
       :content_tab_order

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_01_26_214842) do
+ActiveRecord::Schema[8.0].define(version: 2026_01_28_000002) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -209,6 +209,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_01_26_214842) do
     t.integer "views_count", default: 0, null: false
     t.integer "reviews_count", default: 0, null: false
     t.decimal "average_rating_cache", precision: 3, scale: 1, default: "0.0", null: false
+    t.boolean "skip_youtube_thumbnail", default: false
     t.index ["average_rating_cache"], name: "index_films_on_average_rating_cache"
     t.index ["company_user_id"], name: "index_films_on_company_user_id"
     t.index ["created_at"], name: "index_films_on_created_at"
@@ -413,6 +414,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_01_26_214842) do
     t.boolean "notify_on_mention", default: true
     t.boolean "notify_on_favorite", default: true
     t.string "content_tab_order", default: "films,photos,articles"
+    t.boolean "notify_on_reply", default: true
     t.index ["user_id"], name: "index_user_preferences_on_user_id", unique: true
   end
 

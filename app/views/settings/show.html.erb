@@ -271,25 +271,70 @@
     const exampleLight = document.getElementById('example-light');
     const exampleGradient = document.getElementById('example-gradient');
 
+    // Helper function to convert HSL to RGB for rgba fallback
+    function hslToRgb(h, s, l) {
+      h = h / 360;
+      s = s / 100;
+      l = l / 100;
+      var r, g, b;
+      if (s === 0) {
+        r = g = b = l;
+      } else {
+        function hue2rgb(p, q, t) {
+          if (t < 0) t += 1;
+          if (t > 1) t -= 1;
+          if (t < 1/6) return p + (q - p) * 6 * t;
+          if (t < 1/2) return q;
+          if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+          return p;
+        }
+        var q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        var p = 2 * l - q;
+        r = hue2rgb(p, q, h + 1/3);
+        g = hue2rgb(p, q, h);
+        b = hue2rgb(p, q, h - 1/3);
+      }
+      return {
+        r: Math.round(r * 255),
+        g: Math.round(g * 255),
+        b: Math.round(b * 255)
+      };
+    }
+
     if (slider) {
-      slider.addEventListener('input', (e) => {
-        const hue = e.target.value;
+      slider.addEventListener('input', function(e) {
+        var hue = e.target.value;
         hueValue.textContent = hue;
 
-        const primaryColor = `hsl(${hue}, 45%, 45%)`;
-        const lightColor = `hsl(${hue}, 45%, 55%)`;
-        const gradientColor = `linear-gradient(135deg, hsl(${hue}, 45%, 45%), hsl(${hue}, 45%, 35%))`;
+        var primaryColor = 'hsl(' + hue + ', 45%, 45%)';
+        var lightColor = 'hsl(' + hue + ', 45%, 55%)';
+        var gradientColor = 'linear-gradient(135deg, hsl(' + hue + ', 45%, 45%), hsl(' + hue + ', 45%, 35%))';
 
+        // Update preview swatches
         colorPreview.style.backgroundColor = primaryColor;
         examplePrimary.style.background = primaryColor;
         exampleLight.style.background = lightColor;
         exampleGradient.style.background = gradientColor;
+
+        // Calculate secondary hue (offset by 30 degrees for complementary feel)
+        var secondaryHue = (parseInt(hue, 10) + 30) % 360;
+
+        // Update CSS variables on root for live preview across the page
+        var root = document.documentElement;
+        root.style.setProperty('--accent', primaryColor);
+        root.style.setProperty('--accent-2', 'hsl(' + secondaryHue + ', 45%, 45%)');
+
+        // Also update rgba versions for older browser compatibility
+        var rgb = hslToRgb(parseInt(hue, 10), 45, 45);
+        var rgb2 = hslToRgb(secondaryHue, 45, 45);
+        root.style.setProperty('--accent-rgb', rgb.r + ', ' + rgb.g + ', ' + rgb.b);
+        root.style.setProperty('--accent-2-rgb', rgb2.r + ', ' + rgb2.g + ', ' + rgb2.b);
       });
     }
   });
 
-  document.addEventListener('turbo:load', () => {
-    const slider = document.getElementById('accent-hue-slider');
+  document.addEventListener('turbo:load', function() {
+    var slider = document.getElementById('accent-hue-slider');
     if (slider) {
       // Trigger initial update
       slider.dispatchEvent(new Event('input'));

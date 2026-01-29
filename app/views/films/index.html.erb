@@ -147,11 +147,12 @@
             <div class="dvd-stack-discs">
               <% films.each_with_index do |film, index| %>
                 <%= link_to film_path(film, nav_context: 'films', nav_sort: params[:sort], nav_type: params[:film_type]), data: { turbo_frame: "_top" }, style: "z-index: #{5 - index};" do %>
+                  <% stack_thumbnail = film.display_thumbnail %>
                   <div class="dvd-stack-disc">
-                    <% if film.display_thumbnail.present? %>
-                      <%= image_tag film.display_thumbnail, alt: film.title, loading: "lazy" %>
+                    <% if stack_thumbnail.present? %>
+                      <%= image_tag stack_thumbnail, alt: film.title, loading: "lazy" %>
                     <% else %>
-                      <div class="placeholder">🎬</div>
+                      <div class="placeholder"></div>
                     <% end %>
                     <div class="inner-ring"></div>
                   </div>
